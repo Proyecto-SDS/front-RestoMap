@@ -34,27 +34,35 @@ jobs:
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
           
+          # --- Obtener URL del Backend ---
           echo "Buscando URL del servicio backend: ${{ env.BACKEND_SERVICE_NAME }}"
+          # Nota: Agregué '|| true' para que no rompa el pipeline si falla la consulta,
+          # y un fallback por si acaso.
+          BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --region ${{ env.REGION }} --format 'value(status.url)' 2>/dev/null) || true
           
-          # Intentamos obtener la URL de PROD. Si falla, usamos un placeholder para no romper el build.
-          if ! BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --region ${{ env.REGION }} --format 'value(status.url)' 2>/dev/null); then
-            echo "⚠️ ADVERTENCIA: No se encontró el servicio Backend PROD."
-            BACKEND_URL="https://api-prod-pendiente.run.app"
+          if [ -z "$BACKEND_URL" ]; then
+             echo "⚠️ No se pudo obtener la URL del backend automáticamente."
+             # Aquí puedes poner una URL temporal o dejar que falle si es crítico
+             BACKEND_URL="https://backend-prod-XXXXXXXX.a.run.app" 
           fi
           
-          echo "URL Backend Prod encontrada: $BACKEND_URL"
+          echo "Usando URL Backend: $BACKEND_URL"
           
           IMAGE_TAG="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/frontend-prod:${{ github.sha }}"
           
-          # Crear carpeta public por seguridad (como hicimos en QA)
-          mkdir -p public
-          
-          # Construcción
+          # --- BUILD ---
+          # Al estar en la raíz, NO usamos -f frontend/Dockerfile
+          # Usamos '.' al final para indicar el directorio actual
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=$BACKEND_URL \
             -t $IMAGE_TAG .
             
           docker push $IMAGE_TAG
           
-          # Despliegue (con min-instances 1 para mejor rendimiento en prod)
-          gcloud run deploy ${{ env.SERVICE_NAME }} --image $IMAGE_TAG --region ${{ env.REGION }} --allow-unauthenticated --min-instances 1
+          # --- DEPLOY ---
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image $IMAGE_TAG \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 3000 \
+            --min-instances 1
