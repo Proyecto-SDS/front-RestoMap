@@ -63,6 +63,3 @@ ENV HOSTNAME="0.0.0.0"
 
 # Arrancar el servidor
 CMD ["node", "server.js"]
-# Arrancar el servidor
-
-CMD ["node", "server.js"]
