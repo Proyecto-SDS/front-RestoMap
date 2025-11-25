@@ -1,206 +1,128 @@
-# 🍽️ ReservaYa - Aplicación de Reservas de Restaurantes
+# Frontend - ReservaYa
 
-Aplicación móvil web para buscar restaurantes, hacer reservas con pre-orden de comida y generar códigos QR para mostrar al llegar.
+Aplicación frontend basada en Next.js 16 + React 19 + TypeScript para el sistema de reservas de locales.
 
-## 📱 Características Principales
+## Tabla de Contenidos
 
-- ✅ **Sistema de Autenticación** - Login y registro con recuperación de contraseña
-- 🗺️ **Mapa Interactivo** - Búsqueda de restaurantes por ubicación o nombre
-- 📋 **Detalles de Restaurante** - Información completa, menú y sistema de favoritos
-- 🍴 **Pre-orden de Comida** - Selección de platos antes de llegar
-- 📱 **Código QR** - Generación de QR real y descargable para confirmar reservas
-- ⭐ **Favoritos** - Guarda tus restaurantes preferidos
-- 📅 **Mis Reservas** - Historial completo de reservas activas y pasadas
-- 👤 **Perfil de Usuario** - Menú con configuración y gestión de cuenta
+- [Requisitos](#requisitos)
+- [Configuración](#configuración)
+- [Instalación](#instalación)
+- [Scripts Disponibles](#scripts-disponibles)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Tecnologías](#tecnologías)
 
-## 🎨 Sistema de Colores
+## Requisitos
 
-La aplicación utiliza una paleta cálida y gastronómica:
+- Node.js 20.x o superior
+- npm o yarn
+- Backend corriendo en http://localhost:5000
 
-- **Naranja Principal**: `#FF6B35` - Acción y energía
-- **Amarillo Dorado**: `#FFD23F` - Calidez y apetito
-- **Verde Fresco**: `#27AE60` - Confirmación y éxito
-- **Rojo Pasión**: `#E74C3C` - Urgencia y destacados
-- **Crema Suave**: `#FFF8E7` - Fondos cálidos
-- **Gris Oscuro**: `#2C3E50` - Textos y contraste
+## Configuración
 
-Ver documentación completa en `/COLOR_SYSTEM.md`
+### Variables de Entorno
 
-## 🏗️ Estructura del Proyecto
+Copia el archivo `.env.local.example` a `.env.local`:
 
-```
-/
-├── App.tsx                          # Componente principal y enrutamiento
-├── components/
-│   ├── LoginScreen.tsx              # Pantalla de inicio de sesión
-│   ├── RegisterScreen.tsx           # Pantalla de registro
-│   ├── MapScreen.tsx                # Mapa principal con restaurantes
-│   ├── RestaurantDetails.tsx        # Detalles y menú del restaurante
-│   ├── QRConfirmation.tsx           # Confirmación con código QR
-│   ├── ReservationsScreen.tsx       # Historial de reservas
-│   ├── FavoritesScreen.tsx          # Restaurantes favoritos
-│   ├── UserMenu.tsx                 # Menú de usuario
-│   ├── Logo.tsx                     # Logo de la aplicación
-│   └── ui/                          # Componentes de ShadCN UI
-├── styles/
-│   └── globals.css                  # Estilos globales y tokens
-└── COLOR_SYSTEM.md                  # Documentación de paleta de colores
+```bash
+cp .env.local.example .env.local
 ```
 
-## 🛠️ Tecnologías Utilizadas
+Edita `.env.local` con tus credenciales:
 
-- **React 18** - Framework principal
-- **TypeScript** - Tipado estático
-- **Tailwind CSS v4** - Estilos y diseño
-- **ShadCN UI** - Componentes de interfaz
-- **Lucide React** - Iconografía
-- **React QR Code** - Generación de códigos QR
-- **Sonner** - Notificaciones toast
-- **Leaflet** - Mapas interactivos
-
-## 📦 Dependencias Principales
-
-```json
-{
-  "react": "^18.x",
-  "lucide-react": "latest",
-  "react-qr-code": "latest",
-  "react-leaflet": "latest",
-  "leaflet": "latest",
-  "sonner": "^2.0.3"
-}
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=tu_token_de_mapbox
 ```
 
-## 🚀 Instalación y Configuración
+## Instalación
 
-### Desde Figma Make:
-1. Abre el proyecto en Figma Make
-2. Haz clic en "Share" o "Export"
-3. Selecciona tu opción preferida (CodeSandbox, Stackblitz, ZIP)
-
-### Instalación Local:
 ```bash
 # Instalar dependencias
 npm install
+```
 
-# Iniciar servidor de desarrollo
+## Scripts Disponibles
+
+```bash
+# Desarrollo (hot-reload en http://localhost:3000)
 npm run dev
 
-# Construir para producción
+# Build de producción
 npm run build
+
+# Iniciar servidor de producción
+npm run start
+
+# Linter
+npm run lint
 ```
 
-## 📖 Guía de Uso
+## Tecnologías
 
-### Flujo de Usuario:
+### Core
 
-1. **Login/Registro** → Usuario inicia sesión o crea cuenta
-2. **Mapa Principal** → Busca restaurantes cercanos o por nombre
-3. **Detalles** → Ve información, menú, fotos y reseñas
-4. **Hacer Reserva** → Selecciona fecha, hora, personas y pre-orden
-5. **Confirmación QR** → Recibe código QR descargable
-6. **Mis Reservas** → Accede al historial y códigos QR guardados
+- **Next.js** 16.0.4 - Framework React con SSR
+- **React** 19.2.0 - Librería UI
+- **TypeScript** 5.9.3 - Tipado estático
 
-### Gestión de Favoritos:
-- Toca el ícono de corazón en cualquier restaurante
-- Accede a la lista desde el menú de usuario
-- Elimina favoritos deslizando hacia la izquierda
+### UI Components
 
-### Sistema de Reservas:
-- Las reservas se guardan automáticamente al confirmar
-- Códigos QR reales y escaneables
-- Descarga o comparte el QR con otros
-- Historial completo con estados (confirmada, completada, cancelada)
+- **Radix UI** - Componentes accesibles sin estilos
+- **shadcn/ui** - Sistema de componentes
+- **Tailwind CSS** 4.x - CSS utility-first
+- **Lucide React** - Iconos
 
-## 🎨 Personalización
+### Maps
 
-### Cambiar Colores:
-Edita los tokens en `/styles/globals.css`:
+- **Mapbox GL** 3.16.0 - Mapas interactivos
 
-```css
-:root {
-  --primary-orange: #FF6B35;
-  --primary-yellow: #FFD23F;
-  --success-green: #27AE60;
-  /* ... más colores */
-}
+### Forms & State
+
+- **React Hook Form** 7.55.0 - Manejo de formularios
+- **Next Themes** 0.4.6 - Tema claro/oscuro
+
+### Charts
+
+- **Recharts** 2.15.2 - Gráficos y visualizaciones
+
+## Diseño
+
+El diseño está basado en el Design System de Figma:  
+https://www.figma.com/design/wTlXgTLgOZIRba5oUvNODU/Design-System-for-ReservaYa
+
+## API Client
+
+El cliente de API (`src/utils/apiClient.ts`) maneja todas las peticiones al backend Flask:
+
+- Autenticación (login, register, logout)
+- Perfil de usuario
+- Establecimientos (listado, detalle, horarios, fotos, menú)
+- Opiniones (listado, crear)
+- Reservas (disponibilidad, crear)
+- Comunas
+
+## Problemas Comunes
+
+### Error de conexión con el backend
+
+Verifica que:
+
+1. El backend esté corriendo en `http://localhost:5000`
+2. La variable `NEXT_PUBLIC_API_URL` esté configurada correctamente
+3. CORS esté habilitado en el backend (Flask-CORS)
+
+### Error con Mapbox
+
+Asegúrate de tener un token válido de Mapbox en `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`.
+
+### Errores de TypeScript
+
+```bash
+# Limpiar cache de TypeScript
+rm -rf .next
+npm run dev
 ```
 
-### Agregar Nuevos Restaurantes:
-Edita el array `mockRestaurants` en `MapScreen.tsx`:
+## Contacto
 
-```tsx
-const mockRestaurants = [
-  {
-    id: number,
-    name: string,
-    cuisine: string,
-    rating: number,
-    position: [lat, lng],
-    // ... más propiedades
-  }
-];
-```
-
-## 🔐 Datos de Prueba
-
-### Usuario de Prueba:
-- **Email**: `demo@reservaya.com`
-- **Contraseña**: `Demo123!`
-
-### Características de Demo:
-- Sistema de autenticación simulado
-- Datos guardados en localStorage
-- 10 restaurantes de ejemplo
-- Pre-órdenes y reservas persistentes
-
-## 🌟 Características Avanzadas
-
-### Códigos QR:
-- Generación real usando `react-qr-code`
-- Nivel de corrección: Alto (H)
-- Contiene: ID, restaurante, fecha, hora, personas
-- Descarga como PNG de 1000x1000px
-- Compartir vía API nativa o portapapeles
-
-### Mapas:
-- Integración con Leaflet
-- Marcadores personalizados
-- Búsqueda por ubicación
-- Filtros por tipo de cocina
-
-### Persistencia:
-- LocalStorage para autenticación
-- Favoritos sincronizados
-- Historial de reservas
-- Carrito de pre-orden
-
-## 📝 Notas de Desarrollo
-
-- Componentes modulares y reutilizables
-- Sistema de diseño consistente
-- Responsive (móvil primero)
-- Accesibilidad con componentes ShadCN
-- Código limpio y documentado
-
-## 🤝 Contribuir
-
-Para colaborar en este proyecto:
-
-1. Exporta el código desde Figma Make
-2. Crea un fork del proyecto
-3. Realiza tus cambios
-4. Documenta nuevas funcionalidades
-5. Comparte los cambios con el equipo
-
-## 📄 Licencia
-
-Proyecto creado con Figma Make para fines educativos y de demostración.
-
-## 📧 Contacto
-
-Para dudas o sugerencias sobre el proyecto ReservaYa.
-
----
-
-**Creado con ❤️ en Figma Make**
+Para dudas o sugerencias, contacta al equipo de desarrollo.
