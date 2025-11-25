@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Usamos 'npm ci' para instalar exactamente las versiones del lockfile
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # 3. Construir (Builder)
 FROM base AS builder
