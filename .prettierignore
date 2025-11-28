@@ -1,0 +1,25 @@
+# Dependencias
+node_modules
+package-lock.json
+
+# Build
+.next
+out
+dist
+build
+
+# Cache
+.turbo
+.cache
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Otros
+*.md
+public
