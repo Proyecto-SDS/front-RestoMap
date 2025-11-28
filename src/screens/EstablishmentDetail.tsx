@@ -655,62 +655,82 @@ function ReservasTab({
   const [partySize, setPartySize] = useState(2);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingMesas, setIsCheckingMesas] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmationNumber] = useState(`RY${Date.now()}`);
+  const [reservaCreada, setReservaCreada] = useState<any>(null);
   const [availableMesas, setAvailableMesas] = useState<any[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Función para obtener horarios disponibles según la fecha seleccionada
-  const getTimeSlotsForDate = (dateStr: string): string[] => {
-    if (!establishment?.horarios || !dateStr) return [];
+  const getTimeSlotsForDate = async (dateStr: string): Promise<string[]> => {
+    if (!establishmentId || !dateStr) return [];
 
-    const date = new Date(dateStr + 'T00:00:00');
-    const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // 1=Lunes, 7=Domingo
-
-    // Buscar el horario para ese día
-    const horario = establishment.horarios.find(
-      (h: any) => h.diaNumero === dayOfWeek && h.abierto
-    );
-
-    if (!horario) return [];
-
-    // Generar slots desde apertura hasta 1 hora antes del cierre
-    const closeTime = subtractOneHour(horario.cierre);
-    return generateTimeSlots(horario.apertura, closeTime);
+    try {
+      const response = await api.getAvailableTimeSlots(
+        establishmentId,
+        dateStr
+      );
+      return response.horarios || [];
+    } catch (error) {
+      console.error('Error al obtener horarios disponibles:', error);
+      return [];
+    }
   };
 
   // Actualizar slots cuando cambia la fecha
   useEffect(() => {
     if (selectedDate) {
-      const slots = getTimeSlotsForDate(selectedDate);
-      setAvailableTimeSlots(slots);
-      // Resetear hora seleccionada si no está disponible
-      if (selectedTime && !slots.includes(selectedTime)) {
-        setSelectedTime('');
-      }
+      const fetchSlots = async () => {
+        const slots = await getTimeSlotsForDate(selectedDate);
+        setAvailableTimeSlots(slots);
+        // Resetear hora seleccionada si no está disponible
+        if (selectedTime && !slots.includes(selectedTime)) {
+          setSelectedTime('');
+        }
+      };
+      fetchSlots();
     }
-  }, [selectedDate, establishment]);
+  }, [selectedDate, establishmentId]);
 
-  // Mock function to check mesa availability
-  const checkMesaAvailability = (date: string, time: string) => {
-    // Simulate API call: GET /api/establecimientos/{id}/reservas?fecha={date}&hora={time}
-    const bookedMesas = ['t4']; // Mock booked mesas
-    return tables.map((mesa: any) => ({
-      ...mesa,
-      estado: bookedMesas.includes(mesa.id)
-        ? 'reservada'
-        : mesa.estado || 'disponible',
-    }));
+  // Función para verificar disponibilidad de mesas
+  const checkMesaAvailability = async (date: string, time: string) => {
+    if (!establishmentId) return [];
+
+    try {
+      const response = await api.getAvailableTables(
+        establishmentId,
+        date,
+        time
+      );
+      return response.mesas || [];
+    } catch (error) {
+      console.error('Error al verificar disponibilidad de mesas:', error);
+      return tables;
+    }
   };
 
   // Check availability when date and time are selected
   useEffect(() => {
     if (selectedDate && selectedTime && !tablesLoading) {
-      const available = checkMesaAvailability(selectedDate, selectedTime);
-      setAvailableMesas(available);
+      const fetchAvailability = async () => {
+        setIsCheckingMesas(true);
+        try {
+          const available = await checkMesaAvailability(
+            selectedDate,
+            selectedTime
+          );
+          setAvailableMesas(available);
+        } catch (error) {
+          console.error('Error al verificar disponibilidad:', error);
+          setAvailableMesas(tables);
+        } finally {
+          setIsCheckingMesas(false);
+        }
+      };
+      fetchAvailability();
     }
-  }, [selectedDate, selectedTime, tablesLoading]);
+  }, [selectedDate, selectedTime, tablesLoading, establishmentId]);
 
   const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
@@ -767,6 +787,11 @@ function ReservasTab({
       );
 
       if (response.success) {
+        // Guardar los datos de la reserva creada
+        console.log('Reserva creada:', response.reserva);
+        console.log('¿Tiene QR?', !!response.reserva?.qrImage);
+        console.log('Código QR:', response.reserva?.codigoQR);
+        setReservaCreada(response.reserva);
         // Success - go to step 6
         setReservationStep(6);
       } else {
@@ -825,19 +850,22 @@ function ReservasTab({
             {/* Date Picker - Temporal input básico */}
             <div>
               <label className="block text-sm text-[#334155] mb-2">Fecha</label>
-              <div 
+              <div
                 className="relative cursor-pointer"
                 onClick={(e) => {
                   // Evitar que se propague si ya estamos en el input
                   if (e.target === dateInputRef.current) return;
-                  
+
                   // Simular un click en el input para abrir el picker
                   const input = dateInputRef.current;
                   if (input) {
                     try {
                       input.focus();
                       // Intentar usar showPicker si está disponible
-                      if ('showPicker' in input && typeof input.showPicker === 'function') {
+                      if (
+                        'showPicker' in input &&
+                        typeof input.showPicker === 'function'
+                      ) {
                         input.showPicker();
                       }
                     } catch (error) {
@@ -860,7 +888,10 @@ function ReservasTab({
                   max={getMaxDate()}
                   onClick={(e) => {
                     try {
-                      if ('showPicker' in e.currentTarget && typeof e.currentTarget.showPicker === 'function') {
+                      if (
+                        'showPicker' in e.currentTarget &&
+                        typeof e.currentTarget.showPicker === 'function'
+                      ) {
                         e.currentTarget.showPicker();
                       }
                     } catch (error) {
@@ -904,7 +935,7 @@ function ReservasTab({
               </select>
               {selectedDate && availableTimeSlots.length === 0 && (
                 <p className="text-xs text-[#EF4444] mt-1">
-                  El establecimiento está cerrado este día
+                  No hay horarios disponibles para esta fecha.
                 </p>
               )}
             </div>
@@ -948,17 +979,31 @@ function ReservasTab({
         </div>
 
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableMesas.map((mesa) => {
-              const isAvailable = mesa.estado === 'disponible';
-              const isSelected = selectedMesa?.id === mesa.id;
+          {isCheckingMesas ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#F97316] mb-3"></div>
+              <p className="text-[#64748B]">
+                Verificando disponibilidad de mesas...
+              </p>
+            </div>
+          ) : availableMesas.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[#64748B]">
+                No hay mesas disponibles para este horario.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableMesas.map((mesa) => {
+                const isAvailable = mesa.estado === 'disponible';
+                const isSelected = selectedMesa?.id === mesa.id;
 
-              return (
-                <button
-                  key={mesa.id}
-                  onClick={() => isAvailable && setSelectedMesa(mesa)}
-                  disabled={!isAvailable}
-                  className={`
+                return (
+                  <button
+                    key={mesa.id}
+                    onClick={() => isAvailable && setSelectedMesa(mesa)}
+                    disabled={!isAvailable}
+                    className={`
                     p-4 rounded-xl border-3 text-left transition-all
                     ${
                       !isAvailable
@@ -971,28 +1016,29 @@ function ReservasTab({
                         : 'border-[#E2E8F0]'
                     }
                   `}
-                  style={{ borderWidth: isSelected ? '3px' : '1px' }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="text-[#334155]">{mesa.nombre}</h4>
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        isAvailable
-                          ? 'bg-[#22C55E]/10 text-[#22C55E]'
-                          : 'bg-[#94A3B8]/10 text-[#94A3B8]'
-                      }`}
-                    >
-                      {isAvailable ? 'Disponible' : 'Reservada'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-[#64748B]">
-                    <Users size={16} />
-                    <span>Capacidad: {mesa.capacidad} personas</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    style={{ borderWidth: isSelected ? '3px' : '1px' }}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-[#334155]">{mesa.nombre}</h4>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          isAvailable
+                            ? 'bg-[#22C55E]/10 text-[#22C55E]'
+                            : 'bg-[#94A3B8]/10 text-[#94A3B8]'
+                        }`}
+                      >
+                        {isAvailable ? 'Disponible' : 'Reservada'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-[#64748B]">
+                      <Users size={16} />
+                      <span>Capacidad: {mesa.capacidad} personas</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -1294,27 +1340,57 @@ function ReservasTab({
               <span className="text-[#334155]">{partySize}</span>
             </div>
 
-            <div className="pt-3">
-              <label className="block text-sm text-[#64748B] mb-2">
-                Código de confirmación
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={confirmationNumber}
-                  readOnly
-                  className="flex-1 px-4 py-2 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0] text-[#334155]"
-                />
-                <button
-                  onClick={() =>
-                    navigator.clipboard.writeText(confirmationNumber)
-                  }
-                  className="px-4 py-2 text-sm text-[#F97316] hover:text-[#EA580C] transition-colors"
-                >
-                  Copiar
-                </button>
+            {reservaCreada?.qrImage ? (
+              <div className="pt-3">
+                <label className="block text-sm text-[#64748B] mb-4 text-center">
+                  Código QR de confirmación
+                </label>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-white p-4 rounded-xl border-2 border-[#F97316]">
+                    <img
+                      src={reservaCreada.qrImage}
+                      alt="Código QR de reserva"
+                      className="w-48 h-48"
+                    />
+                  </div>
+                  {reservaCreada.codigoQR && (
+                    <div className="text-center">
+                      <p className="text-xs text-[#64748B] mb-1">Código:</p>
+                      <p className="text-sm font-mono text-[#334155] bg-[#F1F5F9] px-3 py-1 rounded">
+                        {reservaCreada.codigoQR}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-xs text-[#64748B] text-center max-w-sm">
+                    Presenta este código QR al llegar al establecimiento
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="pt-3">
+                <label className="block text-sm text-[#64748B] mb-2">
+                  Código de confirmación
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={reservaCreada?.codigoQR || 'Generando...'}
+                    readOnly
+                    className="flex-1 px-4 py-2 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0] text-[#334155]"
+                  />
+                  {reservaCreada?.codigoQR && (
+                    <button
+                      onClick={() =>
+                        navigator.clipboard.writeText(reservaCreada.codigoQR)
+                      }
+                      className="px-4 py-2 text-sm text-[#F97316] hover:text-[#EA580C] transition-colors"
+                    >
+                      Copiar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

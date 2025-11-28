@@ -61,6 +61,8 @@ export interface Reservation {
   guests: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   specialRequests?: string;
+  codigoQR?: string; // Código QR en texto
+  qrImage?: string; // Imagen QR en base64
 }
 
 // Extended types for detailed establishment views

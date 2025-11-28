@@ -100,6 +100,12 @@ export const api = {
   getEstablishmentReservations: (id: string, fecha: string) =>
     apiCall(`/api/locales/${id}/reservas?fecha=${fecha}`),
 
+  getAvailableTimeSlots: (id: string, fecha: string) =>
+    apiCall(`/api/locales/${id}/horarios-disponibles?fecha=${fecha}`),
+
+  getAvailableTables: (id: string, fecha: string, hora: string) =>
+    apiCall(`/api/locales/${id}/mesas-disponibles?fecha=${fecha}&hora=${hora}`),
+
   // Opinion endpoints
   getEstablishmentOpinions: (
     id: string,
