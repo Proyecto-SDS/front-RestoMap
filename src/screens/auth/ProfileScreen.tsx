@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -182,19 +184,8 @@ export default function ProfileScreen() {
     setConfirmDialog({ isOpen: true, type: 'cancel_reservation', itemId: id });
   };
 
-  const handleRemoveFavorite = async (id: string) => {
-    try {
-      const favorite = favorites.find((f) => f.id === id);
-      if (!favorite) return;
-
-      await api.removeFavorite(favorite.establishment.id);
-
-      setFavorites((prev) => prev.filter((f) => f.id !== id));
-      showToast('success', 'Eliminado de favoritos');
-    } catch (error: any) {
-      console.error('Error removing favorite:', error);
-      showToast('error', 'Error al eliminar favorito');
-    }
+  const handleRemoveFavorite = (id: string) => {
+    setConfirmDialog({ isOpen: true, type: 'remove_favorite', itemId: id });
   };
 
   const handleConfirmAction = () => {
@@ -210,6 +201,20 @@ export default function ProfileScreen() {
       );
       showToast('success', 'Reserva cancelada correctamente');
       setSelectedReservation(null);
+    } else if (type === 'remove_favorite') {
+      const favorite = favorites.find((f) => f.id === itemId);
+      if (favorite) {
+        api
+          .removeFavorite(favorite.establishment.id)
+          .then(() => {
+            setFavorites((prev) => prev.filter((f) => f.id !== itemId));
+            showToast('success', 'Eliminado de favoritos');
+          })
+          .catch((error) => {
+            console.error('Error removing favorite:', error);
+            showToast('error', 'Error al eliminar favorito');
+          });
+      }
     }
 
     setConfirmDialog({ isOpen: false, type: null, itemId: null });
@@ -235,14 +240,17 @@ export default function ProfileScreen() {
         message:
           'No podrás recuperarla. Puedes reservar nuevamente si lo deseas.',
         warning: 'Nota: Algunas políticas de cancelación pueden aplicar',
-        confirmText: 'Sí, cancelar',
-        cancelText: 'No, mantener',
+        confirmText: 'Sí, cancelar reserva',
+        cancelText: 'No, mantener reserva',
         isDestructive: true,
       };
-    } else if (type === 'remove_favorite') {
+    }
+
+    if (type === 'remove_favorite') {
       return {
         title: '¿Quitar de favoritos?',
-        message: 'Puedes agregarlo nuevamente cuando quieras',
+        message:
+          '¿Estás seguro que deseas quitar este establecimiento de tus favoritos?',
         confirmText: 'Sí, quitar',
         cancelText: 'Cancelar',
         isDestructive: false,
@@ -336,7 +344,7 @@ export default function ProfileScreen() {
               }}
               onSortChange={setOpinionSort}
               onViewEstablishment={(id) =>
-                router.push(`/establecimiento/${id}`)
+                router.push(`/establecimientos/${id}`)
               }
             />
           )}
@@ -357,7 +365,7 @@ export default function ProfileScreen() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               onSortChange={setFavoriteSort}
-              onVisit={(id) => router.push(`/establecimiento/${id}`)}
+              onVisit={(id) => router.push(`/establecimientos/${id}`)}
               onRemove={handleRemoveFavorite}
             />
           )}
@@ -369,7 +377,7 @@ export default function ProfileScreen() {
           reservation={selectedReservation}
           onClose={() => setSelectedReservation(null)}
           onCancel={handleCancelReservation}
-          onViewEstablishment={(id) => router.push(`/establecimiento/${id}`)}
+          onViewEstablishment={(id) => router.push(`/establecimientos/${id}`)}
           onCopyConfirmation={handleCopyConfirmation}
         />
       )}

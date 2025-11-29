@@ -24,6 +24,7 @@ import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { TabNavigation } from '../components/navigation/TabNavigation';
+import { ConfirmDialog } from '../components/profile/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import type {
   DetailedEstablishment,
@@ -78,10 +79,9 @@ function EstablishmentHeader({
   isFavorite,
   onToggleFavorite,
 }: any) {
-  // Priorizar banner, luego hero, luego la primera imagen disponible
+  // Priorizar banner, luego la primera imagen disponible
   const bannerImage =
     establishment.images?.banner?.[0] ||
-    establishment.images?.hero?.[0] ||
     establishment.images?.todas?.[0] ||
     establishment.image || // Fallback para compatibilidad
     '/placeholder-restaurant.jpg';
@@ -1421,6 +1421,7 @@ export default function EstablishmentDetail() {
   const [activeTab, setActiveTab] = useState('informacion');
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Estados para datos de la API
   const [establishment, setEstablishment] =
@@ -1618,19 +1619,31 @@ export default function EstablishmentDetail() {
 
     if (isLoadingFavorite) return;
 
-    try {
-      setIsLoadingFavorite(true);
-
-      if (isFavorite) {
-        await api.removeFavorite(id);
-        setIsFavorite(false);
-      } else {
+    if (isFavorite) {
+      setShowConfirmDialog(true);
+    } else {
+      try {
+        setIsLoadingFavorite(true);
         await api.addFavorite(id);
         setIsFavorite(true);
+      } catch (error: any) {
+        console.error('Error al agregar favorito:', error);
+        alert(error.message || 'Error al agregar favorito');
+      } finally {
+        setIsLoadingFavorite(false);
       }
+    }
+  };
+
+  const handleConfirmRemoveFavorite = async () => {
+    try {
+      setIsLoadingFavorite(true);
+      await api.removeFavorite(id);
+      setIsFavorite(false);
+      setShowConfirmDialog(false);
     } catch (error: any) {
-      console.error('Error al actualizar favorito:', error);
-      alert(error.message || 'Error al actualizar favorito');
+      console.error('Error al eliminar favorito:', error);
+      alert(error.message || 'Error al eliminar favorito');
     } finally {
       setIsLoadingFavorite(false);
     }
@@ -1695,7 +1708,7 @@ export default function EstablishmentDetail() {
             <InformacionTab
               establishment={establishment}
               hours={establishment.horarios || []}
-              photos={establishment.images?.todas || []}
+              photos={establishment.images?.capturas || []}
             />
           )}
           {activeTab === 'menu' && (
@@ -1725,6 +1738,18 @@ export default function EstablishmentDetail() {
           )}
         </div>
       </div>
+
+      {showConfirmDialog && (
+        <ConfirmDialog
+          title="¿Quitar de favoritos?"
+          message="¿Estás seguro que deseas quitar este establecimiento de tus favoritos?"
+          confirmText="Sí, quitar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmRemoveFavorite}
+          onCancel={() => setShowConfirmDialog(false)}
+          isDestructive={false}
+        />
+      )}
     </div>
   );
 }

@@ -1,10 +1,17 @@
-import React from 'react';
-import { X, MapPin, Calendar, Clock, Users, Copy, ExternalLink } from 'lucide-react';
-import { ReservationData } from './ReservationCard';
+import {
+  Calendar,
+  Clock,
+  Copy,
+  ExternalLink,
+  MapPin,
+  Users,
+  X,
+} from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { ReservationData } from './ReservationCard';
 
 interface ReservationDetailModalProps {
   reservation: ReservationData;
@@ -23,9 +30,9 @@ export function ReservationDetailModal({
 }: ReservationDetailModalProps) {
   const getStatusBadge = (status: string) => {
     const styles = {
-      confirmed: 'bg-[#22C55E]/10 text-[#22C55E]',
-      pending: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-      cancelled: 'bg-[#94A3B8]/10 text-[#94A3B8]',
+      confirmed: 'bg-[#22C55E] text-white shadow-sm',
+      pending: 'bg-[#F59E0B] text-white shadow-sm',
+      cancelled: 'bg-[#94A3B8] text-white shadow-sm',
     };
 
     const labels = {
@@ -35,14 +42,20 @@ export function ReservationDetailModal({
     };
 
     return (
-      <span className={`text-sm px-3 py-1 rounded-full ${styles[status as keyof typeof styles]}`}>
+      <span
+        className={`text-sm px-3 py-1 rounded-full ${
+          styles[status as keyof typeof styles]
+        }`}
+      >
         {labels[status as keyof typeof labels]}
       </span>
     );
   };
 
   const isPastDate = () => {
-    const reservationDate = new Date(`${reservation.fecha_reserva}T${reservation.hora_reserva}`);
+    const reservationDate = new Date(
+      `${reservation.fecha_reserva}T${reservation.hora_reserva}`
+    );
     return reservationDate < new Date();
   };
 
@@ -57,7 +70,7 @@ export function ReservationDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-[#E2E8F0] p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-[#E2E8F0] p-6 flex items-center justify-between z-10">
           <h2 className="text-[#334155]">{reservation.establishment.name}</h2>
           <button
             onClick={onClose}
@@ -82,27 +95,29 @@ export function ReservationDetailModal({
           {/* Establishment Info */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs px-2 py-1 rounded bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white">
+              <span className="text-xs px-2 py-1 rounded bg-linear-to-r from-[#F97316] to-[#FB923C] text-white">
                 {reservation.establishment.type}
               </span>
               {getStatusBadge(reservation.estado)}
             </div>
             <div className="flex items-start gap-2 text-sm text-[#64748B]">
-              <MapPin size={16} className="flex-shrink-0 mt-0.5" />
+              <MapPin size={16} className="shrink-0 mt-0.5" />
               <span>{reservation.establishment.address}</span>
             </div>
           </div>
 
           {/* Reservation Details Card */}
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 mb-6">
+          <div className="bg-linear-to-br from-orange-50 to-amber-50 rounded-xl p-6 mb-6">
             <h3 className="text-[#334155] mb-4">Detalles de la reserva</h3>
-            
+
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Calendar size={20} className="text-[#F97316]" />
                 <div>
                   <p className="text-sm text-[#94A3B8]">Fecha</p>
-                  <p className="text-[#334155]">{formatDate(reservation.fecha_reserva, 'long')}</p>
+                  <p className="text-[#334155]">
+                    {formatDate(reservation.fecha_reserva, 'long')}
+                  </p>
                 </div>
               </div>
 
@@ -119,7 +134,8 @@ export function ReservationDetailModal({
                 <div>
                   <p className="text-sm text-[#94A3B8]">Mesa</p>
                   <p className="text-[#334155]">
-                    {reservation.mesa.nombre} - Capacidad {reservation.mesa.capacidad} personas
+                    {reservation.mesa.nombre} - Capacidad{' '}
+                    {reservation.mesa.capacidad} personas
                   </p>
                 </div>
               </div>
@@ -129,15 +145,20 @@ export function ReservationDetailModal({
                 <div>
                   <p className="text-sm text-[#94A3B8]">Número de personas</p>
                   <p className="text-[#334155]">
-                    {reservation.numero_personas} {reservation.numero_personas === 1 ? 'persona' : 'personas'}
+                    {reservation.numero_personas}{' '}
+                    {reservation.numero_personas === 1 ? 'persona' : 'personas'}
                   </p>
                 </div>
               </div>
 
               {reservation.notas && (
                 <div className="pt-3 border-t border-orange-200">
-                  <p className="text-sm text-[#94A3B8] mb-1">Notas especiales</p>
-                  <p className="text-sm text-[#64748B] italic">"{reservation.notas}"</p>
+                  <p className="text-sm text-[#94A3B8] mb-1">
+                    Notas especiales
+                  </p>
+                  <p className="text-sm text-[#64748B] italic">
+                    "{reservation.notas}"
+                  </p>
                 </div>
               )}
             </div>
@@ -147,8 +168,12 @@ export function ReservationDetailModal({
           <div className="bg-[#F1F5F9] rounded-xl p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Código de confirmación</p>
-                <p className="text-[#334155] font-mono">{reservation.codigo_confirmacion}</p>
+                <p className="text-xs text-[#94A3B8] mb-1">
+                  Código de confirmación
+                </p>
+                <p className="text-[#334155] font-mono">
+                  {reservation.codigo_confirmacion}
+                </p>
               </div>
               <button
                 onClick={onCopyConfirmation}
@@ -161,15 +186,24 @@ export function ReservationDetailModal({
           </div>
 
           {/* QR Code */}
-          {reservation.estado === 'confirmed' && (
+          {(reservation.estado === 'confirmed' ||
+            reservation.estado === 'pending') && (
             <div className="bg-white border-2 border-[#E2E8F0] rounded-xl p-6 mb-6 text-center">
               <h3 className="text-[#334155] mb-3">Código QR</h3>
               <div className="flex justify-center mb-3">
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code"
-                  className="w-48 h-48 border border-[#E2E8F0] rounded-lg"
-                />
+                {reservation.qrImage ? (
+                  <img
+                    src={reservation.qrImage}
+                    alt="QR Code"
+                    className="w-48 h-48 border border-[#E2E8F0] rounded-lg"
+                  />
+                ) : (
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code"
+                    className="w-48 h-48 border border-[#E2E8F0] rounded-lg"
+                  />
+                )}
               </div>
               <p className="text-sm text-[#64748B]">
                 Mostrar este código al llegar al establecimiento
@@ -186,7 +220,7 @@ export function ReservationDetailModal({
               <ExternalLink size={18} />
               Ir al local
             </PrimaryButton>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {canCancel && (
                 <button
@@ -196,7 +230,10 @@ export function ReservationDetailModal({
                   Cancelar reserva
                 </button>
               )}
-              <SecondaryButton onClick={onClose} className={canCancel ? '' : 'md:col-span-2'}>
+              <SecondaryButton
+                onClick={onClose}
+                className={canCancel ? '' : 'md:col-span-2'}
+              >
                 Cerrar
               </SecondaryButton>
             </div>

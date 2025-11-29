@@ -10,26 +10,17 @@ export const mapReservations = async (
   const mappedReservations: ReservationData[] = [];
 
   for (const r of reservas) {
-    let imagen = '';
-    let direccion = '';
-
-    // Intentar obtener imagen del establecimiento
-    if (r.localId) {
-      try {
-        const local = await api.getEstablishment(r.localId);
-        imagen = local.imagenes?.[0] || '';
-        direccion = local.direccion?.direccion_completa || '';
-      } catch (err) {
-        console.error(`Error loading establishment ${r.localId}:`, err);
-      }
-    }
+    // Usar datos proporcionados por el backend
+    const imagen = r.localImagen || '';
+    const direccion = r.localDireccion || '';
+    const tipo = r.localTipo || 'Restaurante';
 
     mappedReservations.push({
       id: r.id.toString(),
       establishment: {
         id: r.localId || '',
         name: r.localNombre || '',
-        type: 'Restaurante' as any,
+        type: tipo as any,
         image: imagen,
         address: direccion,
       },
@@ -47,7 +38,8 @@ export const mapReservations = async (
           ? 'cancelled'
           : 'pending',
       notas: '',
-      codigo_confirmacion: '',
+      codigo_confirmacion: r.codigoQR || r.id.toString(),
+      qrImage: r.qrImage || null,
     });
   }
 
@@ -67,7 +59,7 @@ export const mapOpinions = async (
     if (o.localId) {
       try {
         const local = await api.getEstablishment(o.localId);
-        imagen = local.imagenes?.[0] || '';
+        imagen = local.images?.banner?.[0] || local.images?.todas?.[0] || '';
       } catch (err) {
         console.error(`Error loading establishment ${o.localId}:`, err);
       }
@@ -103,13 +95,13 @@ export const mapFavorites = async (
         id: local.id,
         establishment: {
           id: local.id,
-          name: local.nombre || '',
-          type: local.tipo || 'Restaurante',
-          image: local.imagenes?.[0] || '',
-          address: local.direccion?.direccion_completa || '',
+          name: local.name || '',
+          type: local.type || 'Restaurante',
+          image: local.images?.banner?.[0] || local.images?.todas?.[0] || '',
+          address: local.address || '',
           rating: local.rating || 0,
-          reviewCount: local.numero_opiniones || 0,
-          status: 'open' as 'open' | 'closed',
+          reviewCount: local.reviewCount || 0,
+          status: local.status || 'closed',
         },
         creado_el: new Date().toISOString(),
       });

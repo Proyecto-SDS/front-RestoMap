@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
 import { FilterChip } from '../components/inputs/FilterChip';
+import { ConfirmDialog } from '../components/profile/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import type { Establishment, EstablishmentType } from '../types';
 import { api } from '../utils/apiClient';
@@ -797,6 +798,10 @@ export default function MapScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    establishmentId: string | null;
+  }>({ isOpen: false, establishmentId: null });
 
   // Load establishments from API
   useEffect(() => {
@@ -940,17 +945,30 @@ export default function MapScreen() {
       return;
     }
 
-    try {
-      if (favorites.includes(localId)) {
-        await api.removeFavorite(localId);
-        setFavorites(favorites.filter((id) => id !== localId));
-      } else {
+    if (favorites.includes(localId)) {
+      setConfirmDialog({ isOpen: true, establishmentId: localId });
+    } else {
+      try {
         await api.addFavorite(localId);
         setFavorites([...favorites, localId]);
+      } catch (error: any) {
+        console.error('Error al agregar favorito:', error);
+        alert(error.message || 'Error al agregar favorito');
       }
+    }
+  };
+
+  const handleConfirmRemoveFavorite = async () => {
+    const { establishmentId } = confirmDialog;
+    if (!establishmentId) return;
+
+    try {
+      await api.removeFavorite(establishmentId);
+      setFavorites(favorites.filter((id) => id !== establishmentId));
+      setConfirmDialog({ isOpen: false, establishmentId: null });
     } catch (error: any) {
-      console.error('Error al actualizar favorito:', error);
-      alert(error.message || 'Error al actualizar favorito');
+      console.error('Error al eliminar favorito:', error);
+      alert(error.message || 'Error al eliminar favorito');
     }
   };
 
@@ -1066,6 +1084,20 @@ export default function MapScreen() {
         onToggleFavorite={handleToggleFavorite}
         isLoggedIn={isLoggedIn}
       />
+
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          title="¿Quitar de favoritos?"
+          message="¿Estás seguro que deseas quitar este establecimiento de tus favoritos?"
+          confirmText="Sí, quitar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmRemoveFavorite}
+          onCancel={() =>
+            setConfirmDialog({ isOpen: false, establishmentId: null })
+          }
+          isDestructive={false}
+        />
+      )}
     </div>
   );
 }

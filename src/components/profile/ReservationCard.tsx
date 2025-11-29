@@ -22,6 +22,7 @@ export interface ReservationData {
   estado: 'confirmed' | 'pending' | 'cancelled';
   notas?: string;
   codigo_confirmacion: string;
+  qrImage?: string;
 }
 
 interface ReservationCardProps {
@@ -37,9 +38,9 @@ export function ReservationCard({
 }: ReservationCardProps) {
   const getStatusBadge = (status: string) => {
     const styles = {
-      confirmed: 'bg-[#22C55E]/10 text-[#22C55E]',
-      pending: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-      cancelled: 'bg-[#94A3B8]/10 text-[#94A3B8]',
+      confirmed: 'bg-[#22C55E] text-white shadow-sm',
+      pending: 'bg-[#F59E0B] text-white shadow-sm',
+      cancelled: 'bg-[#94A3B8] text-white shadow-sm',
     };
 
     const labels = {

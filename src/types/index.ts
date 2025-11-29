@@ -117,9 +117,7 @@ export interface UserOpinion {
 export interface DetailedEstablishment extends Establishment {
   images: {
     banner: string[];
-    hero: string[];
-    logo: string | null;
-    galeria: string[];
+    capturas: string[];
     todas: string[];
   };
   horarios: Schedule[];
