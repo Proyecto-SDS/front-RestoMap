@@ -6,10 +6,11 @@
 .pnp.js
 .yarn/install-state.gz
 
-# lockfiles - permite que cada dev use su gestor preferido
-package-lock.json
+# lockfiles - El servidor usa npm, así que mantenemos package-lock.json
+# package-lock.json
 yarn.lock
 pnpm-lock.yaml
+pnpm-workspace.yaml
 .pnpm-store/
 .pnpm-debug.log
 
