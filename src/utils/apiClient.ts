@@ -145,4 +145,21 @@ export const api = {
 
   // Opinion endpoints - user opinions
   getMyOpinions: () => apiCall('/api/opiniones/mis-opiniones'),
+
+  // Favorite endpoints
+  getFavorites: () => apiCall('/api/favoritos/'),
+
+  addFavorite: (localId: string) =>
+    apiCall('/api/favoritos/', {
+      method: 'POST',
+      body: JSON.stringify({ localId }),
+    }),
+
+  removeFavorite: (localId: string) =>
+    apiCall(`/api/favoritos/${localId}`, {
+      method: 'DELETE',
+    }),
+
+  checkFavorite: (localId: string) =>
+    apiCall(`/api/favoritos/check/${localId}`),
 };

@@ -1420,6 +1420,7 @@ export default function EstablishmentDetail() {
   const { isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState('informacion');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
   // Estados para datos de la API
   const [establishment, setEstablishment] =
@@ -1458,8 +1459,29 @@ export default function EstablishmentDetail() {
       // Reset estados cuando cambia el local
       setCurrentUserOpinion(null);
       setHasLoadedUserOpinion(false);
+      setIsFavorite(false);
     }
   }, [id]);
+
+  // Cargar estado de favorito
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!isLoggedIn || !id) {
+        setIsFavorite(false);
+        return;
+      }
+
+      try {
+        const response = await api.checkFavorite(id);
+        setIsFavorite(response.isFavorite || false);
+      } catch (err) {
+        console.error('Error checking favorite status:', err);
+        setIsFavorite(false);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [id, isLoggedIn]);
 
   // Cargar menú cuando se abre la pestaña
   useEffect(() => {
@@ -1587,6 +1609,33 @@ export default function EstablishmentDetail() {
     router.push('/login');
   };
 
+  const handleToggleFavorite = async () => {
+    if (!isLoggedIn) {
+      alert('Debes iniciar sesión para agregar favoritos');
+      router.push('/login');
+      return;
+    }
+
+    if (isLoadingFavorite) return;
+
+    try {
+      setIsLoadingFavorite(true);
+
+      if (isFavorite) {
+        await api.removeFavorite(id);
+        setIsFavorite(false);
+      } else {
+        await api.addFavorite(id);
+        setIsFavorite(true);
+      }
+    } catch (error: any) {
+      console.error('Error al actualizar favorito:', error);
+      alert(error.message || 'Error al actualizar favorito');
+    } finally {
+      setIsLoadingFavorite(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
@@ -1621,7 +1670,7 @@ export default function EstablishmentDetail() {
         establishment={establishment}
         onBack={handleBack}
         isFavorite={isFavorite}
-        onToggleFavorite={() => setIsFavorite(!isFavorite)}
+        onToggleFavorite={handleToggleFavorite}
       />
 
       <QuickInfoBar
