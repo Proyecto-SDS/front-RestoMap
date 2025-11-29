@@ -68,7 +68,7 @@ export default function LoginScreen() {
     if (result.success) {
       // Get the user name from context (will be set after login)
       const userName = formData.correo.split('@')[0]; // Fallback
-      showToast('success', `¡Bienvenido a ReservaYa!`);
+      showToast('success', `¡Bienvenido a RestoMap!`);
 
       // Short delay to show toast, then navigate
       setTimeout(() => {

@@ -147,7 +147,7 @@ export default function RegisterScreen() {
               </div>
               <h1 className="text-[#334155] mb-2">Crea tu cuenta</h1>
               <p className="text-[#64748B]">
-                Únete a ReservaYa para descubrir y reservar
+                Únete a RestoMap para descubrir y reservar
               </p>
             </div>
 

@@ -1,4 +1,4 @@
-# Sistema de Colores y Tipografía - ReservaYa
+# Sistema de Colores y Tipografía - RestoMap
 
 ## TIPOGRAFÍA
 

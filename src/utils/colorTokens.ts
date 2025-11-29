@@ -1,4 +1,4 @@
-// ReservaYa - Color Design Tokens
+// RestoMap - Color Design Tokens
 
 export const colors = {
   // Primary Brand Colors
@@ -6,12 +6,12 @@ export const colors = {
   red: '#EF4444',
   green: '#22C55E',
   blue: '#3B82F6',
-  
+
   // Neutrals
   slateDark: '#334155',
   slateLight: '#F1F5F9',
   white: '#FFFFFF',
-  
+
   // UI Colors
   grayBorder: '#E2E8F0',
   gray50: '#F9FAFB',
@@ -24,13 +24,13 @@ export const colors = {
   gray700: '#334155',
   gray800: '#1E293B',
   gray900: '#0F172A',
-  
+
   // Semantic Colors
   success: '#22C55E',
   error: '#EF4444',
   warning: '#F59E0B',
   info: '#3B82F6',
-  
+
   // Gradient stops
   gradientOrange: '#F97316',
   gradientRed: '#EF4444',

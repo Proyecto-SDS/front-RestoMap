@@ -1,4 +1,4 @@
-// API Client for ReservaYa
+// API Client for RestoMap
 // Handles all API calls to Flask backend
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';

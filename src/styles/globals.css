@@ -1,21 +1,21 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* ReservaYa Design System - Base Tokens */
+  /* RestoMap Design System - Base Tokens */
   --font-size: 16px;
 
-  /* ReservaYa Brand Colors */
-  --reservaya-orange: #f97316;
-  --reservaya-red: #ef4444;
-  --reservaya-green: #22c55e;
-  --reservaya-blue: #3b82f6;
-  --reservaya-slate-dark: #334155;
-  --reservaya-slate-light: #f1f5f9;
-  --reservaya-white: #ffffff;
-  --reservaya-gray-border: #e2e8f0;
-  --reservaya-gray-500: #64748b;
+  /* RestoMap Brand Colors */
+  --restomap-orange: #f97316;
+  --restomap-red: #ef4444;
+  --restomap-green: #22c55e;
+  --restomap-blue: #3b82f6;
+  --restomap-slate-dark: #334155;
+  --restomap-slate-light: #f1f5f9;
+  --restomap-white: #ffffff;
+  --restomap-gray-border: #e2e8f0;
+  --restomap-gray-500: #64748b;
 
-  /* ReservaYa Typography Sizes */
+  /* RestoMap Typography Sizes */
   --text-h1: 36px;
   --text-h2: 24px;
   --text-h3: 18px;
@@ -153,7 +153,7 @@
 }
 
 /**
- * ReservaYa Typography System
+ * RestoMap Typography System
  */
 @layer base {
   :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
@@ -224,7 +224,7 @@ html {
 }
 
 /**
- * ReservaYa Custom Scrollbar Design System
+ * RestoMap Custom Scrollbar Design System
  * Minimal and subtle scrollbar - just a simple bar
  */
 @layer utilities {

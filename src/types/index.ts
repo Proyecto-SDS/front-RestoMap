@@ -1,4 +1,4 @@
-// ReservaYa - TypeScript Type Definitions
+// RestoMap - TypeScript Type Definitions
 
 export type EstablishmentType = 'Restaurante' | 'Restobar' | 'Bar';
 
