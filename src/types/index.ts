@@ -1,4 +1,4 @@
-// ReservaYa - TypeScript Type Definitions
+// RestoMap - TypeScript Type Definitions
 
 export type EstablishmentType = 'Restaurante' | 'Restobar' | 'Bar';
 
@@ -61,6 +61,8 @@ export interface Reservation {
   guests: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   specialRequests?: string;
+  codigoQR?: string; // Código QR en texto
+  qrImage?: string; // Imagen QR en base64
 }
 
 // Extended types for detailed establishment views
@@ -115,9 +117,7 @@ export interface UserOpinion {
 export interface DetailedEstablishment extends Establishment {
   images: {
     banner: string[];
-    hero: string[];
-    logo: string | null;
-    galeria: string[];
+    capturas: string[];
     todas: string[];
   };
   horarios: Schedule[];

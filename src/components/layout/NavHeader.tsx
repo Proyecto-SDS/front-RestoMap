@@ -61,7 +61,7 @@ export function NavHeader() {
               <span className="text-white font-bold">R</span>
             </div>
             <span className="hidden sm:block text-[#334155] font-semibold">
-              ReservaYa
+              RestoMap
             </span>
           </Link>
 

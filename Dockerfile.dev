@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependencias
+COPY package.json pnpm-lock.yaml* ./
+RUN corepack enable && pnpm install
+
+# Copiar el resto del código
+COPY . .
+
+# Exponer puerto
+EXPOSE 3000
+
+# Comando para desarrollo con hot-reload
+CMD ["pnpm", "run", "dev"]

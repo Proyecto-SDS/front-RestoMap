@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Menu, Search, Star, X } from 'lucide-react';
+import { Heart, MapPin, Menu, Search, Star, X } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
 import { FilterChip } from '../components/inputs/FilterChip';
+import { ConfirmDialog } from '../components/profile/ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
 import type { Establishment, EstablishmentType } from '../types';
 import { api } from '../utils/apiClient';
 import { ESTABLISHMENT_TYPES } from '../utils/constants';
@@ -381,6 +383,9 @@ interface SidebarProps {
   onSearchChange: (query: string) => void;
   selectedId: string | null;
   onSelectEstablishment: (id: string) => void;
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
+  isLoggedIn: boolean;
 }
 
 function Sidebar({
@@ -390,6 +395,9 @@ function Sidebar({
   onSearchChange,
   selectedId,
   onSelectEstablishment,
+  favorites,
+  onToggleFavorite,
+  isLoggedIn,
 }: SidebarProps) {
   const router = useRouter();
   const listRef = useRef<HTMLDivElement>(null);
@@ -519,17 +527,42 @@ function Sidebar({
                   )}
                 </button>
 
-                {/* Botón para navegar al perfil */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/establecimientos/${est.id}`);
-                  }}
-                  className="w-full px-3 py-2 text-xs font-medium text-[#F97316] hover:text-[#EA580C] hover:bg-[#F97316]/5 transition-colors flex items-center justify-center gap-1 border-t border-[#E2E8F0]"
-                >
-                  <span>Ver local</span>
-                  <span className="text-sm">→</span>
-                </button>
+                {/* Botón para navegar al perfil y toggle de favorito */}
+                <div className="flex border-t border-[#E2E8F0]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/establecimientos/${est.id}`);
+                    }}
+                    className="flex-1 px-3 py-2 text-xs font-medium text-[#F97316] hover:text-[#EA580C] hover:bg-[#F97316]/5 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <span>Ver local</span>
+                    <span className="text-sm">→</span>
+                  </button>
+                  {isLoggedIn && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(est.id);
+                      }}
+                      className="px-3 py-2 hover:bg-[#F97316]/5 transition-colors border-l border-[#E2E8F0]"
+                      aria-label={
+                        favorites.includes(est.id)
+                          ? 'Quitar de favoritos'
+                          : 'Agregar a favoritos'
+                      }
+                    >
+                      <Heart
+                        size={18}
+                        className={
+                          favorites.includes(est.id)
+                            ? 'text-[#EF4444] fill-[#EF4444]'
+                            : 'text-[#94A3B8]'
+                        }
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -554,6 +587,9 @@ function MobileDrawer({
   onSelectEstablishment,
   isOpen,
   onClose,
+  favorites,
+  onToggleFavorite,
+  isLoggedIn,
 }: MobileDrawerProps) {
   const router = useRouter();
   const listRef = useRef<HTMLDivElement>(null);
@@ -697,17 +733,42 @@ function MobileDrawer({
                     )}
                   </button>
 
-                  {/* Botón para navegar al perfil */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/establecimientos/${est.id}`);
-                    }}
-                    className="w-full px-3 py-2 text-xs font-medium text-[#F97316] active:text-[#EA580C] active:bg-[#F97316]/10 transition-colors flex items-center justify-center gap-1 border-t border-[#E2E8F0]"
-                  >
-                    <span>Ver local</span>
-                    <span className="text-sm">→</span>
-                  </button>
+                  {/* Botón para navegar al perfil y toggle de favorito */}
+                  <div className="flex border-t border-[#E2E8F0]">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/establecimientos/${est.id}`);
+                      }}
+                      className="flex-1 px-3 py-2 text-xs font-medium text-[#F97316] active:text-[#EA580C] active:bg-[#F97316]/10 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <span>Ver local</span>
+                      <span className="text-sm">→</span>
+                    </button>
+                    {isLoggedIn && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(est.id);
+                        }}
+                        className="px-3 py-2 active:bg-[#F97316]/10 transition-colors border-l border-[#E2E8F0]"
+                        aria-label={
+                          favorites.includes(est.id)
+                            ? 'Quitar de favoritos'
+                            : 'Agregar a favoritos'
+                        }
+                      >
+                        <Heart
+                          size={18}
+                          className={
+                            favorites.includes(est.id)
+                              ? 'text-[#EF4444] fill-[#EF4444]'
+                              : 'text-[#94A3B8]'
+                          }
+                        />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -720,6 +781,7 @@ function MobileDrawer({
 
 export default function MapScreen() {
   const router = useRouter();
+  const { isLoggedIn } = useAuth();
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedCommune, setSelectedCommune] = useState('');
@@ -734,6 +796,12 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    establishmentId: string | null;
+  }>({ isOpen: false, establishmentId: null });
 
   // Load establishments from API
   useEffect(() => {
@@ -775,6 +843,28 @@ export default function MapScreen() {
     loadEstablishments();
   }, []);
 
+  // Cargar favoritos si está logueado
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (!isLoggedIn) {
+        setFavorites([]);
+        setShowOnlyFavorites(false);
+        return;
+      }
+
+      try {
+        const response = await api.getFavorites();
+        const favoriteIds = response.favoritos.map((fav: any) => fav.localId);
+        setFavorites(favoriteIds);
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+        setFavorites([]);
+      }
+    };
+
+    loadFavorites();
+  }, [isLoggedIn]);
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -796,8 +886,20 @@ export default function MapScreen() {
       filtered = filtered.filter((est) => est.type === selectedType);
     }
 
+    // Filtrar por favoritos si está activado
+    if (showOnlyFavorites && isLoggedIn) {
+      filtered = filtered.filter((est) => favorites.includes(est.id));
+    }
+
     return filtered;
-  }, [establishments, selectedCommune, selectedType]);
+  }, [
+    establishments,
+    selectedCommune,
+    selectedType,
+    showOnlyFavorites,
+    favorites,
+    isLoggedIn,
+  ]);
 
   // Filter visible establishments by search
   const searchedEstablishments = useMemo(() => {
@@ -836,6 +938,40 @@ export default function MapScreen() {
     }
   };
 
+  const handleToggleFavorite = async (localId: string) => {
+    if (!isLoggedIn) {
+      alert('Debes iniciar sesión para agregar favoritos');
+      router.push('/login');
+      return;
+    }
+
+    if (favorites.includes(localId)) {
+      setConfirmDialog({ isOpen: true, establishmentId: localId });
+    } else {
+      try {
+        await api.addFavorite(localId);
+        setFavorites([...favorites, localId]);
+      } catch (error: any) {
+        console.error('Error al agregar favorito:', error);
+        alert(error.message || 'Error al agregar favorito');
+      }
+    }
+  };
+
+  const handleConfirmRemoveFavorite = async () => {
+    const { establishmentId } = confirmDialog;
+    if (!establishmentId) return;
+
+    try {
+      await api.removeFavorite(establishmentId);
+      setFavorites(favorites.filter((id) => id !== establishmentId));
+      setConfirmDialog({ isOpen: false, establishmentId: null });
+    } catch (error: any) {
+      console.error('Error al eliminar favorito:', error);
+      alert(error.message || 'Error al eliminar favorito');
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
       {/* Filter Chips */}
@@ -844,17 +980,30 @@ export default function MapScreen() {
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             <FilterChip
               label="Todos"
-              active={selectedType === 'Todos'}
-              onClick={() => handleTypeFilter('Todos')}
+              active={selectedType === 'Todos' && !showOnlyFavorites}
+              onClick={() => {
+                handleTypeFilter('Todos');
+                setShowOnlyFavorites(false);
+              }}
             />
             {ESTABLISHMENT_TYPES.map((type) => (
               <FilterChip
                 key={type}
                 label={type}
-                active={selectedType === type}
-                onClick={() => handleTypeFilter(type)}
+                active={selectedType === type && !showOnlyFavorites}
+                onClick={() => {
+                  handleTypeFilter(type);
+                  setShowOnlyFavorites(false);
+                }}
               />
             ))}
+            {isLoggedIn && (
+              <FilterChip
+                label="Mis Favoritos"
+                active={showOnlyFavorites}
+                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -870,6 +1019,9 @@ export default function MapScreen() {
             onSearchChange={setSearchQuery}
             selectedId={selectedEstablishmentId}
             onSelectEstablishment={handleSelectEstablishment}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+            isLoggedIn={isLoggedIn}
           />
         </div>
 
@@ -928,7 +1080,24 @@ export default function MapScreen() {
         onSelectEstablishment={handleSelectEstablishment}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
+        isLoggedIn={isLoggedIn}
       />
+
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          title="¿Quitar de favoritos?"
+          message="¿Estás seguro que deseas quitar este establecimiento de tus favoritos?"
+          confirmText="Sí, quitar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmRemoveFavorite}
+          onCancel={() =>
+            setConfirmDialog({ isOpen: false, establishmentId: null })
+          }
+          isDestructive={false}
+        />
+      )}
     </div>
   );
 }

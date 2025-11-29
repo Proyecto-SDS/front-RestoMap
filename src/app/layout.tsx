@@ -8,7 +8,7 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ReservaYa - Reservas de Restaurantes en Santiago',
+  title: 'RestoMap - Reservas de Restaurantes en Santiago',
   description:
     'Encuentra y reserva los mejores restaurantes, restobares y bares en Santiago, Chile.',
 };

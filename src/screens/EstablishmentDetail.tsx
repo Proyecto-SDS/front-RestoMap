@@ -2,7 +2,7 @@
 
 import {
   ArrowLeft,
-  Calendar,
+  Calendar as CalendarIcon,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RatingBadge } from '../components/badges/RatingBadge';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
@@ -24,6 +24,7 @@ import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { TabNavigation } from '../components/navigation/TabNavigation';
+import { ConfirmDialog } from '../components/profile/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import type {
   DetailedEstablishment,
@@ -78,10 +79,9 @@ function EstablishmentHeader({
   isFavorite,
   onToggleFavorite,
 }: any) {
-  // Priorizar banner, luego hero, luego la primera imagen disponible
+  // Priorizar banner, luego la primera imagen disponible
   const bannerImage =
     establishment.images?.banner?.[0] ||
-    establishment.images?.hero?.[0] ||
     establishment.images?.todas?.[0] ||
     establishment.image || // Fallback para compatibilidad
     '/placeholder-restaurant.jpg';
@@ -655,61 +655,82 @@ function ReservasTab({
   const [partySize, setPartySize] = useState(2);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingMesas, setIsCheckingMesas] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmationNumber] = useState(`RY${Date.now()}`);
+  const [reservaCreada, setReservaCreada] = useState<any>(null);
   const [availableMesas, setAvailableMesas] = useState<any[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Función para obtener horarios disponibles según la fecha seleccionada
-  const getTimeSlotsForDate = (dateStr: string): string[] => {
-    if (!establishment?.horarios || !dateStr) return [];
+  const getTimeSlotsForDate = async (dateStr: string): Promise<string[]> => {
+    if (!establishmentId || !dateStr) return [];
 
-    const date = new Date(dateStr + 'T00:00:00');
-    const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // 1=Lunes, 7=Domingo
-
-    // Buscar el horario para ese día
-    const horario = establishment.horarios.find(
-      (h: any) => h.diaNumero === dayOfWeek && h.abierto
-    );
-
-    if (!horario) return [];
-
-    // Generar slots desde apertura hasta 1 hora antes del cierre
-    const closeTime = subtractOneHour(horario.cierre);
-    return generateTimeSlots(horario.apertura, closeTime);
+    try {
+      const response = await api.getAvailableTimeSlots(
+        establishmentId,
+        dateStr
+      );
+      return response.horarios || [];
+    } catch (error) {
+      console.error('Error al obtener horarios disponibles:', error);
+      return [];
+    }
   };
 
   // Actualizar slots cuando cambia la fecha
   useEffect(() => {
     if (selectedDate) {
-      const slots = getTimeSlotsForDate(selectedDate);
-      setAvailableTimeSlots(slots);
-      // Resetear hora seleccionada si no está disponible
-      if (selectedTime && !slots.includes(selectedTime)) {
-        setSelectedTime('');
-      }
+      const fetchSlots = async () => {
+        const slots = await getTimeSlotsForDate(selectedDate);
+        setAvailableTimeSlots(slots);
+        // Resetear hora seleccionada si no está disponible
+        if (selectedTime && !slots.includes(selectedTime)) {
+          setSelectedTime('');
+        }
+      };
+      fetchSlots();
     }
-  }, [selectedDate, establishment]);
+  }, [selectedDate, establishmentId]);
 
-  // Mock function to check mesa availability
-  const checkMesaAvailability = (date: string, time: string) => {
-    // Simulate API call: GET /api/establecimientos/{id}/reservas?fecha={date}&hora={time}
-    const bookedMesas = ['t4']; // Mock booked mesas
-    return tables.map((mesa: any) => ({
-      ...mesa,
-      estado: bookedMesas.includes(mesa.id)
-        ? 'reservada'
-        : mesa.estado || 'disponible',
-    }));
+  // Función para verificar disponibilidad de mesas
+  const checkMesaAvailability = async (date: string, time: string) => {
+    if (!establishmentId) return [];
+
+    try {
+      const response = await api.getAvailableTables(
+        establishmentId,
+        date,
+        time
+      );
+      return response.mesas || [];
+    } catch (error) {
+      console.error('Error al verificar disponibilidad de mesas:', error);
+      return tables;
+    }
   };
 
   // Check availability when date and time are selected
   useEffect(() => {
     if (selectedDate && selectedTime && !tablesLoading) {
-      const available = checkMesaAvailability(selectedDate, selectedTime);
-      setAvailableMesas(available);
+      const fetchAvailability = async () => {
+        setIsCheckingMesas(true);
+        try {
+          const available = await checkMesaAvailability(
+            selectedDate,
+            selectedTime
+          );
+          setAvailableMesas(available);
+        } catch (error) {
+          console.error('Error al verificar disponibilidad:', error);
+          setAvailableMesas(tables);
+        } finally {
+          setIsCheckingMesas(false);
+        }
+      };
+      fetchAvailability();
     }
-  }, [selectedDate, selectedTime, tablesLoading]);
+  }, [selectedDate, selectedTime, tablesLoading, establishmentId]);
 
   const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
@@ -766,6 +787,11 @@ function ReservasTab({
       );
 
       if (response.success) {
+        // Guardar los datos de la reserva creada
+        console.log('Reserva creada:', response.reserva);
+        console.log('¿Tiene QR?', !!response.reserva?.qrImage);
+        console.log('Código QR:', response.reserva?.codigoQR);
+        setReservaCreada(response.reserva);
         // Success - go to step 6
         setReservationStep(6);
       } else {
@@ -821,27 +847,61 @@ function ReservasTab({
 
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Date Picker Personalizado */}
+            {/* Date Picker - Temporal input básico */}
             <div>
               <label className="block text-sm text-[#334155] mb-2">Fecha</label>
-              <div className="relative">
+              <div
+                className="relative cursor-pointer"
+                onClick={(e) => {
+                  // Evitar que se propague si ya estamos en el input
+                  if (e.target === dateInputRef.current) return;
+
+                  // Simular un click en el input para abrir el picker
+                  const input = dateInputRef.current;
+                  if (input) {
+                    try {
+                      input.focus();
+                      // Intentar usar showPicker si está disponible
+                      if (
+                        'showPicker' in input &&
+                        typeof input.showPicker === 'function'
+                      ) {
+                        input.showPicker();
+                      }
+                    } catch (error) {
+                      // Si showPicker falla, el input ya está enfocado
+                      console.log('showPicker not supported or failed');
+                    }
+                  }
+                }}
+              >
+                <CalendarIcon
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#F97316] pointer-events-none z-10"
+                  size={20}
+                />
                 <input
+                  ref={dateInputRef}
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   min={getTodayDate()}
                   max={getMaxDate()}
-                  className="w-full px-4 py-3 pl-12 border border-[#E2E8F0] rounded-xl focus:outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 text-[#334155] bg-white cursor-pointer hover:border-[#F97316]/50 transition-colors"
                   onClick={(e) => {
-                    // Asegurar que el datepicker se abra
-                    if (e.currentTarget.showPicker) {
-                      e.currentTarget.showPicker();
+                    try {
+                      if (
+                        'showPicker' in e.currentTarget &&
+                        typeof e.currentTarget.showPicker === 'function'
+                      ) {
+                        e.currentTarget.showPicker();
+                      }
+                    } catch (error) {
+                      // Ignorar si falla
                     }
                   }}
-                />
-                <Calendar
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#F97316] pointer-events-none z-0"
-                  size={20}
+                  style={{
+                    colorScheme: 'light',
+                  }}
+                  className="w-full pl-12 pr-4 py-3 border border-[#E2E8F0] rounded-xl focus:outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 cursor-pointer"
                 />
               </div>
               {selectedDate && (
@@ -875,7 +935,7 @@ function ReservasTab({
               </select>
               {selectedDate && availableTimeSlots.length === 0 && (
                 <p className="text-xs text-[#EF4444] mt-1">
-                  El establecimiento está cerrado este día
+                  No hay horarios disponibles para esta fecha.
                 </p>
               )}
             </div>
@@ -919,17 +979,31 @@ function ReservasTab({
         </div>
 
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableMesas.map((mesa) => {
-              const isAvailable = mesa.estado === 'disponible';
-              const isSelected = selectedMesa?.id === mesa.id;
+          {isCheckingMesas ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#F97316] mb-3"></div>
+              <p className="text-[#64748B]">
+                Verificando disponibilidad de mesas...
+              </p>
+            </div>
+          ) : availableMesas.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[#64748B]">
+                No hay mesas disponibles para este horario.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableMesas.map((mesa) => {
+                const isAvailable = mesa.estado === 'disponible';
+                const isSelected = selectedMesa?.id === mesa.id;
 
-              return (
-                <button
-                  key={mesa.id}
-                  onClick={() => isAvailable && setSelectedMesa(mesa)}
-                  disabled={!isAvailable}
-                  className={`
+                return (
+                  <button
+                    key={mesa.id}
+                    onClick={() => isAvailable && setSelectedMesa(mesa)}
+                    disabled={!isAvailable}
+                    className={`
                     p-4 rounded-xl border-3 text-left transition-all
                     ${
                       !isAvailable
@@ -942,28 +1016,29 @@ function ReservasTab({
                         : 'border-[#E2E8F0]'
                     }
                   `}
-                  style={{ borderWidth: isSelected ? '3px' : '1px' }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="text-[#334155]">{mesa.nombre}</h4>
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        isAvailable
-                          ? 'bg-[#22C55E]/10 text-[#22C55E]'
-                          : 'bg-[#94A3B8]/10 text-[#94A3B8]'
-                      }`}
-                    >
-                      {isAvailable ? 'Disponible' : 'Reservada'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-[#64748B]">
-                    <Users size={16} />
-                    <span>Capacidad: {mesa.capacidad} personas</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    style={{ borderWidth: isSelected ? '3px' : '1px' }}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-[#334155]">{mesa.nombre}</h4>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          isAvailable
+                            ? 'bg-[#22C55E]/10 text-[#22C55E]'
+                            : 'bg-[#94A3B8]/10 text-[#94A3B8]'
+                        }`}
+                      >
+                        {isAvailable ? 'Disponible' : 'Reservada'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-[#64748B]">
+                      <Users size={16} />
+                      <span>Capacidad: {mesa.capacidad} personas</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -1265,27 +1340,57 @@ function ReservasTab({
               <span className="text-[#334155]">{partySize}</span>
             </div>
 
-            <div className="pt-3">
-              <label className="block text-sm text-[#64748B] mb-2">
-                Código de confirmación
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={confirmationNumber}
-                  readOnly
-                  className="flex-1 px-4 py-2 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0] text-[#334155]"
-                />
-                <button
-                  onClick={() =>
-                    navigator.clipboard.writeText(confirmationNumber)
-                  }
-                  className="px-4 py-2 text-sm text-[#F97316] hover:text-[#EA580C] transition-colors"
-                >
-                  Copiar
-                </button>
+            {reservaCreada?.qrImage ? (
+              <div className="pt-3">
+                <label className="block text-sm text-[#64748B] mb-4 text-center">
+                  Código QR de confirmación
+                </label>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-white p-4 rounded-xl border-2 border-[#F97316]">
+                    <img
+                      src={reservaCreada.qrImage}
+                      alt="Código QR de reserva"
+                      className="w-48 h-48"
+                    />
+                  </div>
+                  {reservaCreada.codigoQR && (
+                    <div className="text-center">
+                      <p className="text-xs text-[#64748B] mb-1">Código:</p>
+                      <p className="text-sm font-mono text-[#334155] bg-[#F1F5F9] px-3 py-1 rounded">
+                        {reservaCreada.codigoQR}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-xs text-[#64748B] text-center max-w-sm">
+                    Presenta este código QR al llegar al establecimiento
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="pt-3">
+                <label className="block text-sm text-[#64748B] mb-2">
+                  Código de confirmación
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={reservaCreada?.codigoQR || 'Generando...'}
+                    readOnly
+                    className="flex-1 px-4 py-2 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0] text-[#334155]"
+                  />
+                  {reservaCreada?.codigoQR && (
+                    <button
+                      onClick={() =>
+                        navigator.clipboard.writeText(reservaCreada.codigoQR)
+                      }
+                      className="px-4 py-2 text-sm text-[#F97316] hover:text-[#EA580C] transition-colors"
+                    >
+                      Copiar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1315,6 +1420,8 @@ export default function EstablishmentDetail() {
   const { isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState('informacion');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Estados para datos de la API
   const [establishment, setEstablishment] =
@@ -1353,8 +1460,29 @@ export default function EstablishmentDetail() {
       // Reset estados cuando cambia el local
       setCurrentUserOpinion(null);
       setHasLoadedUserOpinion(false);
+      setIsFavorite(false);
     }
   }, [id]);
+
+  // Cargar estado de favorito
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!isLoggedIn || !id) {
+        setIsFavorite(false);
+        return;
+      }
+
+      try {
+        const response = await api.checkFavorite(id);
+        setIsFavorite(response.isFavorite || false);
+      } catch (err) {
+        console.error('Error checking favorite status:', err);
+        setIsFavorite(false);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [id, isLoggedIn]);
 
   // Cargar menú cuando se abre la pestaña
   useEffect(() => {
@@ -1482,6 +1610,45 @@ export default function EstablishmentDetail() {
     router.push('/login');
   };
 
+  const handleToggleFavorite = async () => {
+    if (!isLoggedIn) {
+      alert('Debes iniciar sesión para agregar favoritos');
+      router.push('/login');
+      return;
+    }
+
+    if (isLoadingFavorite) return;
+
+    if (isFavorite) {
+      setShowConfirmDialog(true);
+    } else {
+      try {
+        setIsLoadingFavorite(true);
+        await api.addFavorite(id);
+        setIsFavorite(true);
+      } catch (error: any) {
+        console.error('Error al agregar favorito:', error);
+        alert(error.message || 'Error al agregar favorito');
+      } finally {
+        setIsLoadingFavorite(false);
+      }
+    }
+  };
+
+  const handleConfirmRemoveFavorite = async () => {
+    try {
+      setIsLoadingFavorite(true);
+      await api.removeFavorite(id);
+      setIsFavorite(false);
+      setShowConfirmDialog(false);
+    } catch (error: any) {
+      console.error('Error al eliminar favorito:', error);
+      alert(error.message || 'Error al eliminar favorito');
+    } finally {
+      setIsLoadingFavorite(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
@@ -1516,7 +1683,7 @@ export default function EstablishmentDetail() {
         establishment={establishment}
         onBack={handleBack}
         isFavorite={isFavorite}
-        onToggleFavorite={() => setIsFavorite(!isFavorite)}
+        onToggleFavorite={handleToggleFavorite}
       />
 
       <QuickInfoBar
@@ -1541,7 +1708,7 @@ export default function EstablishmentDetail() {
             <InformacionTab
               establishment={establishment}
               hours={establishment.horarios || []}
-              photos={establishment.images?.todas || []}
+              photos={establishment.images?.capturas || []}
             />
           )}
           {activeTab === 'menu' && (
@@ -1571,6 +1738,18 @@ export default function EstablishmentDetail() {
           )}
         </div>
       </div>
+
+      {showConfirmDialog && (
+        <ConfirmDialog
+          title="¿Quitar de favoritos?"
+          message="¿Estás seguro que deseas quitar este establecimiento de tus favoritos?"
+          confirmText="Sí, quitar"
+          cancelText="Cancelar"
+          onConfirm={handleConfirmRemoveFavorite}
+          onCancel={() => setShowConfirmDialog(false)}
+          isDestructive={false}
+        />
+      )}
     </div>
   );
 }

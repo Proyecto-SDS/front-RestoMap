@@ -58,7 +58,7 @@ export function Header({
             <div className="w-8 h-8 bg-linear-to-r from-[#F97316] to-[#EF4444] rounded-lg flex items-center justify-center">
               <span className="text-white">R</span>
             </div>
-            <span className="hidden sm:block text-[#334155]">ReservaYa</span>
+            <span className="hidden sm:block text-[#334155]">RestoMap</span>
           </button>
 
           {/* Center - Location Filter (Desktop) */}

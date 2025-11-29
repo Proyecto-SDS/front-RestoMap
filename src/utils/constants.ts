@@ -1,4 +1,4 @@
-// ReservaYa - Application Constants
+// RestoMap - Application Constants
 
 import type { EstablishmentType } from '../types';
 

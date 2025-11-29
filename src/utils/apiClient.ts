@@ -1,4 +1,4 @@
-// API Client for ReservaYa
+// API Client for RestoMap
 // Handles all API calls to Flask backend
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -100,6 +100,12 @@ export const api = {
   getEstablishmentReservations: (id: string, fecha: string) =>
     apiCall(`/api/locales/${id}/reservas?fecha=${fecha}`),
 
+  getAvailableTimeSlots: (id: string, fecha: string) =>
+    apiCall(`/api/locales/${id}/horarios-disponibles?fecha=${fecha}`),
+
+  getAvailableTables: (id: string, fecha: string, hora: string) =>
+    apiCall(`/api/locales/${id}/mesas-disponibles?fecha=${fecha}&hora=${hora}`),
+
   // Opinion endpoints
   getEstablishmentOpinions: (
     id: string,
@@ -139,4 +145,21 @@ export const api = {
 
   // Opinion endpoints - user opinions
   getMyOpinions: () => apiCall('/api/opiniones/mis-opiniones'),
+
+  // Favorite endpoints
+  getFavorites: () => apiCall('/api/favoritos/'),
+
+  addFavorite: (localId: string) =>
+    apiCall('/api/favoritos/', {
+      method: 'POST',
+      body: JSON.stringify({ localId }),
+    }),
+
+  removeFavorite: (localId: string) =>
+    apiCall(`/api/favoritos/${localId}`, {
+      method: 'DELETE',
+    }),
+
+  checkFavorite: (localId: string) =>
+    apiCall(`/api/favoritos/check/${localId}`),
 };
