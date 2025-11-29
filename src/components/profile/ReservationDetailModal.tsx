@@ -67,33 +67,37 @@ export function ReservationDetailModal({
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-[#E2E8F0] p-6 flex items-center justify-between z-10">
-          <h2 className="text-[#334155]">{reservation.establishment.name}</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Hero Image */}
+        <div className="relative h-64 w-full shrink-0">
+          <ImageWithFallback
+            src={reservation.establishment.image}
+            alt={reservation.establishment.name}
+            className="w-full h-full object-cover"
+          />
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors"
+            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
             aria-label="Cerrar"
           >
-            <X size={24} className="text-[#64748B]" />
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {/* Establishment Image */}
-          <div className="relative h-64 rounded-xl overflow-hidden mb-6">
-            <ImageWithFallback
-              src={reservation.establishment.image}
-              alt={reservation.establishment.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Establishment Info */}
+        <div className="p-6 overflow-y-auto">
+          {/* Header Info */}
           <div className="mb-6">
+            <h2 className="text-2xl font-bold text-[#334155] mb-2">
+              {reservation.establishment.name}
+            </h2>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs px-2 py-1 rounded bg-linear-to-r from-[#F97316] to-[#FB923C] text-white">
                 {reservation.establishment.type}
@@ -101,7 +105,7 @@ export function ReservationDetailModal({
               {getStatusBadge(reservation.estado)}
             </div>
             <div className="flex items-start gap-2 text-sm text-[#64748B]">
-              <MapPin size={16} className="shrink-0 mt-0.5" />
+              <MapPin size={16} className="shrink-0 mt-0.5 text-[#F97316]" />
               <span>{reservation.establishment.address}</span>
             </div>
           </div>

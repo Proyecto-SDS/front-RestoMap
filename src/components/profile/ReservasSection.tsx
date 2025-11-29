@@ -63,7 +63,7 @@ export function ReservasSection({
   return (
     <div>
       {/* Filters and Sort */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 sticky top-0 bg-[#F1F5F9] py-4 z-10">
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <SelectDropdown
             options={filterOptions}

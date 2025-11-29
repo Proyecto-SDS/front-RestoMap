@@ -51,7 +51,7 @@ export function OpinionesSection({
   return (
     <div>
       {/* Sort */}
-      <div className="mb-6 sticky top-0 bg-[#F1F5F9] py-4 z-10">
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
         <div className="max-w-xs">
           <SelectDropdown
             options={sortOptions}
