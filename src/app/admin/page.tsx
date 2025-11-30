@@ -26,6 +26,7 @@ import { StaffView } from '@/components/admin/StaffView';
 import { NotificacionesView } from '@/components/admin/NotificacionesView';
 import { useAuth } from '@/context/AuthContext';
 import { ReservasView } from '@/components/admin/ReservasView';
+import { useRouter } from 'next/navigation';
 
 type AdminTab =
   | 'dashboard'
@@ -41,17 +42,18 @@ export default function AdminPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     // Redirect if not admin
     if (user && user.email !== 'admin@reservaya.cl') {
-      window.location.href = '/';
+      router.push('/');
     }
-  }, [user]);
+  }, [user, router]);
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   const tabs = [

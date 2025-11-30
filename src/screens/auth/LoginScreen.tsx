@@ -70,7 +70,7 @@ export default function LoginScreen() {
       setTimeout(() => {
         setIsLoading(false);
         showToast('success', '¡Bienvenido Administrador!');
-        window.location.href = '/admin'; // Redirección forzada segura
+        router.push('/admin'); // Redirección con Next.js Router
       }, 1000);
       return;
     }
@@ -86,8 +86,7 @@ export default function LoginScreen() {
       // El nombre se obtendrá del contexto tras la recarga
       showToast('success', `¡Bienvenido a ReservaYa!`);
       setTimeout(() => {
-        // Usamos window.location para asegurar que el Header se actualice
-        window.location.href = from;
+        router.push(from); // Redirección con Next.js Router
       }, 800);
     } else {
       showToast('error', result.error || 'Correo o contraseña incorrectos');

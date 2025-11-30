@@ -888,7 +888,7 @@ export default function MapScreen() {
                 <MapPin size={48} className="text-[#CBD5E1] mx-auto mb-3" />
                 <p className="text-[#64748B] mb-4">{error}</p>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => router.refresh()}
                   className="px-4 py-2 bg-[#F97316] text-white rounded-lg hover:bg-[#EA580C] transition-colors"
                 >
                   Reintentar
