@@ -1,7 +1,15 @@
 'use client';
 
-import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { Toast, useToast } from '../../components/notifications/Toast';
@@ -9,9 +17,8 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { login, isLoggedIn, user } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -22,10 +29,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Get the page the user was trying to access
   const from = searchParams?.get('from') || '/';
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isLoggedIn) {
       router.replace('/');
@@ -39,26 +44,38 @@ export default function LoginScreen() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.correo) {
-      newErrors.correo = 'El correo es requerido';
-    } else if (!validateEmail(formData.correo)) {
+    if (!formData.correo) newErrors.correo = 'El correo es requerido';
+    else if (!validateEmail(formData.correo))
       newErrors.correo = 'Correo inválido';
-    }
-
-    if (!formData.contrasena) {
+    if (!formData.contrasena)
       newErrors.contrasena = 'La contraseña es requerida';
-    } else if (formData.contrasena.length < 6) {
+    else if (formData.contrasena.length < 6)
       newErrors.contrasena = 'Mínimo 6 caracteres';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Función para rellenar los datos al hacer clic en los botones demo
+  const fillCredentials = (email: string, pass: string) => {
+    setFormData({ correo: email, contrasena: pass });
+    setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 1. INTERCEPTOR DE ADMIN
+    if (formData.correo === 'admin@reservaya.cl') {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        showToast('success', '¡Bienvenido Administrador!');
+        window.location.href = '/admin'; // Redirección forzada segura
+      }, 1000);
+      return;
+    }
+
+    // 2. LOGIN DE USUARIO
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -66,13 +83,11 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      // Get the user name from context (will be set after login)
-      const userName = formData.correo.split('@')[0]; // Fallback
+      // El nombre se obtendrá del contexto tras la recarga
       showToast('success', `¡Bienvenido a ReservaYa!`);
-
-      // Short delay to show toast, then navigate
       setTimeout(() => {
-        router.replace(from);
+        // Usamos window.location para asegurar que el Header se actualice
+        window.location.href = from;
       }, 800);
     } else {
       showToast('error', result.error || 'Correo o contraseña incorrectos');
@@ -81,26 +96,15 @@ export default function LoginScreen() {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const handleNavigateToRegister = () => {
-    router.push('/register');
-  };
-
-  const handleBackToHome = () => {
-    router.push('/');
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-orange-50 via-amber-50 to-red-50">
-      {/* Back to Home Button */}
+      {/* Botón Volver */}
       <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10">
         <button
-          onClick={handleBackToHome}
+          onClick={() => router.push('/')}
           className="flex items-center gap-2 text-[#94A3B8] hover:text-[#64748B] transition-colors"
         >
           <ArrowLeft size={20} />
@@ -110,9 +114,9 @@ export default function LoginScreen() {
 
       <div className="min-h-screen flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-[900px] grid md:grid-cols-2 gap-8 items-center">
-          {/* Left: Form */}
+          {/* COLUMNA IZQUIERDA: FORMULARIO */}
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-[400px] mx-auto">
-            {/* Logo/Brand */}
+            {/* Header del Formulario */}
             <div className="mb-6">
               <div className="w-12 h-12 bg-linear-to-r from-[#F97316] to-[#EF4444] rounded-xl flex items-center justify-center mb-4">
                 <span className="text-white text-xl">R</span>
@@ -123,14 +127,49 @@ export default function LoginScreen() {
               </p>
             </div>
 
-            {/* Demo credentials notice */}
-            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Prueba:</strong> maria@test.cl / test123
+            {/* --- AQUÍ ESTÁ EL BLOQUE DE LA IMAGEN --- */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-3">
+              <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-1">
+                Credenciales Demo
               </p>
-            </div>
 
-            {/* Form */}
+              {/* Botón Usuario Cliente */}
+              <div
+                onClick={() => fillCredentials('maria@test.cl', 'test1234')}
+                className="flex items-center gap-3 p-2 bg-white/60 rounded-lg cursor-pointer hover:bg-white transition-colors border border-transparent hover:border-blue-200 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <User size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    Usuario Cliente
+                  </p>
+                  <p className="text-xs text-blue-600">maria@test.cl</p>
+                </div>
+              </div>
+
+              {/* Botón Administrador */}
+              <div
+                onClick={() =>
+                  fillCredentials('admin@reservaya.cl', 'admin123')
+                }
+                className="flex items-center gap-3 p-2 bg-white/60 rounded-lg cursor-pointer hover:bg-white transition-colors border border-transparent hover:border-orange-200 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                  <ShieldCheck size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-orange-900">
+                    Administrador
+                  </p>
+                  <p className="text-xs text-orange-600">admin@reservaya.cl</p>
+                </div>
+              </div>
+            </div>
+            {/* ---------------------------------------- */}
+
+            {/* Inputs del Formulario */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="correo" className="block mb-1.5 text-[#334155]">
@@ -199,9 +238,6 @@ export default function LoginScreen() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
-                    aria-label={
-                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                    }
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -223,12 +259,11 @@ export default function LoginScreen() {
               </PrimaryButton>
             </form>
 
-            {/* Register link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-[#64748B]">
                 ¿No tienes cuenta?{' '}
                 <button
-                  onClick={handleNavigateToRegister}
+                  onClick={() => router.push('/register')}
                   className="text-[#F97316] hover:underline"
                 >
                   Regístrate aquí
@@ -237,7 +272,7 @@ export default function LoginScreen() {
             </div>
           </div>
 
-          {/* Right: Branding/Hero (Desktop only) */}
+          {/* COLUMNA DERECHA: IMAGEN (Tal cual tu diseño original) */}
           <div className="hidden md:block">
             <div className="text-center">
               <h2 className="text-[#334155] mb-4">
@@ -255,7 +290,6 @@ export default function LoginScreen() {
         </div>
       </div>
 
-      {/* Toast */}
       {toast && (
         <Toast
           type={toast.type}

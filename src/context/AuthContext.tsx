@@ -69,6 +69,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     correo: string,
     contrasena: string
   ): Promise<{ success: boolean; error?: string }> => {
+    // ========== LÓGICA DEMO USUARIO CLIENTE ==========
+    if (correo === 'maria@test.cl' && contrasena === 'test1234') {
+      const userData: User = {
+        id: 'demo-user-001',
+        name: 'Maria Demo',
+        email: 'maria@test.cl',
+        phone: '9 8765 4321',
+      };
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', 'demo-token-user');
+        localStorage.setItem('auth_user', JSON.stringify(userData));
+      }
+
+      setUser(userData);
+      setIsLoggedIn(true);
+
+      return { success: true };
+    }
+
     try {
       // Call real API
       const response = await api.login(correo, contrasena);

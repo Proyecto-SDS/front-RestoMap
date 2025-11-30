@@ -39,7 +39,7 @@ export async function apiCall(endpoint: string, options: ApiCallOptions = {}) {
 
     return await response.json();
   } catch (error) {
-    // No mostrar error en consola para 404 en endpoints de opinión de usuario (comportamiento esperado)
+    // No mostrar error en consola para 404 en endpoints de opinión de usuario
     const is404 = (error as any).status === 404;
     const isUserOpinionEndpoint =
       endpoint.includes('/opiniones/') && endpoint.includes('/user');
@@ -139,4 +139,24 @@ export const api = {
 
   // Opinion endpoints - user opinions
   getMyOpinions: () => apiCall('/api/opiniones/mis-opiniones'),
+
+  // --- NUEVO: Endpoint para el Panel de Admin ---
+  getAdminReservations: async () => {
+    // 1. Llamamos al endpoint base de reservas (que el backend usa para listar)
+    const data = await apiCall('/api/reservas/');
+
+    // 2. Adaptamos los datos de Python (snake_case) a React (camelCase)
+    // Usamos 'any' en item porque no tenemos la interfaz de Python definida aquí
+    return data.map((item: any) => ({
+      id: String(item.id),
+      clientName: item.nombre_cliente || 'Cliente Anónimo',
+      clientEmail: item.email_cliente || 'Sin email',
+      date: item.fecha,
+      time: item.hora,
+      pax: item.cantidad_personas,
+      status: item.estado ? item.estado.toLowerCase() : 'pendiente',
+      requestDate: item.solicitado_hace || 'Reciente',
+      table: item.mesa || 'Sin asignar',
+    }));
+  },
 };
