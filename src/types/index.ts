@@ -166,3 +166,93 @@ export interface TabItem {
   label: string;
   value: string;
 }
+
+
+// Admin Panel Types
+
+
+// Menu Managment (CU-09)
+export enum MenuCategory {
+  ENTRADAS = 'ENTRADAS',
+  PRINCIPALES = 'PRINCIPALES',
+  POSTRES = 'POSTRES',
+  BEBIDAS = 'BEBIDAS',
+  BEBIDAS_ALCOHOLICAS = 'BEBIDAS_ALCOHOLICAS',
+  ESPECIALES = 'ESPECIALES',
+}
+
+export interface AdminMenuItem {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  categoria: MenuCategory;
+  enStock: boolean;
+  imagen?: string;
+  localId: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+// Manejo de mesas (CU-10)
+export enum TableStatus {
+  DISPONIBLE = 'DISPONIBLE',
+  OCUPADA = 'OCUPADA',
+  RESERVADA = 'RESERVADA',
+  BLOQUEADA = 'BLOQUEADA',
+}
+
+export interface AdminTable {
+  id: string;
+  nombre: string; // "Mesa 1", "Terraza 2"
+  numero: number; // Número único identificador
+  capacidad: number;
+  estaBloqueada: boolean;
+  estado: TableStatus;
+  localId: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+// Administracion de Staff (CU-11)
+export enum StaffRole {
+  MESERO = 'MESERO',
+  COCINERO = 'COCINERO',
+  CAJERO = 'CAJERO',
+  GERENTE = 'GERENTE',
+  BARTENDER = 'BARTENDER',
+}
+// Estado de Staff
+export enum StaffStatus {
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO',
+  PENDIENTE = 'PENDIENTE', // Invitación enviada
+}
+
+export interface Staff {
+  id: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  rol: StaffRole;
+  estado: StaffStatus;
+  localId: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+// Tipos de respuestas de APIs
+export interface ApiResponse<T> {
+  exito: boolean;
+  datos?: T;
+  mensaje?: string;
+  error?: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  pagina: number;
+  limite: number;
+  totalPaginas: number;
+}

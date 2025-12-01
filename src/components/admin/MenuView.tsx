@@ -1,4 +1,5 @@
-import { useState } from 'react';
+'use client';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Package, Search, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import { UtensilsCrossed } from 'lucide-react';
+import { useMenu } from '@/hooks/useMenu';
 
 interface MenuItem {
   id: number;
@@ -113,6 +115,7 @@ const initialMenuItems: MenuItem[] = [
 ];
 
 export function MenuView() {
+  const { menuItems: backendItems, loading, createItem, updateItem, toggleStock, deleteItem } = useMenu();
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -127,7 +130,21 @@ export function MenuView() {
     available: true,
     image: '',
   });
-
+useEffect(() => {
+    if (backendItems && backendItems.length > 0) {
+      const adaptedItems = backendItems.map(item => ({
+        id: parseInt(item.id),
+        name: item.nombre,
+        description: item.descripcion,
+        price: item.precio,
+        category: item.categoria,
+        stock: item.enStock ? 99 : 0, // Adaptación temporal
+        available: item.enStock,
+        image: item.imagen,
+      }));
+      setMenuItems(adaptedItems);
+    }
+  }, [backendItems]);
   const categories = ['Todo', ...Array.from(new Set(menuItems.map(item => item.category)))];
 
   const handleOpenDialog = (item?: MenuItem) => {
@@ -157,55 +174,80 @@ export function MenuView() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async() => {
     if (!formData.name || !formData.price || !formData.category) {
       toast.error('Por favor completa los campos requeridos');
       return;
     }
+    const backendData = {
+      nombre: formData.name,
+      descripcion: formData.description,
+      precio: parseFloat(formData.price),
+      categoria: formData.category,
+      imagen: formData.image,
+    };
 
     if (editingItem) {
-      setMenuItems(menuItems.map(item => 
-        item.id === editingItem.id 
-          ? { 
-              ...item, 
-              name: formData.name,
-              description: formData.description,
-              price: parseFloat(formData.price),
-              category: formData.category,
-              stock: parseInt(formData.stock) || 0,
-              available: formData.available,
-              image: formData.image,
-            }
-          : item
+      const success = await updateItem(editingItem.id.toString(), backendData);
+      if (!success) {
+        setMenuItems(menuItems.map(item => 
+          item.id === editingItem.id 
+            ? { 
+                ...item, 
+                name: formData.name,
+                description: formData.description,
+                price: parseFloat(formData.price),
+                category: formData.category,
+                stock: parseInt(formData.stock) || 0,
+                available: formData.available,
+                image: formData.image,
+              }
+            : item
       ));
+    }
       toast.success('Producto actualizado correctamente');
     } else {
-      const newItem: MenuItem = {
-        id: Math.max(...menuItems.map(item => item.id), 0) + 1,
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        stock: parseInt(formData.stock) || 0,
-        available: formData.available,
-        image: formData.image,
-      };
-      setMenuItems([...menuItems, newItem]);
-      toast.success('Producto agregado correctamente');
-    }
+      const success = await createItem(backendData);
+      if (!success) {
+        const newItem: MenuItem = {
+          id: Math.max(...menuItems.map(item => item.id), 0) + 1,
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          category: formData.category,
+          stock: parseInt(formData.stock) || 0,
+          available: formData.available,
+          image: formData.image,
+        };
+        setMenuItems([...menuItems, newItem]);
+        toast.success('Producto agregado correctamente');
+      }
+  }
     setIsDialogOpen(false);
   };
 
-  const handleDeleteItem = (id: number) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-    toast.success('Producto eliminado correctamente');
+  const handleDeleteItem = async (id: number) => {
+    if (!window.confirm('¿Estás seguro de eliminar este producto?')) {
+      return;
+    }
+    const success = await deleteItem(id.toString());
+    if (!success) {
+      setMenuItems(menuItems.filter(item => item.id !== id));
+      toast.success('Producto eliminado correctamente');
+    }
   };
 
-  const handleToggleAvailability = (id: number) => {
-    setMenuItems(menuItems.map(item => 
-      item.id === id ? { ...item, available: !item.available } : item
-    ));
-    toast.success('Disponibilidad actualizada');
+  const handleToggleAvailability = async(id: number) => {
+    const item = menuItems.find(i => i.id === id);
+    if (item) {
+      const success = await toggleStock(id.toString(), item.available);
+      if (!success) {
+        setMenuItems(menuItems.map(item => 
+          item.id === id ? { ...item, available: !item.available } : item
+        ));
+        toast.success('Disponibilidad actualizada');
+      }
+    }
   };
 
   const filteredItems = menuItems.filter(item => {
@@ -215,7 +257,15 @@ export function MenuView() {
     return matchesSearch && matchesCategory;
   });
 
-  return (
+    if (loading && menuItems.length === 0) {
+    return (
+      <div className="text-center py-12 bg-white rounded-lg">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        <p className="mt-4 text-muted-foreground">Cargando productos...</p>
+      </div>
+    );
+  }
+    return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">

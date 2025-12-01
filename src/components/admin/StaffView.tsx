@@ -1,5 +1,6 @@
+'use client';
 import { useState } from 'react';
-import { Plus, Edit, Trash2, UserCircle, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCircle, Users, Mail, Copy, Check, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { useStaff } from '@/hooks/useStaff';
+import { StaffRole as BackendStaffRole, StaffStatus as BackendStaffStatus } from '@/types'; 
 
 type StaffRole = 'mesero' | 'cocinero' | 'bartender';
 type StaffStatus = 'activo' | 'descanso' | 'ausente';
@@ -93,9 +96,24 @@ const initialStaff: StaffMember[] = [
 ];
 
 export function StaffView() {
+  const {
+    staff: backendStaff,
+    loading,
+    invitationLink,
+    createInvitation,
+    updateStaff,
+    removeStaff,
+    clearInvitationLink
+  } = useStaff();
   const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
+  const [invitationData, setInvitationData] = useState({
+    email: '',
+    rol: 'MESERO',
+  });
+  const [linkCopied, setLinkCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<StaffRole | 'all'>('all');
   const [formData, setFormData] = useState({
@@ -149,34 +167,84 @@ export function StaffView() {
     }
     setIsDialogOpen(true);
   };
+  const handleGenerateInvitation = async () => {
+    if (!invitationData.email) {
+      toast.error('Por favor ingresa un email');
+      return;
+    }
 
-  const handleSaveMember = () => {
+    const result = await createInvitation({
+      email: invitationData.email,
+      rol: invitationData.rol,
+    });
+
+    if (result.success) {
+      setShowInvitationDialog(true);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (invitationLink && navigator.clipboard) {
+      await navigator.clipboard.writeText(invitationLink);
+      setLinkCopied(true);
+      toast.success('Enlace copiado al portapapeles');
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
+
+  const handleCloseInvitationDialog = () => {
+    setShowInvitationDialog(false);
+    clearInvitationLink();
+    setInvitationData({ email: '', rol: 'MESERO' });
+    setLinkCopied(false);
+  };
+
+  const handleSaveMember = async () => {
     if (!formData.name || !formData.email || !formData.shift) {
       toast.error('Por favor completa todos los campos requeridos');
       return;
     }
-
+    const roleMapping: Record<StaffRole, string> = {
+      'mesero': 'MESERO',
+      'cocinero': 'COCINERO',
+      'bartender': 'BARTENDER',
+    };
     if (editingMember) {
+      const backendData = {
+        nombre: formData.name,
+        email: formData.email,
+        telefono: formData.phone,
+        rol: roleMapping[formData.role],
+      };
+      const success = await updateStaff(editingMember.id.toString(), backendData);
+      if (!success){
       setStaff(staff.map(member => 
         member.id === editingMember.id 
           ? { ...member, ...formData }
           : member
       ));
       toast.success('Personal actualizado correctamente');
+    }
     } else {
-      const newMember: StaffMember = {
-        id: Math.max(...staff.map(m => m.id), 0) + 1,
-        ...formData,
-      };
-      setStaff([...staff, newMember]);
-      toast.success('Personal agregado correctamente');
+      // Para nuevos empleados, usar sistema de invitación
+      toast.info('Usa el sistema de invitaciones para agregar nuevo personal');
+      setIsDialogOpen(false);
+      return;
     }
     setIsDialogOpen(false);
   };
 
-  const handleDeleteMember = (id: number) => {
-    setStaff(staff.filter(member => member.id !== id));
-    toast.success('Personal eliminado correctamente');
+  const handleDeleteMember = async (id: number) => {
+    // Agregamos confirmación crítica
+    if (!window.confirm('⚠️ ADVERTENCIA: ¿Estás seguro de desvincular a este empleado?\n\nPerderá acceso al sistema inmediatamente.')) {
+      return;
+    }
+    const success = await removeStaff(id.toString());
+    if (!success){
+      // Fallback Local
+      setStaff(staff.filter(member => member.id !== id));
+      toast.success('Personal eliminado correctamente');
+    }
   };
 
   const handleChangeStatus = (id: number, newStatus: StaffStatus) => {
@@ -214,6 +282,80 @@ export function StaffView() {
         </div>
       </div>
 
+      {/* Sistema de Invitaciones - CU-11 Paso 6.1 y 6.2 */}
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">Invitar Nuevo Personal</h2>
+          <p className="text-sm text-slate-600">Genera un enlace de invitación único para que el nuevo empleado se registre en el sistema.</p>
+        </div>
+        
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Label htmlFor="invitation-email">Email del Empleado *</Label>
+            <Input
+              id="invitation-email"
+              type="email"
+              placeholder="email@ejemplo.com"
+              value={invitationData.email}
+              onChange={(e) => setInvitationData({ ...invitationData, email: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          
+          <div className="flex-1">
+            <Label htmlFor="invitation-role">Rol del Empleado *</Label>
+            <Select value={invitationData.rol} onValueChange={(value: BackendStaffRole) => setInvitationData({ ...invitationData, rol: value })}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mesero">Mesero</SelectItem>
+                <SelectItem value="cocinero">Cocinero</SelectItem>
+                <SelectItem value="bartender">Bartender</SelectItem>
+                <SelectItem value="anfitrion">Anfitrión</SelectItem>
+                <SelectItem value="gerente">Gerente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-end">
+            <Button onClick={handleGenerateInvitation} disabled={loading}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Generar Invitación
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dialog para mostrar el enlace de invitación - CU-11 Paso 6.2 */}
+      <Dialog open={showInvitationDialog} onOpenChange={(open) => !open && handleCloseInvitationDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enlace de Invitación Generado</DialogTitle>
+            <DialogDescription>
+              Comparte este enlace con el empleado para que complete su registro. El enlace expira en 7 días.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+              <p className="text-sm text-slate-600 mb-2">Enlace de invitación:</p>
+              <p className="text-sm font-mono break-all text-slate-800">{invitationLink}</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button onClick={handleCopyLink} className="flex-1">
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar Enlace
+              </Button>
+              <Button variant="outline" onClick={handleCloseInvitationDialog}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -232,6 +374,7 @@ export function StaffView() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
+        
             <div className="grid gap-2">
               <Label htmlFor="role">Rol *</Label>
               <Select value={formData.role} onValueChange={(value: StaffRole) => setFormData({ ...formData, role: value })}>
@@ -332,7 +475,7 @@ export function StaffView() {
                     <Button variant="outline" size="icon" className="h-8 w-8 bg-white" onClick={() => handleOpenDialog(member)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeleteMember(member.id)}>
+                    <Button variant="destructive" size="icon" className="h-8 w-8" title="Desvincular empleado" onClick={() => handleDeleteMember(member.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>

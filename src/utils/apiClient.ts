@@ -159,4 +159,113 @@ export const api = {
       table: item.mesa || 'Sin asignar',
     }));
   },
+
+  // ADMIN PANEL - MENU ENDPOINTS (CU-09)
+  getMenuItems: () => apiCall('/api/admin/menu'),
+
+  createMenuItem: (data: {
+    nombre: string;
+    descripcion: string;
+    precio: number;
+    categoria: string;
+    imagen?: string;
+  }) =>
+    apiCall('/api/admin/menu', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMenuItem: (
+    id: string,
+    data: {
+      nombre?: string;
+      descripcion?: string;
+      precio?: number;
+      categoria?: string;
+      imagen?: string;
+    }
+  ) =>
+    apiCall(`/api/admin/menu/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  toggleMenuItemStock: (id: string, enStock: boolean) =>
+    apiCall(`/api/admin/menu/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enStock }),
+    }),
+
+  deleteMenuItem: (id: string) =>
+    apiCall(`/api/admin/menu/${id}`, {
+      method: 'DELETE',
+    }),
+
+   // ADMIN PANEL - MESAS ENDPOINTS (CU-10)
+    getTables: () => apiCall('/api/admin/tables'),
+
+  createTable: (data: { nombre: string; numero: number; capacidad: number }) =>
+    apiCall('/api/admin/tables', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateTable: (
+    id: string,
+    data: {
+      nombre?: string;
+      numero?: number;
+      capacidad?: number;
+    }
+  ) =>
+    apiCall(`/api/admin/tables/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  toggleTableBlock: (id: string, estaBloqueada: boolean) =>
+    apiCall(`/api/admin/tables/${id}/block`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estaBloqueada }),
+    }),
+
+  deleteTable: (id: string) =>
+    apiCall(`/api/admin/tables/${id}`, {
+      method: 'DELETE',
+    }),
+
+    // ADMIN PANEL - STAFF ENDPOINTS (CU-11)
+    getStaff: () => apiCall('/api/admin/staff'),
+
+  createStaffInvitation: (data: { email: string; rol: string }) =>
+    apiCall('/api/admin/staff/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateStaff: (
+    id: string,
+    data: {
+      nombre?: string;
+      email?: string;
+      telefono?: string;
+      rol?: string;
+    }
+  ) =>
+    apiCall(`/api/admin/staff/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  removeStaff: (id: string) =>
+    apiCall(`/api/admin/staff/${id}`, {
+      method: 'DELETE',
+    }),
+
+  updateStaffStatus: (id: string, estado: string) =>
+    apiCall(`/api/admin/staff/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estado }),
+    }),
+
 };

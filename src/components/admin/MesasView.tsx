@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, LayoutDashboard } from 'lucide-react';
 import {
   Card,
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '../ui/card';
 import { Button } from '../ui/button';
+import { toast } from 'sonner';
 import { Badge } from '../ui/badge';
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { useTables } from '@/hooks/useTables';
 
 type TableStatus = 'disponible' | 'ocupada' | 'reservada';
 
@@ -47,7 +49,19 @@ const initialTables: Table[] = [
 ];
 
 export function MesasView() {
+  const { tables: backendTables, loading, createTable, updateTable, toggleBlock, deleteTable, isTableNumberUnique } = useTables();
   const [tables, setTables] = useState<Table[]>(initialTables);
+  useEffect(() => {
+    if (backendTables && backendTables.length > 0) {
+      const adaptedTables = backendTables.map(t => ({
+        id: parseInt(t.id),
+        number: t.numero.toString(),
+        capacity: t.capacidad,
+        status: (t.estaBloqueada ? 'ocupada' : 'disponible') as TableStatus,
+      }));
+      setTables(adaptedTables);
+    }
+  }, [backendTables]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [formData, setFormData] = useState({
@@ -87,12 +101,29 @@ export function MesasView() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveTable = () => {
+  const handleSaveTable = async() => {
     if (!formData.number || !formData.capacity) {
+      toast.error('Por favor completa los campos requeridos');
       return;
     }
-
+    // Validación de número único
+    const tableNumber = parseInt(formData.number);
+    if (!editingTable && !isTableNumberUnique(tableNumber)) {
+      toast.error('Ya existe una mesa con ese número');
+      return;
+    }
+    if (editingTable && !isTableNumberUnique(tableNumber, editingTable.id.toString())) {
+      toast.error('Ya existe una mesa con ese número');
+      return;
+    }
+    const backendData = {
+      nombre: `Mesa ${formData.number}`,
+      numero: tableNumber,
+      capacidad: parseInt(formData.capacity),
+    };
     if (editingTable) {
+      const success = await updateTable(editingTable.id.toString(), backendData);
+      if (!success){
       setTables(
         tables.map((t) =>
           t.id === editingTable.id
@@ -100,27 +131,59 @@ export function MesasView() {
             : t
         )
       );
-    } else {
-      const newTable: Table = {
-        id: Math.max(...tables.map((t) => t.id), 0) + 1,
-        number: formData.number,
-        capacity: parseInt(formData.capacity),
-        status: formData.status,
-      };
-      setTables([...tables, newTable]);
+    }
+  } else {
+      const success = await createTable(backendData);
+      if (!success) {
+        const newTable: Table = {
+          id: Math.max(...tables.map((t) => t.id), 0) + 1,
+          number: formData.number,
+          capacity: parseInt(formData.capacity),
+          status: formData.status,
+        };
+        setTables([...tables, newTable]);
+        toast.success('Mesa creada correctamente');
+      }
     }
     setIsDialogOpen(false);
   };
 
-  const handleDeleteTable = (id: number) => {
-    setTables(tables.filter((t) => t.id !== id));
+  const handleDeleteTable = async(id: number) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta mesa?')) {
+      return;
+    }
+    const success = await deleteTable(id.toString());
+    if (!success) {
+      setTables(tables.filter((t) => t.id !== id));
+      toast.success('Mesa eliminada correctamente');
+    }
   };
-
-  const handleChangeStatus = (id: number, newStatus: TableStatus) => {
-    setTables(
-      tables.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
+  const handleToggleBlock = async (id: number) => {
+    const table = tables.find(t => t.id === id);
+    if (table) {
+      // Si está ocupada, la bloqueamos; si no, la desbloqueamos
+      const shouldBlock = table.status !== 'ocupada';
+      const newStatus: TableStatus = shouldBlock ? 'ocupada' : 'disponible';
+      
+      const success = await toggleBlock(id.toString(), shouldBlock);
+      
+      if (!success) {
+        // Fallback local
+        setTables(tables.map((t) =>
+          t.id === id ? { ...t, status: newStatus } : t
+        ));
+        toast.success(shouldBlock ? 'Mesa bloqueada' : 'Mesa desbloqueada');
+      }
+    }
+  };
+  if (loading && tables.length === 0) {
+    return (
+      <div className="text-center py-12 bg-white rounded-lg">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        <p className="mt-4 text-muted-foreground">Cargando mesas...</p>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -255,6 +318,14 @@ export function MesasView() {
                   >
                     <Edit className="h-3 w-3 mr-1" />
                     Editar
+                  </Button>
+                  <Button
+                    variant={table.status === 'ocupada' ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() => handleToggleBlock(table.id)}
+                    title={table.status === 'ocupada' ? 'Desbloquear mesa' : 'Bloquear mesa'}
+                  >
+                    {table.status === 'ocupada' ? '🔓' : '🔒'}
                   </Button>
                   <Button
                     variant="outline"
