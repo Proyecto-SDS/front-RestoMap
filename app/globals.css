@@ -1,0 +1,9 @@
+/* Mapbox styles loaded via CDN or npm package */
+/* Contenido de app/globals.css */
+
+@import '/node_modules/mapbox-gl/dist/mapbox-gl.css'; 
+
+/* ... Aquí continúan tus estilos de TailwindCSS o CSS personalizados ... */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

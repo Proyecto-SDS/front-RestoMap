@@ -1,11 +1,10 @@
 "use client";
+
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react;
 
-// Si tu archivo utils está en src/lib/utils.ts, usa esto:
-import { cn } from "@/lib/utils"; 
-// Si te da error, prueba: import { cn } from "../../lib/utils";
+import { cn } from "./utils";
 
 function Accordion({
   ...props
