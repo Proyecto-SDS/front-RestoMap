@@ -166,3 +166,45 @@ export interface TabItem {
   label: string;
   value: string;
 }
+
+// Payloads para la API de gestión del local
+
+export type TableStatus = 'disponible' | 'ocupada' | 'reservada' | 'fuera_de_servicio';
+export type ProductStatus = 'disponible' | 'agotado' | 'inactivo';
+
+export interface CreateTablePayload {
+  nombre: string;
+  capacidad: number;
+  estado?: TableStatus;
+}
+
+export interface UpdateTablePayload {
+  nombre?: string;
+  capacidad?: number;
+  estado?: TableStatus;
+}
+
+export interface CreateProductPayload {
+  nombre: string;
+  descripcion?: string;
+  precio: number;
+  id_categoria: number;
+  estado?: ProductStatus;
+}
+
+export interface UpdateProductPayload {
+  nombre?: string;
+  descripcion?: string;
+  precio?: number;
+  id_categoria?: number;
+  estado?: ProductStatus;
+}
+
+export interface StaffMember {
+  id: number;
+  nombre: string;
+  correo: string;
+  telefono?: string;
+  rol: string;
+  fecha_registro: string;
+}

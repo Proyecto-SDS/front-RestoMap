@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Package, Search, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Package, Search, X, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,107 +13,40 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import { UtensilsCrossed } from 'lucide-react';
+import { api } from '@/utils/apiClient';
 
 interface MenuItem {
   id: number;
   name: string;
   description: string;
   price: number;
-  category: string;
-  stock: number;
-  available: boolean;
-  image?: string;
+  category: string; // Corresponde a `categoria_nombre`
+  categoryId: number | null; // Corresponde a `id_categoria`
+  stock: number; // No viene del backend
+  available: boolean; // Corresponde a `estado`
+  image?: string; // No viene del backend
 }
 
-const initialMenuItems: MenuItem[] = [
-  { 
-    id: 1, 
-    name: 'Empanadas de Pino', 
-    description: 'Tradicionales empanadas chilenas rellenas de carne, cebolla, huevo y aceitunas', 
-    price: 2.50, 
-    category: 'Entradas', 
-    stock: 25, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1646314230198-e27c375e1a2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbXBhbmFkYXMlMjBmb29kfGVufDF8fHx8MTc2MjIyMzk2MXww&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 2, 
-    name: 'Ensalada César', 
-    description: 'Lechuga fresca, crutones, queso parmesano y aderezo césar casero', 
-    price: 3.20, 
-    category: 'Entradas', 
-    stock: 15, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWVzYXIlMjBzYWxhZHxlbnwxfHx8fDE3NjIyMjA0ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 3, 
-    name: 'Completo Italiano', 
-    description: 'Hot dog con tomate, palta y mayonesa al estilo chileno', 
-    price: 2.80, 
-    category: 'Platos Principales', 
-    stock: 20, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1613482084286-41f25b486fa2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3QlMjBkb2d8ZW58MXx8fHwxNzYyMjA2NzM5fDA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 4, 
-    name: 'Hamburguesa Campus', 
-    description: 'Hamburguesa de carne con queso cheddar, lechuga, tomate y papas fritas', 
-    price: 4.50, 
-    category: 'Platos Principales', 
-    stock: 18, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmcmllc3xlbnwxfHx8fDE3NjIyMDI2MDl8MA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 5, 
-    name: 'Sándwich de Pollo', 
-    description: 'Pechuga de pollo a la plancha con palta, tomate y mayonesa', 
-    price: 3.80, 
-    category: 'Platos Principales', 
-    stock: 12, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1703219342329-fce8488cf443?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGlja2VuJTIwc2FuZHdpY2h8ZW58MXx8fHwxNzYyMTc0OTk3fDA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 6, 
-    name: 'Pasta Carbonara', 
-    description: 'Pasta fresca con salsa carbonara, tocino y queso parmesano', 
-    price: 4.20, 
-    category: 'Platos Principales', 
-    stock: 10, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1588013273468-315fd88ea34c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwYXN0YSUyMGNhcmJvbmFyYXxlbnwxfHx8fDE3NjIyMjgwMzB8MA&ixlibrb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 7, 
-    name: 'Brownie con Helado', 
-    description: 'Brownie de chocolate casero servido con helado de vainilla', 
-    price: 2.50, 
-    category: 'Postres', 
-    stock: 8, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaG9jb2xhdGUlMjBicm93bmllfGVufDF8fHx8MTc2MjIxNTYyOHww&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-  { 
-    id: 8, 
-    name: 'Cerveza Artesanal', 
-    description: 'IPA local 500ml', 
-    price: 3.00, 
-    category: 'Bebidas', 
-    stock: 48, 
-    available: true,
-    image: 'https://images.unsplash.com/photo-1615332579037-3c44b3660b53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjcmFmdCUyMGJlZXJ8ZW58MXx8fHwxNzYyMTk5NDE4fDA&ixlib=rb-4.1.0&q=80&w=1080'
-  },
-];
+interface Category {
+  id: number;
+  nombre: string;
+}
 
 export function MenuView() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,13 +55,47 @@ export function MenuView() {
     name: '',
     description: '',
     price: '',
-    category: '',
-    stock: '',
+    categoryId: '',
+    stock: '', // Se mantiene para el formulario, aunque no venga del backend
     available: true,
-    image: '',
+    image: '', // Se mantiene para el formulario
   });
 
-  const categories = ['Todo', ...Array.from(new Set(menuItems.map(item => item.category)))];
+  const fetchMenuData = async () => {
+    try {
+      setLoading(true);
+      const [productsData, categoriesData] = await Promise.all([
+        api.getProductos(),
+        api.getCategorias(),
+      ]);
+
+      const adaptedProducts = productsData.productos.map((p: any) => ({
+        id: p.id,
+        name: p.nombre,
+        description: p.descripcion,
+        price: p.precio,
+        category: p.categoria_nombre || 'Sin categoría',
+        categoryId: p.id_categoria,
+        stock: 50, // Mock, ya que no viene del backend
+        available: p.estado === 'disponible',
+        image: `https://source.unsplash.com/400x300/?food,${p.nombre.split(' ').join(',')}`, // Imagen mock
+      }));
+
+      setMenuItems(adaptedProducts);
+      setCategories(categoriesData.categorias);
+    } catch (error) {
+      toast.error('Error al cargar el menú');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenuData();
+  }, []);
+
+  const availableCategories = ['Todo', ...Array.from(new Set(menuItems.map(item => item.category)))];
 
   const handleOpenDialog = (item?: MenuItem) => {
     if (item) {
@@ -137,7 +104,7 @@ export function MenuView() {
         name: item.name,
         description: item.description,
         price: item.price.toString(),
-        category: item.category,
+        categoryId: item.categoryId?.toString() || '',
         stock: item.stock.toString(),
         available: item.available,
         image: item.image || '',
@@ -148,7 +115,7 @@ export function MenuView() {
         name: '',
         description: '',
         price: '',
-        category: '',
+        categoryId: '',
         stock: '',
         available: true,
         image: '',
@@ -157,56 +124,66 @@ export function MenuView() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveItem = () => {
-    if (!formData.name || !formData.price || !formData.category) {
-      toast.error('Por favor completa los campos requeridos');
+  const handleSaveItem = async () => {
+    if (!formData.name || !formData.price || !formData.categoryId) {
+      toast.error('Por favor completa nombre, precio y categoría.');
       return;
     }
 
-    if (editingItem) {
-      setMenuItems(menuItems.map(item => 
-        item.id === editingItem.id 
-          ? { 
-              ...item, 
-              name: formData.name,
-              description: formData.description,
-              price: parseFloat(formData.price),
-              category: formData.category,
-              stock: parseInt(formData.stock) || 0,
-              available: formData.available,
-              image: formData.image,
-            }
-          : item
-      ));
-      toast.success('Producto actualizado correctamente');
-    } else {
-      const newItem: MenuItem = {
-        id: Math.max(...menuItems.map(item => item.id), 0) + 1,
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        stock: parseInt(formData.stock) || 0,
-        available: formData.available,
-        image: formData.image,
-      };
-      setMenuItems([...menuItems, newItem]);
-      toast.success('Producto agregado correctamente');
+    const payload = {
+      nombre: formData.name,
+      descripcion: formData.description,
+      precio: parseFloat(formData.price),
+      id_categoria: parseInt(formData.categoryId),
+      estado: formData.available ? 'disponible' : 'agotado',
+    };
+
+    try {
+      if (editingItem) {
+        await api.updateProducto(editingItem.id, payload);
+        toast.success('Producto actualizado correctamente');
+      } else {
+        await api.createProducto(payload);
+        toast.success('Producto agregado correctamente');
+      }
+      fetchMenuData(); // Recargar datos
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error(`Error al guardar el producto.`);
+      console.error(error);
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteItem = (id: number) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-    toast.success('Producto eliminado correctamente');
+  const handleDeleteItem = async (id: number) => {
+    try {
+      await api.deleteProducto(id);
+      toast.success('Producto eliminado correctamente');
+      fetchMenuData(); // Recargar datos
+    } catch (error) {
+      toast.error('Error al eliminar el producto');
+      console.error(error);
+    }
   };
 
-  const handleToggleAvailability = (id: number) => {
-    setMenuItems(menuItems.map(item => 
-      item.id === id ? { ...item, available: !item.available } : item
-    ));
-    toast.success('Disponibilidad actualizada');
+  const handleToggleAvailability = async (item: MenuItem) => {
+    const newStatus = !item.available;
+    const payload = {
+      ...item,
+      nombre: item.name,
+      precio: item.price,
+      id_categoria: item.categoryId,
+      estado: newStatus ? 'disponible' : 'agotado',
+    };
+
+    try {
+      await api.updateProducto(item.id, payload);
+      toast.success('Disponibilidad actualizada');
+      fetchMenuData();
+    } catch (error) {
+      toast.error('Error al actualizar la disponibilidad');
+    }
   };
+
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -214,6 +191,15 @@ export function MenuView() {
     const matchesCategory = selectedCategory === 'Todo' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Cargando menú...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -253,7 +239,7 @@ export function MenuView() {
         </div>
 
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {categories.map(category => (
+          {availableCategories.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
@@ -285,7 +271,7 @@ export function MenuView() {
                 </div>
               )}
               <div className="absolute top-2.5 right-2.5 bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold px-3 py-1.5 rounded-full shadow-lg text-base transform transition-transform group-hover:scale-105">
-                ${new Intl.NumberFormat('es-CL').format(item.price * 1000)}
+                ${new Intl.NumberFormat('es-CL').format(item.price)}
               </div>
               {!item.available && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
@@ -313,7 +299,7 @@ export function MenuView() {
                 <Button
                   variant={item.available ? 'outline' : 'secondary'}
                   size="sm"
-                  onClick={() => handleToggleAvailability(item.id)}
+                  onClick={() => handleToggleAvailability(item)}
                   className="h-8"
                 >
                   {item.available ? 'Desactivar' : 'Activar'}
@@ -343,7 +329,7 @@ export function MenuView() {
         ))}
       </div>
 
-      {filteredItems.length === 0 && (
+      {filteredItems.length === 0 && !loading &&(
         <div className="text-center py-12 bg-white rounded-lg">
           <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">No se encontraron productos</p>
@@ -402,12 +388,21 @@ export function MenuView() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="category">Categoría *</Label>
-              <Input
-                id="category"
-                placeholder="Ej: Entradas, Platos Principales, Postres"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
+               <Select
+                value={formData.categoryId}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="image">URL de Imagen</Label>

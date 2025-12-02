@@ -78,14 +78,34 @@ export function ReservasView() {
     loadData();
   }, []);
 
-  // Cambiar estado (Visualmente por ahora, idealmente conectaría con API de update)
-  const handleStatusChange = (id: string, newStatus: ReservationStatus) => {
-    setReservations((prev) =>
-      prev.map((res) => (res.id === id ? { ...res, status: newStatus } : res))
-    );
+  // Cambiar estado, ahora conectado al backend
+  const handleStatusChange = async (
+    id: string,
+    newStatus: ReservationStatus
+  ) => {
+    // Traducir 'cancelada' a 'rechazada' para el backend
+    const statusForBackend = newStatus === 'cancelada' ? 'rechazada' : newStatus;
 
-    if (newStatus === 'confirmada') toast.success(`Reserva confirmada`);
-    if (newStatus === 'cancelada') toast.info(`Reserva rechazada`);
+    try {
+      // Llamada a la API para actualizar
+      await api.updateReservationStatus(id, statusForBackend);
+
+      // Actualizar estado local solo si la API tuvo éxito
+      setReservations((prev) =>
+        prev.map((res) => (res.id === id ? { ...res, status: newStatus } : res))
+      );
+
+      // Notificación de éxito
+      if (newStatus === 'confirmada') {
+        toast.success('Reserva confirmada exitosamente');
+      } else if (newStatus === 'cancelada') {
+        toast.info('Reserva rechazada correctamente');
+      }
+    } catch (error) {
+      // Notificación de error
+      console.error('Error al actualizar el estado:', error);
+      toast.error('No se pudo actualizar la reserva. Intente de nuevo.');
+    }
   };
 
   // Filtrado local

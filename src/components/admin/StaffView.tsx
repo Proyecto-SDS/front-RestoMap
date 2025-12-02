@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, UserCircle, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,17 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { toast } from 'sonner';
+import { api } from '@/utils/apiClient';
 
-type StaffRole = 'mesero' | 'cocinero' | 'bartender';
+type StaffRole = 'mesero' | 'cocinero' | 'bartender' | 'chef';
 type StaffStatus = 'activo' | 'descanso' | 'ausente';
 
 interface StaffMember {
@@ -44,56 +36,8 @@ interface StaffMember {
   shift: string;
 }
 
-const initialStaff: StaffMember[] = [
-  {
-    id: 1,
-    name: 'Carlos Mendez',
-    role: 'mesero',
-    email: 'carlos.mendez@email.com',
-    phone: '+34 612 345 678',
-    status: 'activo',
-    shift: 'Mañana',
-  },
-  {
-    id: 2,
-    name: 'Ana López',
-    role: 'mesero',
-    email: 'ana.lopez@email.com',
-    phone: '+34 623 456 789',
-    status: 'activo',
-    shift: 'Tarde',
-  },
-  {
-    id: 3,
-    name: 'Miguel Torres',
-    role: 'cocinero',
-    email: 'miguel.torres@email.com',
-    phone: '+34 634 567 890',
-    status: 'activo',
-    shift: 'Mañana',
-  },
-  {
-    id: 4,
-    name: 'Laura García',
-    role: 'cocinero',
-    email: 'laura.garcia@email.com',
-    phone: '+34 645 678 901',
-    status: 'descanso',
-    shift: 'Tarde',
-  },
-  {
-    id: 5,
-    name: 'Roberto Sánchez',
-    role: 'bartender',
-    email: 'roberto.sanchez@email.com',
-    phone: '+34 656 789 012',
-    status: 'activo',
-    shift: 'Noche',
-  },
-];
-
 export function StaffView() {
-  const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,12 +49,37 @@ export function StaffView() {
     phone: '',
     status: 'activo' as StaffStatus,
     shift: '',
+    contrasena: '',
   });
 
-  const roleLabels = {
+  const fetchStaff = async () => {
+    try {
+      const data = await api.getPersonal();
+      const adaptedStaff = data.personal.map((member: any) => ({
+        id: member.id,
+        name: member.nombre,
+        role: member.rol,
+        email: member.correo,
+        phone: member.telefono,
+        status: 'activo', // Dato no viene del backend, se asume 'activo'
+        shift: 'No asignado', // Dato no viene del backend
+      }));
+      setStaff(adaptedStaff);
+    } catch (error) {
+      toast.error('Error al cargar el personal');
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
+  const roleLabels: { [key in StaffRole]: string } = {
     mesero: 'Mesero',
     cocinero: 'Cocinero',
     bartender: 'Bartender',
+    chef: 'Chef',
   };
 
   const statusLabels = {
@@ -135,6 +104,7 @@ export function StaffView() {
         phone: member.phone,
         status: member.status,
         shift: member.shift,
+        contrasena: '',
       });
     } else {
       setEditingMember(null);
@@ -145,42 +115,53 @@ export function StaffView() {
         phone: '',
         status: 'activo',
         shift: '',
+        contrasena: '',
       });
     }
     setIsDialogOpen(true);
   };
 
-  const handleSaveMember = () => {
-    if (!formData.name || !formData.email || !formData.shift) {
-      toast.error('Por favor completa todos los campos requeridos');
-      return;
-    }
-
+  const handleSaveMember = async () => {
     if (editingMember) {
-      setStaff(staff.map(member => 
-        member.id === editingMember.id 
+      // TODO: Backend no implementa actualización de personal
+      setStaff(staff.map(member =>
+        member.id === editingMember.id
           ? { ...member, ...formData }
           : member
       ));
-      toast.success('Personal actualizado correctamente');
+      toast.success('Personal actualizado (localmente)');
+      setIsDialogOpen(false);
     } else {
-      const newMember: StaffMember = {
-        id: Math.max(...staff.map(m => m.id), 0) + 1,
-        ...formData,
-      };
-      setStaff([...staff, newMember]);
-      toast.success('Personal agregado correctamente');
+      if (!formData.name || !formData.email || !formData.contrasena || !formData.role) {
+        toast.error('Por favor completa nombre, email, contraseña y rol');
+        return;
+      }
+      try {
+        await api.createEmpleado({
+          nombre: formData.name,
+          correo: formData.email,
+          telefono: formData.phone,
+          contrasena: formData.contrasena,
+          rol: formData.role,
+        });
+        toast.success('Personal agregado correctamente');
+        fetchStaff(); // Recargar la lista de personal
+        setIsDialogOpen(false);
+      } catch (error) {
+        toast.error('Error al agregar el personal');
+        console.error(error);
+      }
     }
-    setIsDialogOpen(false);
   };
 
   const handleDeleteMember = (id: number) => {
+    // TODO: Backend no implementa eliminación de personal
     setStaff(staff.filter(member => member.id !== id));
-    toast.success('Personal eliminado correctamente');
+    toast.success('Personal eliminado (localmente)');
   };
 
   const handleChangeStatus = (id: number, newStatus: StaffStatus) => {
-    setStaff(staff.map(member => 
+    setStaff(staff.map(member =>
       member.id === id ? { ...member, status: newStatus } : member
     ));
     toast.success('Estado actualizado');
@@ -189,7 +170,7 @@ export function StaffView() {
 
   const filteredStaff = staff
     .filter(member => roleFilter === 'all' || member.role === roleFilter)
-    .filter(member => 
+    .filter(member =>
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -240,7 +221,7 @@ export function StaffView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="mesero">Mesero</SelectItem>
-                  <SelectItem value="cocinero">Cocinero</SelectItem>
+                  <SelectItem value="chef">Chef</SelectItem>
                   <SelectItem value="bartender">Bartender</SelectItem>
                 </SelectContent>
               </Select>
@@ -255,18 +236,30 @@ export function StaffView() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
+            {!editingMember && (
+              <div className="grid gap-2">
+                <Label htmlFor="password">Contraseña *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Contraseña para el nuevo usuario"
+                  value={formData.contrasena}
+                  onChange={(e) => setFormData({ ...formData, contrasena: e.target.value })}
+                />
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="phone">Teléfono</Label>
               <Input
                 id="phone"
-                placeholder="+34 600 000 000"
+                placeholder="+56912345678"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
+             <div className="grid gap-2">
               <Label htmlFor="shift">Turno *</Label>
-              <Select value={formData.shift} onValueChange={(value) => setFormData({ ...formData, shift: value })}>
+              <Select value={formData.shift} onValueChange={(value) => setFormData({ ...formData, shift: value })} disabled={!!editingMember}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un turno" />
                 </SelectTrigger>
@@ -279,7 +272,7 @@ export function StaffView() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="status">Estado</Label>
-              <Select value={formData.status} onValueChange={(value: StaffStatus) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value: StaffStatus) => setFormData({ ...formData, status: value })} disabled={!!editingMember}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -362,3 +355,5 @@ export function StaffView() {
     </div>
   );
 }
+
+

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, LayoutDashboard } from 'lucide-react';
 import {
   Card,
@@ -10,11 +10,9 @@ import {
   CardTitle,
 } from '../ui/card';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -28,98 +26,132 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { toast } from 'sonner';
+import { api } from '@/utils/apiClient';
 
-type TableStatus = 'disponible' | 'ocupada' | 'reservada';
+type TableStatus = 'disponible' | 'ocupada' | 'reservada' | 'fuera_de_servicio';
 
 interface Table {
   id: number;
-  number: string;
-  capacity: number;
-  status: TableStatus;
+  nombre: string;
+  capacidad: number;
+  estado: TableStatus;
 }
 
-const initialTables: Table[] = [
-  { id: 1, number: '1', capacity: 2, status: 'disponible' },
-  { id: 2, number: '2', capacity: 4, status: 'ocupada' },
-  { id: 3, number: '3', capacity: 4, status: 'disponible' },
-  { id: 4, number: '4', capacity: 6, status: 'reservada' },
-  { id: 5, number: '5', capacity: 2, status: 'disponible' },
-];
-
 export function MesasView() {
-  const [tables, setTables] = useState<Table[]>(initialTables);
+  const [tables, setTables] = useState<Table[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [formData, setFormData] = useState({
-    number: '',
-    capacity: '',
-    status: 'disponible' as TableStatus,
+    nombre: '',
+    capacidad: '',
+    estado: 'disponible' as TableStatus,
   });
 
-  const statusColors = {
-    disponible: 'bg-green-500',
-    ocupada: 'bg-red-500',
-    reservada: 'bg-yellow-500',
+  const fetchTables = async () => {
+    try {
+      const data = await api.getMesas();
+      setTables(data.mesas);
+    } catch (error) {
+      toast.error('Error al cargar las mesas');
+      console.error(error);
+    }
   };
 
-  const statusLabels = {
+  useEffect(() => {
+    fetchTables();
+  }, []);
+
+  const statusLabels: { [key in TableStatus]: string } = {
     disponible: 'Disponible',
     ocupada: 'Ocupada',
     reservada: 'Reservada',
+    fuera_de_servicio: 'Fuera de Servicio',
   };
+
+  const statusStyles: { [key in TableStatus]: { bg: string, border: string, dot: string, text: string } } = {
+    disponible: {
+      bg: 'bg-green-50',
+      border: 'border-green-400',
+      dot: 'bg-green-500',
+      text: 'text-green-700',
+    },
+    ocupada: {
+      bg: 'bg-orange-50',
+      border: 'border-orange-400',
+      dot: 'bg-orange-500',
+      text: 'text-orange-700',
+    },
+    reservada: {
+      bg: 'bg-amber-50',
+      border: 'border-pink-400',
+      dot: 'bg-pink-500',
+      text: 'text-amber-800',
+    },
+    fuera_de_servicio: {
+      bg: 'bg-slate-50',
+      border: 'border-slate-400',
+      dot: 'bg-slate-500',
+      text: 'text-slate-700',
+    },
+  };
+
 
   const handleOpenDialog = (table?: Table) => {
     if (table) {
       setEditingTable(table);
       setFormData({
-        number: table.number,
-        capacity: table.capacity.toString(),
-        status: table.status,
+        nombre: table.nombre,
+        capacidad: table.capacidad.toString(),
+        estado: table.estado,
       });
     } else {
       setEditingTable(null);
       setFormData({
-        number: '',
-        capacity: '',
-        status: 'disponible',
+        nombre: '',
+        capacidad: '',
+        estado: 'disponible',
       });
     }
     setIsDialogOpen(true);
   };
 
-  const handleSaveTable = () => {
-    if (!formData.number || !formData.capacity) {
+  const handleSaveTable = async () => {
+    if (!formData.nombre || !formData.capacidad) {
+      toast.error('Nombre y capacidad son requeridos');
       return;
     }
 
-    if (editingTable) {
-      setTables(
-        tables.map((t) =>
-          t.id === editingTable.id
-            ? { ...t, ...formData, capacity: parseInt(formData.capacity) }
-            : t
-        )
-      );
-    } else {
-      const newTable: Table = {
-        id: Math.max(...tables.map((t) => t.id), 0) + 1,
-        number: formData.number,
-        capacity: parseInt(formData.capacity),
-        status: formData.status,
-      };
-      setTables([...tables, newTable]);
+    const tableData = {
+      ...formData,
+      capacidad: parseInt(formData.capacidad, 10),
+    };
+
+    try {
+      if (editingTable) {
+        await api.updateMesa(editingTable.id, tableData);
+        toast.success('Mesa actualizada correctamente');
+      } else {
+        await api.createMesa(tableData);
+        toast.success('Mesa creada correctamente');
+      }
+      fetchTables();
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error('Error al guardar la mesa');
+      console.error(error);
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteTable = (id: number) => {
-    setTables(tables.filter((t) => t.id !== id));
-  };
-
-  const handleChangeStatus = (id: number, newStatus: TableStatus) => {
-    setTables(
-      tables.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
-    );
+  const handleDeleteTable = async (id: number) => {
+    try {
+      await api.deleteMesa(id);
+      toast.success('Mesa eliminada correctamente');
+      fetchTables();
+    } catch (error) {
+      toast.error('Error al eliminar la mesa');
+      console.error(error);
+    }
   };
 
   return (
@@ -153,34 +185,34 @@ export function MesasView() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="number">Número de Mesa</Label>
+              <Label htmlFor="nombre">Nombre de Mesa</Label>
               <Input
-                id="number"
-                placeholder="Ej: 1, 2, 3"
-                value={formData.number}
+                id="nombre"
+                placeholder="Ej: Mesa 1, Terraza 2"
+                value={formData.nombre}
                 onChange={(e) =>
-                  setFormData({ ...formData, number: e.target.value })
+                  setFormData({ ...formData, nombre: e.target.value })
                 }
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="capacity">Capacidad</Label>
+              <Label htmlFor="capacidad">Capacidad</Label>
               <Input
-                id="capacity"
+                id="capacidad"
                 type="number"
                 placeholder="Número de personas"
-                value={formData.capacity}
+                value={formData.capacidad}
                 onChange={(e) =>
-                  setFormData({ ...formData, capacity: e.target.value })
+                  setFormData({ ...formData, capacidad: e.target.value })
                 }
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="status">Estado</Label>
+              <Label htmlFor="estado">Estado</Label>
               <Select
-                value={formData.status}
+                value={formData.estado}
                 onValueChange={(value: TableStatus) =>
-                  setFormData({ ...formData, status: value })
+                  setFormData({ ...formData, estado: value })
                 }
               >
                 <SelectTrigger>
@@ -189,7 +221,7 @@ export function MesasView() {
                 <SelectContent>
                   <SelectItem value="disponible">Disponible</SelectItem>
                   <SelectItem value="ocupada">Ocupada</SelectItem>
-                  <SelectItem value="reservada">Reservada</SelectItem>
+                  <SelectItem value="fuera_de_servicio">Fuera de Servicio</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -207,28 +239,7 @@ export function MesasView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {tables.map((table) => {
-          const styles = {
-            disponible: {
-              bg: 'bg-green-50',
-              border: 'border-green-400',
-              dot: 'bg-green-500',
-              text: 'text-green-700',
-            },
-            ocupada: {
-              bg: 'bg-orange-50',
-              border: 'border-orange-400',
-              dot: 'bg-orange-500',
-              text: 'text-orange-700',
-            },
-            reservada: {
-              bg: 'bg-amber-50',
-              border: 'border-pink-400',
-              dot: 'bg-pink-500',
-              text: 'text-amber-800',
-            },
-          };
-
-          const style = styles[table.status];
+          const style = statusStyles[table.estado];
           return (
             <Card
               key={table.id}
@@ -237,16 +248,16 @@ export function MesasView() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle>Mesa {table.number}</CardTitle>
+                    <CardTitle>{table.nombre}</CardTitle>
                     <CardDescription className={style.text}>
-                      {table.capacity} personas
+                      {table.capacidad} personas
                     </CardDescription>
                   </div>
                   <div className={`h-3 w-3 rounded-full ${style.dot}`} />
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className={style.text}>{statusLabels[table.status]}</div>
+                <div className={style.text}>{statusLabels[table.estado]}</div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -257,7 +268,7 @@ export function MesasView() {
                     Editar
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
                     onClick={() => handleDeleteTable(table.id)}
                   >

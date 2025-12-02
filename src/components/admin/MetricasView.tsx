@@ -1,5 +1,5 @@
-import { BarChart3, DollarSign, ShoppingBag, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { BarChart3, DollarSign, ShoppingBag, Clock, Users, BookMarked, Archive } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -21,7 +21,10 @@ import {
 import { StatCard } from './StatCard';
 import { ProductosView } from './ProductosView';
 import { HorariosPicoView } from './HorariosPicoView';
+import { api } from '@/utils/apiClient';
+import { toast } from 'sonner';
 
+// TODO: La data de ventas diarias no viene del backend, se mantiene mockeada
 const salesData = [
   { day: 'Lun', ventas: 420, pedidos: 32 },
   { day: 'Mar', ventas: 380, pedidos: 28 },
@@ -32,8 +35,29 @@ const salesData = [
   { day: 'Dom', ventas: 750, pedidos: 58 },
 ];
 
+const initialStats = {
+  productos: { total: 0, disponibles: 0, agotados: 0 },
+  mesas: { total: 0, disponibles: 0, ocupadas: 0, reservadas: 0 },
+  reservas: { total: 0, pendientes: 0, confirmadas: 0 },
+};
+
 export function MetricasView() {
   const [activeTab, setActiveTab] = useState('ventas');
+  const [stats, setStats] = useState(initialStats);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await api.getDashboardStats();
+        setStats(data);
+      } catch (error) {
+        toast.error('Error al cargar las métricas');
+        console.error(error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto p-2">
       {/* Header Estilo Figma */}
@@ -56,37 +80,33 @@ export function MetricasView() {
       {/* Grid de KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Ventas Totales (Semana)"
-          value="$ 4060.00"
-          trend="+12.5%"
-          trendUp={true}
-          subtext="vs semana anterior"
-          icon={DollarSign}
+          title="Mesas Disponibles"
+          value={`${stats.mesas.disponibles} / ${stats.mesas.total}`}
+          subtext="Actualmente"
+          icon={Users}
           iconColor="text-green-600"
           iconBg="bg-green-100"
         />
         <StatCard
-          title="Total Pedidos"
-          value="313"
-          trend="+8.3%"
-          trendUp={true}
-          subtext="vs semana anterior"
-          icon={ShoppingBag}
+          title="Reservas Pendientes"
+          value={`${stats.reservas.pendientes}`}
+          subtext={`${stats.reservas.confirmadas} confirmadas`}
+          icon={BookMarked}
           iconColor="text-blue-600"
           iconBg="bg-blue-100"
         />
         <StatCard
-          title="Ticket Promedio"
-          value="$ 12.97"
-          subtext="Por pedido"
-          icon={DollarSign}
+          title="Productos Disponibles"
+          value={`${stats.productos.disponibles} / ${stats.productos.total}`}
+          subtext={`${stats.productos.agotados} agotados`}
+          icon={ShoppingBag}
           iconColor="text-purple-600"
           iconBg="bg-purple-100"
         />
         <StatCard
-          title="Tiempo Preparación"
-          value="18 min"
-          subtext="Promedio"
+          title="Mesas Ocupadas"
+          value={`${stats.mesas.ocupadas}`}
+          subtext={`${stats.mesas.reservadas} reservadas`}
           icon={Clock}
           iconColor="text-orange-600"
           iconBg="bg-orange-100"
@@ -134,7 +154,7 @@ export function MetricasView() {
             <Card className="shadow-sm border border-slate-200">
               <CardHeader>
                 <CardTitle>Ventas por Día</CardTitle>
-                <CardDescription>Últimos 7 días</CardDescription>
+                <CardDescription>Últimos 7 días (Datos de Muestra)</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -160,7 +180,7 @@ export function MetricasView() {
             <Card className="shadow-sm border border-slate-200">
               <CardHeader>
                 <CardTitle>Pedidos por Día</CardTitle>
-                <CardDescription>Últimos 7 días</CardDescription>
+                <CardDescription>Últimos 7 días (Datos de Muestra)</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
