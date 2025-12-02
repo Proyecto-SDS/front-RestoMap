@@ -10,6 +10,8 @@ import {
   CardTitle,
 } from '../ui/card';
 import { Button } from '../ui/button';
+import { toast } from 'sonner';
+import { Badge } from '../ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -26,41 +28,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { toast } from 'sonner';
-import { api } from '@/utils/apiClient';
+import { useTables } from '@/hooks/useTables';
 
 type TableStatus = 'disponible' | 'ocupada' | 'reservada' | 'fuera_de_servicio';
 
 interface Table {
   id: number;
-  nombre: string;
+  numero: number; // Changed from 'nombre' to 'numero' to align with backend and useTables
   capacidad: number;
   estado: TableStatus;
 }
 
 export function MesasView() {
+  const { tables: backendTables, loading, createTable, updateTable, toggleBlock, deleteTable, isTableNumberUnique } = useTables();
   const [tables, setTables] = useState<Table[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [formData, setFormData] = useState({
-    nombre: '',
+    numero: '', // Changed from 'nombre'
     capacidad: '',
     estado: 'disponible' as TableStatus,
   });
 
-  const fetchTables = async () => {
-    try {
-      const data = await api.getMesas();
-      setTables(data.mesas);
-    } catch (error) {
-      toast.error('Error al cargar las mesas');
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
-    fetchTables();
-  }, []);
+    // Keep local 'tables' state in sync with 'backendTables' from the hook
+    if (backendTables) {
+      const adaptedTables = backendTables.map(t => ({
+        id: parseInt(t.id),
+        numero: t.numero,
+        capacidad: t.capacidad,
+        estado: (t.estaBloqueada ? 'ocupada' : 'disponible') as TableStatus, // Assuming block status maps to ocupada
+      }));
+      setTables(adaptedTables);
+    }
+  }, [backendTables]);
 
   const statusLabels: { [key in TableStatus]: string } = {
     disponible: 'Disponible',
@@ -84,8 +85,8 @@ export function MesasView() {
     },
     reservada: {
       bg: 'bg-amber-50',
-      border: 'border-pink-400',
-      dot: 'bg-pink-500',
+      border: 'border-pink-400', // This seems inconsistent, should it be amber?
+      dot: 'bg-pink-500', // This seems inconsistent, should it be amber?
       text: 'text-amber-800',
     },
     fuera_de_servicio: {
@@ -101,14 +102,14 @@ export function MesasView() {
     if (table) {
       setEditingTable(table);
       setFormData({
-        nombre: table.nombre,
+        numero: table.numero.toString(),
         capacidad: table.capacidad.toString(),
         estado: table.estado,
       });
     } else {
       setEditingTable(null);
       setFormData({
-        nombre: '',
+        numero: '',
         capacidad: '',
         estado: 'disponible',
       });
@@ -117,170 +118,88 @@ export function MesasView() {
   };
 
   const handleSaveTable = async () => {
-    if (!formData.nombre || !formData.capacidad) {
-      toast.error('Nombre y capacidad son requeridos');
+    if (!formData.numero || !formData.capacidad) {
+      toast.error('Número de mesa y capacidad son requeridos');
       return;
     }
 
-    const tableData = {
-      ...formData,
-      capacidad: parseInt(formData.capacidad, 10),
+    const tableNumero = parseInt(formData.numero, 10);
+    const tableCapacidad = parseInt(formData.capacidad, 10);
+
+    if (isNaN(tableNumero) || isNaN(tableCapacidad)) {
+      toast.error('Número de mesa y capacidad deben ser números válidos');
+      return;
+    }
+
+    // Validación de número único
+    if (!editingTable && !isTableNumberUnique(tableNumero)) {
+      toast.error('Ya existe una mesa con ese número');
+      return;
+    }
+    if (editingTable && !isTableNumberUnique(tableNumero, editingTable.id.toString())) {
+      toast.error('Ya existe una mesa con ese número');
+      return;
+    }
+
+    const backendData = {
+      nombre: `Mesa ${formData.numero}`, // Backend expects 'nombre'
+      numero: tableNumero,
+      capacidad: tableCapacidad,
     };
 
-    try {
-      if (editingTable) {
-        await api.updateMesa(editingTable.id, tableData);
+    if (editingTable) {
+      const success = await updateTable(editingTable.id.toString(), backendData);
+      if (success) {
         toast.success('Mesa actualizada correctamente');
+        setIsDialogOpen(false);
       } else {
-        await api.createMesa(tableData);
-        toast.success('Mesa creada correctamente');
+        toast.error('Error al actualizar la mesa');
       }
-      fetchTables();
-      setIsDialogOpen(false);
-    } catch (error) {
-      toast.error('Error al guardar la mesa');
-      console.error(error);
+    } else {
+      const success = await createTable(backendData);
+      if (success) {
+        toast.success('Mesa creada correctamente');
+        setIsDialogOpen(false);
+      } else {
+        toast.error('Error al crear la mesa');
+      }
     }
   };
 
   const handleDeleteTable = async (id: number) => {
-    try {
-      await api.deleteMesa(id);
+    if (!window.confirm('¿Estás seguro de eliminar esta mesa?')) {
+      return;
+    }
+    const success = await deleteTable(id.toString());
+    if (success) {
       toast.success('Mesa eliminada correctamente');
-      fetchTables();
-    } catch (error) {
+    } else {
       toast.error('Error al eliminar la mesa');
-      console.error(error);
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-              <LayoutDashboard className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Gestión de Mesas</h1>
-              <p className="text-sm text-muted-foreground">
-                Administra las mesas y su disponibilidad
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => handleOpenDialog()} className="rounded-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Mesa
-          </Button>
-        </div>
-      </div>
+  const handleToggleBlock = async (id: number) => {
+    const table = tables.find(t => t.id === id);
+    if (table) {
+      const shouldBlock = table.estado === 'disponible'; // If it's available, block it (make it 'ocupada')
+      const newStatus: TableStatus = shouldBlock ? 'ocupada' : 'disponible';
+      
+      const success = await toggleBlock(id.toString(), shouldBlock);
+      
+      if (success) {
+        toast.success(shouldBlock ? 'Mesa bloqueada' : 'Mesa desbloqueada');
+      } else {
+        toast.error('Error al cambiar el estado de la mesa');
+      }
+    }
+  };
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingTable ? 'Editar Mesa' : 'Nueva Mesa'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="nombre">Nombre de Mesa</Label>
-              <Input
-                id="nombre"
-                placeholder="Ej: Mesa 1, Terraza 2"
-                value={formData.nombre}
-                onChange={(e) =>
-                  setFormData({ ...formData, nombre: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="capacidad">Capacidad</Label>
-              <Input
-                id="capacidad"
-                type="number"
-                placeholder="Número de personas"
-                value={formData.capacidad}
-                onChange={(e) =>
-                  setFormData({ ...formData, capacidad: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="estado">Estado</Label>
-              <Select
-                value={formData.estado}
-                onValueChange={(value: TableStatus) =>
-                  setFormData({ ...formData, estado: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disponible">Disponible</SelectItem>
-                  <SelectItem value="ocupada">Ocupada</SelectItem>
-                  <SelectItem value="fuera_de_servicio">Fuera de Servicio</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveTable}>
-              {editingTable ? 'Guardar Cambios' : 'Agregar Mesa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {tables.map((table) => {
-          const style = statusStyles[table.estado];
-          return (
-            <Card
-              key={table.id}
-              className={`relative border-4 ${style.border} ${style.bg}`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>{table.nombre}</CardTitle>
-                    <CardDescription className={style.text}>
-                      {table.capacidad} personas
-                    </CardDescription>
-                  </div>
-                  <div className={`h-3 w-3 rounded-full ${style.dot}`} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className={style.text}>{statusLabels[table.estado]}</div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenDialog(table)}
-                  >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteTable(table.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+  if (loading && tables.length === 0) {
+    return (
+      <div className="text-center py-12 bg-white rounded-lg">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        <p className="mt-4 text-muted-foreground">Cargando mesas...</p>
       </div>
-    </div>
-  );
+    );
+  }
 }

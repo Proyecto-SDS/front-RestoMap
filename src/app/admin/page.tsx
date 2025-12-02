@@ -16,6 +16,7 @@ import {
   DollarSign,
   Armchair,
   Clock,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricasView } from '@/components/admin/MetricasView';
@@ -26,7 +27,6 @@ import { StaffView } from '@/components/admin/StaffView';
 import { NotificacionesView } from '@/components/admin/NotificacionesView';
 import { useAuth } from '@/context/AuthContext';
 import { ReservasView } from '@/components/admin/ReservasView';
-import { useRouter } from 'next/navigation';
 
 type AdminTab =
   | 'dashboard'
@@ -42,23 +42,22 @@ export default function AdminPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     // Redirect if not admin
     if (user && user.email !== 'admin@reservaya.cl') {
-      router.push('/');
+      window.location.href = '/';
     }
-  }, [user, router]);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'reservas', label: 'Reservas', icon: ClipboardList },
+    { id: 'reservas', label: 'Reservas', icon: CalendarDays },
     { id: 'menu', label: 'Menú', icon: UtensilsCrossed },
     { id: 'pedidos', label: 'Pedidos', icon: LayoutGrid },
     { id: 'mesas', label: 'Mesas', icon: TableProperties },
@@ -274,9 +273,6 @@ export default function AdminPage() {
               </div>
             </div>
           )}
-
-          {/* Reservas Management */}
-          {activeTab === 'reservas' && <ReservasView />}
 
           {/* Menu Management */}
           {activeTab === 'menu' && <MenuView />}

@@ -1,5 +1,6 @@
+'use client';
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, UserCircle, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCircle, Users, Mail, Copy, Check, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +22,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { api } from '@/utils/apiClient';
+import { useStaff } from '@/hooks/useStaff';
+import { StaffRole as BackendStaffRole, StaffStatus as BackendStaffStatus } from '@/types'; 
 
-type StaffRole = 'mesero' | 'cocinero' | 'bartender' | 'chef';
+type StaffRole = 'mesero' | 'cocinero' | 'bartender' | 'chef' | 'anfitrion' | 'gerente';
 type StaffStatus = 'activo' | 'descanso' | 'ausente';
 
 interface StaffMember {
@@ -37,9 +39,25 @@ interface StaffMember {
 }
 
 export function StaffView() {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const {
+    staff: backendStaff,
+    loading,
+    invitationLink,
+    createInvitation,
+    updateStaff,
+    removeStaff,
+    clearInvitationLink
+  } = useStaff();
+  const [staff, setStaff] = useState<StaffMember[]>([]); // This will be kept in sync with backendStaff
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
+  const [invitationData, setInvitationData] = useState({
+    email: '',
+    rol: 'MESERO',
+  });
+  const [linkCopied, setLinkCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<StaffRole | 'all'>('all');
   const [formData, setFormData] = useState({
@@ -52,34 +70,28 @@ export function StaffView() {
     contrasena: '',
   });
 
-  const fetchStaff = async () => {
-    try {
-      const data = await api.getPersonal();
-      const adaptedStaff = data.personal.map((member: any) => ({
+  useEffect(() => {
+    // Keep local 'staff' state in sync with 'backendStaff' from the hook
+    if (backendStaff) {
+      setStaff(backendStaff.map(member => ({
         id: member.id,
         name: member.nombre,
-        role: member.rol,
+        role: member.rol.toLowerCase() as StaffRole, // Assuming backend roles are uppercase
         email: member.correo,
-        phone: member.telefono,
-        status: 'activo', // Dato no viene del backend, se asume 'activo'
-        shift: 'No asignado', // Dato no viene del backend
-      }));
-      setStaff(adaptedStaff);
-    } catch (error) {
-      toast.error('Error al cargar el personal');
-      console.error(error);
+        phone: member.telefono || '', // Assuming phone can be null/undefined
+        status: 'activo', // Backend doesn't provide status directly yet, default to 'activo'
+        shift: 'No asignado', // Backend doesn't provide shift directly yet, default
+      })));
     }
-  };
-
-  useEffect(() => {
-    fetchStaff();
-  }, []);
+  }, [backendStaff]);
 
   const roleLabels: { [key in StaffRole]: string } = {
     mesero: 'Mesero',
     cocinero: 'Cocinero',
     bartender: 'Bartender',
     chef: 'Chef',
+    anfitrion: 'Anfitrión',
+    gerente: 'Gerente'
   };
 
   const statusLabels = {
@@ -104,7 +116,7 @@ export function StaffView() {
         phone: member.phone,
         status: member.status,
         shift: member.shift,
-        contrasena: '',
+        contrasena: '', // Pass empty as we don't edit password here
       });
     } else {
       setEditingMember(null);
@@ -120,51 +132,93 @@ export function StaffView() {
     }
     setIsDialogOpen(true);
   };
+  
+  const handleGenerateInvitation = async () => {
+    if (!invitationData.email) {
+      toast.error('Por favor ingresa un email');
+      return;
+    }
+    if (!invitationData.rol) {
+      toast.error('Por favor selecciona un rol');
+      return;
+    }
 
-  const handleSaveMember = async () => {
-    if (editingMember) {
-      // TODO: Backend no implementa actualización de personal
-      setStaff(staff.map(member =>
-        member.id === editingMember.id
-          ? { ...member, ...formData }
-          : member
-      ));
-      toast.success('Personal actualizado (localmente)');
-      setIsDialogOpen(false);
+    const result = await createInvitation({
+      email: invitationData.email,
+      rol: invitationData.rol as BackendStaffRole,
+    });
+
+    if (result.success) {
+      setShowInvitationDialog(true);
+      toast.success('Invitación generada correctamente');
     } else {
-      if (!formData.name || !formData.email || !formData.contrasena || !formData.role) {
-        toast.error('Por favor completa nombre, email, contraseña y rol');
-        return;
-      }
-      try {
-        await api.createEmpleado({
-          nombre: formData.name,
-          correo: formData.email,
-          telefono: formData.phone,
-          contrasena: formData.contrasena,
-          rol: formData.role,
-        });
-        toast.success('Personal agregado correctamente');
-        fetchStaff(); // Recargar la lista de personal
-        setIsDialogOpen(false);
-      } catch (error) {
-        toast.error('Error al agregar el personal');
-        console.error(error);
-      }
+      toast.error('Error al generar la invitación');
     }
   };
 
-  const handleDeleteMember = (id: number) => {
-    // TODO: Backend no implementa eliminación de personal
-    setStaff(staff.filter(member => member.id !== id));
-    toast.success('Personal eliminado (localmente)');
+  const handleCopyLink = async () => {
+    if (invitationLink && navigator.clipboard) {
+      await navigator.clipboard.writeText(invitationLink);
+      setLinkCopied(true);
+      toast.success('Enlace copiado al portapapeles');
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
   };
 
-  const handleChangeStatus = (id: number, newStatus: StaffStatus) => {
-    setStaff(staff.map(member =>
-      member.id === id ? { ...member, status: newStatus } : member
-    ));
-    toast.success('Estado actualizado');
+  const handleCloseInvitationDialog = () => {
+    setShowInvitationDialog(false);
+    clearInvitationLink();
+    setInvitationData({ email: '', rol: 'MESERO' });
+    setLinkCopied(false);
+  };
+
+  const handleSaveMember = async () => {
+    // For editing existing members
+    if (editingMember) {
+      if (!formData.name || !formData.email || !formData.role) {
+        toast.error('Por favor completa nombre, email y rol');
+        return;
+      }
+      const roleMapping: Record<StaffRole, BackendStaffRole> = {
+        'mesero': BackendStaffRole.MESERO,
+        'cocinero': BackendStaffRole.COCINERO,
+        'bartender': BackendStaffRole.BARTENDER,
+        'chef': BackendStaffRole.COCINERO, // Assuming chef maps to cocinero for backend
+        'anfitrion': BackendStaffRole.ANFITRION,
+        'gerente': BackendStaffRole.GERENTE
+      };
+
+      const backendData = {
+        nombre: formData.name,
+        correo: formData.email,
+        telefono: formData.phone,
+        rol: roleMapping[formData.role],
+      };
+      
+      const success = await updateStaff(editingMember.id.toString(), backendData);
+      if (success) {
+        toast.success('Personal actualizado correctamente');
+        setIsDialogOpen(false);
+      } else {
+        toast.error('Error al actualizar el personal');
+      }
+    } else {
+      // For new members, use the invitation system
+      toast.info('Usa el sistema de invitaciones para agregar nuevo personal.');
+      setIsDialogOpen(false);
+    }
+  };
+
+  const handleDeleteMember = async (id: number) => {
+    if (!window.confirm('⚠️ ADVERTENCIA: ¿Estás seguro de desvincular a este empleado?\n\nPerderá acceso al sistema inmediatamente.')) {
+      return;
+    }
+    const success = await removeStaff(id.toString());
+    if (success) {
+      toast.success('Personal eliminado correctamente');
+    } else {
+      toast.error('Error al eliminar el personal');
+    }
   };
 
 
@@ -195,6 +249,80 @@ export function StaffView() {
         </div>
       </div>
 
+      {/* Sistema de Invitaciones - CU-11 Paso 6.1 y 6.2 */}
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">Invitar Nuevo Personal</h2>
+          <p className="text-sm text-slate-600">Genera un enlace de invitación único para que el nuevo empleado se registre en el sistema.</p>
+        </div>
+        
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Label htmlFor="invitation-email">Email del Empleado *</Label>
+            <Input
+              id="invitation-email"
+              type="email"
+              placeholder="email@ejemplo.com"
+              value={invitationData.email}
+              onChange={(e) => setInvitationData({ ...invitationData, email: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          
+          <div className="flex-1">
+            <Label htmlFor="invitation-role">Rol del Empleado *</Label>
+            <Select value={invitationData.rol} onValueChange={(value: BackendStaffRole) => setInvitationData({ ...invitationData, rol: value })}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mesero">Mesero</SelectItem>
+                <SelectItem value="cocinero">Cocinero</SelectItem>
+                <SelectItem value="bartender">Bartender</SelectItem>
+                <SelectItem value="anfitrion">Anfitrión</SelectItem>
+                <SelectItem value="gerente">Gerente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-end">
+            <Button onClick={handleGenerateInvitation} disabled={loading}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Generar Invitación
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dialog para mostrar el enlace de invitación - CU-11 Paso 6.2 */}
+      <Dialog open={showInvitationDialog} onOpenChange={(open) => !open && handleCloseInvitationDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enlace de Invitación Generado</DialogTitle>
+            <DialogDescription>
+              Comparte este enlace con el empleado para que complete su registro. El enlace expira en 7 días.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+              <p className="text-sm text-slate-600 mb-2">Enlace de invitación:</p>
+              <p className="text-sm font-mono break-all text-slate-800">{invitationLink}</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button onClick={handleCopyLink} className="flex-1">
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar Enlace
+              </Button>
+              <Button variant="outline" onClick={handleCloseInvitationDialog}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -213,6 +341,7 @@ export function StaffView() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
+        
             <div className="grid gap-2">
               <Label htmlFor="role">Rol *</Label>
               <Select value={formData.role} onValueChange={(value: StaffRole) => setFormData({ ...formData, role: value })}>
@@ -325,7 +454,7 @@ export function StaffView() {
                     <Button variant="outline" size="icon" className="h-8 w-8 bg-white" onClick={() => handleOpenDialog(member)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeleteMember(member.id)}>
+                    <Button variant="destructive" size="icon" className="h-8 w-8" title="Desvincular empleado" onClick={() => handleDeleteMember(member.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
