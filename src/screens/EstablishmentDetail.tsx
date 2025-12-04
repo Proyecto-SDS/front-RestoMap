@@ -150,7 +150,7 @@ function QuickInfoBar({
   isLoggedIn,
 }: QuickInfoBarProps) {
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0] shadow-sm">
+    <div className="sticky top-0 z-35 bg-white border-b border-[#E2E8F0] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-4">
@@ -170,9 +170,12 @@ function QuickInfoBar({
             </div>
           </div>
           {isLoggedIn && (
-            <PrimaryButton size="md" onClick={onReserveClick}>
+            <button
+              onClick={onReserveClick}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-[#F97316] rounded-lg hover:bg-[#EA580C] transition-colors"
+            >
               Reservar mesa
-            </PrimaryButton>
+            </button>
           )}
         </div>
       </div>
@@ -677,6 +680,15 @@ function ReservasTab({
   const [reservaCreada, setReservaCreada] = useState<Reservation | null>(null);
   const [availableMesas, setAvailableMesas] = useState<MesaInfo[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [hasActiveReservation, setHasActiveReservation] = useState(false);
+  const [activeReservationInfo, setActiveReservationInfo] = useState<{
+    id: number;
+    fecha: string;
+    hora: string;
+    estado: string;
+    codigoQR?: string;
+    qrImage?: string;
+  } | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Función para obtener horarios disponibles según la fecha seleccionada
@@ -753,6 +765,31 @@ function ReservasTab({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedTime, tablesLoading, establishmentId]);
+
+  // Verificar si el usuario tiene una reserva activa en este local
+  useEffect(() => {
+    if (isLoggedIn && establishmentId) {
+      const checkActiveReservation = async () => {
+        try {
+          const response = await api.checkActiveReservation(establishmentId);
+          if (response.tieneReservaActiva) {
+            setHasActiveReservation(true);
+            setActiveReservationInfo(response.reserva);
+          } else {
+            setHasActiveReservation(false);
+            setActiveReservationInfo(null);
+          }
+        } catch (error) {
+          console.error('Error verificando reserva activa:', error);
+          setHasActiveReservation(false);
+        }
+      };
+      checkActiveReservation();
+    } else {
+      setHasActiveReservation(false);
+      setActiveReservationInfo(null);
+    }
+  }, [isLoggedIn, establishmentId]);
 
   const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
@@ -851,6 +888,61 @@ function ReservasTab({
           Inicia sesión para hacer una reserva
         </p>
         <PrimaryButton onClick={onLoginClick}>Iniciar sesión</PrimaryButton>
+      </div>
+    );
+  }
+
+  // Si el usuario tiene una reserva activa en este local
+  if (hasActiveReservation && activeReservationInfo) {
+    return (
+      <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-medium text-[#334155] mb-2">
+            Ya tienes una reserva activa en este restaurante
+          </h3>
+          <p className="text-[#64748B] mb-3">
+            Para crear una nueva reserva, primero debes cancelar tu reserva
+            actual.
+          </p>
+          <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+            <p className="text-sm text-[#64748B]">
+              <strong>Reserva actual:</strong>
+            </p>
+            <p className="text-[#334155] font-medium mb-2">
+              {activeReservationInfo.fecha} a las {activeReservationInfo.hora}
+            </p>
+
+            {/* Mostrar QR si existe */}
+            {activeReservationInfo.qrImage && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs text-[#64748B] mb-3">
+                  Código QR de confirmación:
+                </p>
+                <div className="bg-white p-4 rounded-lg inline-block border-2 border-[#F97316]">
+                  <ImageWithFallback
+                    src={activeReservationInfo.qrImage}
+                    alt="Código QR de reserva"
+                    className="w-48 h-48"
+                  />
+                </div>
+                {activeReservationInfo.codigoQR && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[#64748B]">Código:</p>
+                    <p className="text-sm font-mono text-[#334155] bg-[#F1F5F9] px-3 py-1.5 rounded inline-block">
+                      {activeReservationInfo.codigoQR}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <PrimaryButton
+          onClick={() => router.push('/profile?tab=reservas')}
+          className="w-full"
+        >
+          Ver mis reservas
+        </PrimaryButton>
       </div>
     );
   }

@@ -1,9 +1,8 @@
-import React from 'react';
 import { Heart, MapPin, Star } from 'lucide-react';
+import { formatRating } from '../../utils/formatters';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { formatRating } from '../../utils/formatters';
 
 export interface FavoriteData {
   id: string;
@@ -26,7 +25,11 @@ interface FavoriteCardProps {
   onRemove: (id: string) => void;
 }
 
-export function FavoriteCard({ favorite, onVisit, onRemove }: FavoriteCardProps) {
+export function FavoriteCard({
+  favorite,
+  onVisit,
+  onRemove,
+}: FavoriteCardProps) {
   const getTypeBadgeColor = (type: string) => {
     const colors = {
       Restaurante: 'bg-gradient-to-r from-[#F97316] to-[#FB923C]',
@@ -37,9 +40,9 @@ export function FavoriteCard({ favorite, onVisit, onRemove }: FavoriteCardProps)
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-200 hover:scale-[1.02] h-full flex flex-col">
       {/* Image */}
-      <div className="relative h-44 overflow-hidden">
+      <div className="relative h-44 overflow-hidden flex-shrink-0">
         <ImageWithFallback
           src={favorite.establishment.image}
           alt={favorite.establishment.name}
@@ -51,17 +54,26 @@ export function FavoriteCard({ favorite, onVisit, onRemove }: FavoriteCardProps)
           className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors group"
           aria-label="Quitar de favoritos"
         >
-          <Heart size={20} className="fill-[#EF4444] text-[#EF4444] group-hover:scale-110 transition-transform" />
+          <Heart
+            size={20}
+            className="fill-[#EF4444] text-[#EF4444] group-hover:scale-110 transition-transform"
+          />
         </button>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
         <h4 className="text-[#334155] mb-2">{favorite.establishment.name}</h4>
-        
-        <span className={`inline-block text-xs px-2 py-1 rounded text-white mb-3 ${getTypeBadgeColor(favorite.establishment.type)}`}>
-          {favorite.establishment.type}
-        </span>
+
+        <div className="mb-3">
+          <span
+            className={`inline-block text-xs px-2 py-1 rounded text-white ${getTypeBadgeColor(
+              favorite.establishment.type
+            )}`}
+          >
+            {favorite.establishment.type}
+          </span>
+        </div>
 
         {/* Address */}
         <div className="flex items-start gap-2 text-sm text-[#64748B] mb-2">
@@ -84,17 +96,19 @@ export function FavoriteCard({ favorite, onVisit, onRemove }: FavoriteCardProps)
 
         {/* Status */}
         <div className="mb-4">
-          <span className={`text-xs px-2 py-1 rounded ${
-            favorite.establishment.status === 'open'
-              ? 'bg-[#22C55E]/10 text-[#22C55E]'
-              : 'bg-[#94A3B8]/10 text-[#94A3B8]'
-          }`}>
+          <span
+            className={`text-xs px-2 py-1 rounded ${
+              favorite.establishment.status === 'open'
+                ? 'bg-[#22C55E]/10 text-[#22C55E]'
+                : 'bg-[#94A3B8]/10 text-[#94A3B8]'
+            }`}
+          >
             {favorite.establishment.status === 'open' ? 'Abierto' : 'Cerrado'}
           </span>
         </div>
 
-        {/* Actions */}
-        <div className="space-y-2">
+        {/* Actions - pushed to bottom */}
+        <div className="space-y-2 mt-auto">
           <PrimaryButton
             size="sm"
             onClick={() => onVisit(favorite.establishment.id)}

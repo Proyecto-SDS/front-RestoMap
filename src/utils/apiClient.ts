@@ -110,6 +110,9 @@ export const api = {
   getAvailableTables: (id: string, fecha: string, hora: string) =>
     apiCall(`/api/locales/${id}/mesas-disponibles?fecha=${fecha}&hora=${hora}`),
 
+  checkActiveReservation: (id: string) =>
+    apiCall(`/api/locales/${id}/verificar-reserva-activa`),
+
   // Opinion endpoints
   getEstablishmentOpinions: (
     id: string,

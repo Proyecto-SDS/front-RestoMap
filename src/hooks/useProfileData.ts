@@ -3,9 +3,9 @@ import { FavoriteData } from '../components/profile/FavoriteCard';
 import { OpinionData } from '../components/profile/OpinionCard';
 import { ReservationData } from '../components/profile/ReservationCard';
 import {
-    mapFavorites,
-    mapOpinions,
-    mapReservations,
+  mapFavorites,
+  mapOpinions,
+  mapReservations,
 } from '../services/profileDataMapper';
 import { api } from '../utils/apiClient';
 
@@ -54,7 +54,8 @@ export function useProfileData(
     } finally {
       setIsLoading(false);
     }
-  }, [userId, onError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Solo userId como dependencia
 
   useEffect(() => {
     loadUserData();
