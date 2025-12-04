@@ -82,10 +82,6 @@ interface ReservasTabProps {
   tablesLoading: boolean;
 }
 
-
-
-
-
 // Header Component
 function EstablishmentHeader({
   establishment,
@@ -148,7 +144,11 @@ function EstablishmentHeader({
 }
 
 // Quick Info Bar Component
-function QuickInfoBar({ establishment, onReserveClick, isLoggedIn }: QuickInfoBarProps) {
+function QuickInfoBar({
+  establishment,
+  onReserveClick,
+  isLoggedIn,
+}: QuickInfoBarProps) {
   return (
     <div className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -230,38 +230,41 @@ function InformacionTab({ establishment, hours, photos }: InformacionTabProps) {
           <section>
             <h2 className="text-[#334155] mb-3">Redes Sociales</h2>
             <div className="flex flex-wrap gap-3">
-              {establishment.redesSociales.map((red: SocialNetwork, index: number) => {
-                const getIcon = () => {
-                  const tipo = red.tipo.toLowerCase();
-                  if (tipo.includes('instagram'))
-                    return <Instagram size={18} />;
-                  if (tipo.includes('facebook')) return <Facebook size={18} />;
-                  if (tipo.includes('twitter') || tipo.includes('x'))
-                    return <Twitter size={18} />;
-                  return null;
-                };
+              {establishment.redesSociales.map(
+                (red: SocialNetwork, index: number) => {
+                  const getIcon = () => {
+                    const tipo = red.tipo.toLowerCase();
+                    if (tipo.includes('instagram'))
+                      return <Instagram size={18} />;
+                    if (tipo.includes('facebook'))
+                      return <Facebook size={18} />;
+                    if (tipo.includes('twitter') || tipo.includes('x'))
+                      return <Twitter size={18} />;
+                    return null;
+                  };
 
-                const icon = getIcon();
+                  const icon = getIcon();
 
-                // Limpiar @ duplicadas del usuario
-                const usuario = red.usuario.startsWith('@')
-                  ? red.usuario.slice(1)
-                  : red.usuario;
+                  // Limpiar @ duplicadas del usuario
+                  const usuario = red.usuario.startsWith('@')
+                    ? red.usuario.slice(1)
+                    : red.usuario;
 
-                return (
-                  <a
-                    key={index}
-                    href={red.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 bg-[#F1F5F9] hover:bg-[#E2E8F0] rounded-lg transition-colors text-[#334155] text-sm"
-                    title={`${red.tipo}: @${usuario}`}
-                  >
-                    {icon && <span className="text-[#F97316]">{icon}</span>}
-                    <span>@{usuario}</span>
-                  </a>
-                );
-              })}
+                  return (
+                    <a
+                      key={index}
+                      href={red.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 bg-[#F1F5F9] hover:bg-[#E2E8F0] rounded-lg transition-colors text-[#334155] text-sm"
+                      title={`${red.tipo}: @${usuario}`}
+                    >
+                      {icon && <span className="text-[#F97316]">{icon}</span>}
+                      <span>@{usuario}</span>
+                    </a>
+                  );
+                }
+              )}
             </div>
           </section>
         )}
@@ -709,7 +712,10 @@ function ReservasTab({
   }, [selectedDate, establishmentId]);
 
   // Función para verificar disponibilidad de mesas
-  const checkMesaAvailability = async (date: string, time: string): Promise<MesaInfo[]> => {
+  const checkMesaAvailability = async (
+    date: string,
+    time: string
+  ): Promise<MesaInfo[]> => {
     if (!establishmentId) return [];
 
     try {
@@ -887,7 +893,6 @@ function ReservasTab({
                         input.showPicker();
                       }
                     } catch {
-                      // Si showPicker falla, el input ya está enfocado
                       // Si showPicker falla, el input ya está enfocado
                     }
                   }
@@ -1087,7 +1092,8 @@ function ReservasTab({
 
   // STEP 3: SELECT PARTY SIZE
   if (reservationStep === 3) {
-    const isStep3Valid = selectedMesa && partySize >= 1 && partySize <= selectedMesa.capacidad;
+    const isStep3Valid =
+      selectedMesa && partySize >= 1 && partySize <= selectedMesa.capacidad;
 
     return (
       <div className="space-y-6">
@@ -1117,7 +1123,9 @@ function ReservasTab({
             </div>
             <button
               onClick={() =>
-                setPartySize(Math.min(selectedMesa?.capacidad || 10, partySize + 1))
+                setPartySize(
+                  Math.min(selectedMesa?.capacidad || 10, partySize + 1)
+                )
               }
               className="w-12 h-12 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-colors flex items-center justify-center text-2xl"
               disabled={!selectedMesa || partySize >= selectedMesa.capacidad}
@@ -1446,9 +1454,9 @@ export default function EstablishmentDetail() {
   // Estados para datos de la API
   const [establishment, setEstablishment] =
     useState<DetailedEstablishment | null>(null);
-  const [menuData, setMenuData] = useState<{ categorias: MenuItemCategory[] } | null>(
-    null
-  );
+  const [menuData, setMenuData] = useState<{
+    categorias: MenuItemCategory[];
+  } | null>(null);
   const [opinions, setOpinions] = useState<Review[]>([]);
   const [tables, setTables] = useState<MesaInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1471,7 +1479,11 @@ export default function EstablishmentDetail() {
         setOpinions(data.reviews || []);
       } catch (err: unknown) {
         console.error('Error loading establishment:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar el establecimiento');
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Error al cargar el establecimiento'
+        );
       } finally {
         setIsLoading(false);
       }
@@ -1522,7 +1534,6 @@ export default function EstablishmentDetail() {
       };
       loadMenu();
     }
-     
   }, [activeTab, id, menuData, establishment, setIsLoadingMenu]);
 
   // Cargar mesas cuando se abre la pestaña de reservas
@@ -1566,7 +1577,7 @@ export default function EstablishmentDetail() {
           if (
             err instanceof Error &&
             (err.message?.includes('404') ||
-            err.message?.includes('No tienes opinión'))
+              err.message?.includes('No tienes opinión'))
           ) {
             // No hacer nada, es normal no tener opinión
             setCurrentUserOpinion(null);
@@ -1597,7 +1608,10 @@ export default function EstablishmentDetail() {
     setActiveTab('reservas');
   };
 
-  const handleSubmitOpinion = async (opinionData: { rating: number; comment: string }) => {
+  const handleSubmitOpinion = async (opinionData: {
+    rating: number;
+    comment: string;
+  }) => {
     try {
       const response = await api.createOpinion(
         id,
@@ -1622,9 +1636,12 @@ export default function EstablishmentDetail() {
     } catch (err: unknown) {
       console.error('Error submitting opinion:', err);
       // Mostrar mensaje de error específico
-      const errorMessage = err instanceof Error && err.message?.includes('Ya tienes una opinión')
-        ? 'Ya tienes una opinión para este local'
-        : err instanceof Error ? err.message : 'Error al enviar la opinión';
+      const errorMessage =
+        err instanceof Error && err.message?.includes('Ya tienes una opinión')
+          ? 'Ya tienes una opinión para este local'
+          : err instanceof Error
+          ? err.message
+          : 'Error al enviar la opinión';
       alert(errorMessage);
     }
   };
@@ -1651,7 +1668,9 @@ export default function EstablishmentDetail() {
         setIsFavorite(true);
       } catch (error: unknown) {
         console.error('Error al agregar favorito:', error);
-        alert(error instanceof Error ? error.message : 'Error al agregar favorito');
+        alert(
+          error instanceof Error ? error.message : 'Error al agregar favorito'
+        );
       } finally {
         setIsLoadingFavorite(false);
       }
@@ -1666,7 +1685,9 @@ export default function EstablishmentDetail() {
       setShowConfirmDialog(false);
     } catch (error: unknown) {
       console.error('Error al eliminar favorito:', error);
-      alert(error instanceof Error ? error.message : 'Error al eliminar favorito');
+      alert(
+        error instanceof Error ? error.message : 'Error al eliminar favorito'
+      );
     } finally {
       setIsLoadingFavorite(false);
     }

@@ -1,16 +1,16 @@
 'use client';
 
 import {
-    ArrowLeft,
-    Building2,
-    CheckCircle2,
-    Eye,
-    EyeOff,
-    Lock,
-    Mail,
-    MapPin,
-    Star,
-    User,
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  MapPin,
+  Star,
+  User,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -277,15 +277,28 @@ export default function LoginScreen() {
 
           {/* Demo Credentials Banner */}
           <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800 mb-1">
-              <strong>Demo Persona:</strong> demo@reservaya.cl / demo123
-            </p>
+            {activeTab === 'persona' && (
+              <>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Persona (Juan Pérez):</strong> juan@test.cl /
+                  test123
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Persona (Maria Gonzalez):</strong> maria@test.cl
+                  / test123
+                </p>
+              </>
+            )}
             {activeTab === 'empresa' && (
-              <p className="text-sm text-blue-800">
-                <strong>Demo Empresa:</strong> admin@restomap.cl / admin123
-                <br />
-                <span className="text-xs">Otros: cocinero@restomap.cl, mesero@restomap.cl, bartender@restomap.cl / demo123</span>
-              </p>
+              <>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Empresa (Mesero):</strong> mesero@test.cl /
+                  test123
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Empresa (Chef):</strong> chef@test.cl / test123
+                </p>
+              </>
             )}
           </div>
 
