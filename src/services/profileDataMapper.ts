@@ -3,8 +3,48 @@ import { OpinionData } from '../components/profile/OpinionCard';
 import { ReservationData } from '../components/profile/ReservationCard';
 import { api } from '../utils/apiClient';
 
+interface ReservaItem {
+  id: string | number;
+  localImagen?: string;
+  localDireccion?: string;
+  localTipo?: string;
+  localId?: string;
+  localNombre?: string;
+  fecha: string;
+  hora: string;
+  mesas?: string[];
+  estado: string;
+  codigoQR?: string;
+  qrImage?: string;
+}
+
+interface ReservasResponse {
+  reservas?: ReservaItem[];
+}
+
+interface OpinionItem {
+  id: string | number;
+  localId?: string;
+  localNombre?: string;
+  puntuacion?: number;
+  comentario?: string;
+  fecha?: string;
+}
+
+interface OpinionesResponse {
+  opiniones?: OpinionItem[];
+}
+
+interface FavoritoItem {
+  localId: string;
+}
+
+interface FavoritosResponse {
+  favoritos?: FavoritoItem[];
+}
+
 export const mapReservations = async (
-  reservasRes: any
+  reservasRes: ReservasResponse
 ): Promise<ReservationData[]> => {
   const reservas = reservasRes.reservas || [];
   const mappedReservations: ReservationData[] = [];
@@ -13,14 +53,20 @@ export const mapReservations = async (
     // Usar datos proporcionados por el backend
     const imagen = r.localImagen || '';
     const direccion = r.localDireccion || '';
-    const tipo = r.localTipo || 'Restaurante';
+    const tipoRaw = r.localTipo || 'Restaurante';
+    
+    // Map backend type to frontend type
+    let tipo: 'Restaurante' | 'Restobar' | 'Bar' = 'Restaurante';
+    if (tipoRaw === 'Restobar' || tipoRaw === 'Bar') {
+      tipo = tipoRaw;
+    }
 
     mappedReservations.push({
       id: r.id.toString(),
       establishment: {
         id: r.localId || '',
         name: r.localNombre || '',
-        type: tipo as any,
+        type: tipo,
         image: imagen,
         address: direccion,
       },
@@ -39,7 +85,7 @@ export const mapReservations = async (
           : 'pending',
       notas: '',
       codigo_confirmacion: r.codigoQR || r.id.toString(),
-      qrImage: r.qrImage || null,
+      qrImage: r.qrImage || undefined,
     });
   }
 
@@ -47,7 +93,7 @@ export const mapReservations = async (
 };
 
 export const mapOpinions = async (
-  opinionesRes: any
+  opinionesRes: OpinionesResponse
 ): Promise<OpinionData[]> => {
   const opiniones = opinionesRes.opiniones || [];
   const mappedOpinions: OpinionData[] = [];
@@ -70,7 +116,7 @@ export const mapOpinions = async (
       establishment: {
         id: o.localId || '',
         name: o.localNombre || '',
-        type: 'Restaurante' as any,
+        type: 'Restaurante',
         image: imagen,
       },
       puntuacion: o.puntuacion || 0,
@@ -83,20 +129,27 @@ export const mapOpinions = async (
 };
 
 export const mapFavorites = async (
-  favoritosRes: any
+  favoritosRes: FavoritosResponse
 ): Promise<FavoriteData[]> => {
-  const favoritoIds = (favoritosRes.favoritos || []).map((f: any) => f.localId);
+  const favoritoIds = (favoritosRes.favoritos || []).map((f) => f.localId);
   const favoritesWithDetails: FavoriteData[] = [];
 
   for (const localId of favoritoIds) {
     try {
       const local = await api.getEstablishment(localId);
+      
+      const tipoRaw = local.type || 'Restaurante';
+      let tipo: 'Restaurante' | 'Restobar' | 'Bar' = 'Restaurante';
+      if (tipoRaw === 'Restobar' || tipoRaw === 'Bar') {
+        tipo = tipoRaw;
+      }
+
       favoritesWithDetails.push({
         id: local.id,
         establishment: {
           id: local.id,
           name: local.name || '',
-          type: local.type || 'Restaurante',
+          type: tipo,
           image: local.images?.banner?.[0] || local.images?.todas?.[0] || '',
           address: local.address || '',
           rating: local.rating || 0,

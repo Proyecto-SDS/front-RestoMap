@@ -166,3 +166,30 @@ export interface TabItem {
   label: string;
   value: string;
 }
+
+// Employee and Company Types
+
+export type EmpleadoRol = 'admin' | 'cocinero' | 'mesero' | 'bartender' | 'reservas';
+
+export interface Empresa {
+  id: string;
+  nombre: string;
+  correo: string;
+  telefono?: string;
+  direccion?: string;
+  logo?: string;
+  tipo?: EstablishmentType;
+}
+
+export interface Empleado {
+  id: string;
+  id_empresa: string;
+  nombre: string;
+  correo: string;
+  telefono?: string;
+  rol: EmpleadoRol;
+  estado: 'activo' | 'inactivo';
+  creado_el: string;
+}
+
+export type UserType = 'persona' | 'empresa';

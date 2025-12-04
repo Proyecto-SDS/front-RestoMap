@@ -3,6 +3,7 @@
 import { MapPin, Menu, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SANTIAGO_COMMUNES } from '../../utils/constants';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { SelectDropdown } from '../inputs/SelectDropdown';
 
 export interface HeaderProps {
@@ -86,7 +87,7 @@ export function Header({
                 className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
               >
                 {userAvatar ? (
-                  <img
+                  <ImageWithFallback
                     src={userAvatar}
                     alt={userName}
                     className="w-8 h-8 rounded-full object-cover"
@@ -146,7 +147,7 @@ export function Header({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
               >
                 {userAvatar ? (
-                  <img
+                  <ImageWithFallback
                     src={userAvatar}
                     alt={userName}
                     className="w-8 h-8 rounded-full object-cover"

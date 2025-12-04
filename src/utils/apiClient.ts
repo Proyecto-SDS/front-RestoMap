@@ -7,6 +7,10 @@ interface ApiCallOptions extends RequestInit {
   token?: string;
 }
 
+interface ApiError extends Error {
+  status?: number;
+}
+
 export async function apiCall(endpoint: string, options: ApiCallOptions = {}) {
   const token =
     options.token ||
@@ -32,15 +36,15 @@ export async function apiCall(endpoint: string, options: ApiCallOptions = {}) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage =
         errorData.error || errorData.message || `API error: ${response.status}`;
-      const error = new Error(errorMessage);
-      (error as any).status = response.status;
+      const error = new Error(errorMessage) as ApiError;
+      error.status = response.status;
       throw error;
     }
 
     return await response.json();
   } catch (error) {
     // No mostrar error en consola para 404 en endpoints de opinión de usuario (comportamiento esperado)
-    const is404 = (error as any).status === 404;
+    const is404 = (error as ApiError).status === 404;
     const isUserOpinionEndpoint =
       endpoint.includes('/opiniones/') && endpoint.includes('/user');
 

@@ -28,49 +28,63 @@ import { ConfirmDialog } from '../components/profile/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import type {
   DetailedEstablishment,
+  MenuItem,
+  MenuItemCategory,
   MesaInfo,
+  Reservation,
   Review,
+  Schedule,
+  SocialNetwork,
   TabItem,
   UserOpinion,
 } from '../types';
 import { api } from '../utils/apiClient';
 import { formatPhoneNumber, getRelativeTime } from '../utils/formatters';
 
-// Función para generar slots de tiempo cada 15 minutos
-const generateTimeSlots = (startTime: string, endTime: string): string[] => {
-  const slots: string[] = [];
-  const [startHour, startMin] = startTime.split(':').map(Number);
-  const [endHour, endMin] = endTime.split(':').map(Number);
+interface EstablishmentHeaderProps {
+  establishment: DetailedEstablishment;
+  onBack: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+}
 
-  let currentHour = startHour;
-  let currentMin = startMin;
+interface QuickInfoBarProps {
+  establishment: DetailedEstablishment;
+  onReserveClick: () => void;
+  isLoggedIn: boolean;
+}
 
-  const endTotalMinutes = endHour * 60 + endMin;
+interface InformacionTabProps {
+  establishment: DetailedEstablishment;
+  hours: Schedule[];
+  photos: string[];
+}
 
-  while (currentHour * 60 + currentMin < endTotalMinutes) {
-    const hourStr = currentHour.toString().padStart(2, '0');
-    const minStr = currentMin.toString().padStart(2, '0');
-    slots.push(`${hourStr}:${minStr}`);
+interface MenuTabProps {
+  categories: MenuItemCategory[];
+  isLoading: boolean;
+}
 
-    currentMin += 15;
-    if (currentMin >= 60) {
-      currentMin = 0;
-      currentHour += 1;
-    }
-  }
+interface OpinionesTabProps {
+  opinions: Review[];
+  currentUserOpinion: UserOpinion | null;
+  isLoggedIn: boolean;
+  onSubmitOpinion: (data: { rating: number; comment: string }) => void;
+  onLoginClick: () => void;
+}
 
-  return slots;
-};
+interface ReservasTabProps {
+  tables: MesaInfo[];
+  isLoggedIn: boolean;
+  onLoginClick: () => void;
+  establishmentId: string;
+  establishment: DetailedEstablishment;
+  tablesLoading: boolean;
+}
 
-// Función para restar 1 hora de un horario
-const subtractOneHour = (time: string): string => {
-  const [hour, min] = time.split(':').map(Number);
-  let newHour = hour - 1;
-  if (newHour < 0) newHour = 23;
-  return `${newHour.toString().padStart(2, '0')}:${min
-    .toString()
-    .padStart(2, '0')}`;
-};
+
+
+
 
 // Header Component
 function EstablishmentHeader({
@@ -78,7 +92,7 @@ function EstablishmentHeader({
   onBack,
   isFavorite,
   onToggleFavorite,
-}: any) {
+}: EstablishmentHeaderProps) {
   // Priorizar banner, luego la primera imagen disponible
   const bannerImage =
     establishment.images?.banner?.[0] ||
@@ -134,7 +148,7 @@ function EstablishmentHeader({
 }
 
 // Quick Info Bar Component
-function QuickInfoBar({ establishment, onReserveClick, isLoggedIn }: any) {
+function QuickInfoBar({ establishment, onReserveClick, isLoggedIn }: QuickInfoBarProps) {
   return (
     <div className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -167,7 +181,7 @@ function QuickInfoBar({ establishment, onReserveClick, isLoggedIn }: any) {
 }
 
 // Tab 1: Información
-function InformacionTab({ establishment, hours, photos }: any) {
+function InformacionTab({ establishment, hours, photos }: InformacionTabProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   return (
@@ -216,7 +230,7 @@ function InformacionTab({ establishment, hours, photos }: any) {
           <section>
             <h2 className="text-[#334155] mb-3">Redes Sociales</h2>
             <div className="flex flex-wrap gap-3">
-              {establishment.redesSociales.map((red: any, index: number) => {
+              {establishment.redesSociales.map((red: SocialNetwork, index: number) => {
                 const getIcon = () => {
                   const tipo = red.tipo.toLowerCase();
                   if (tipo.includes('instagram'))
@@ -256,7 +270,7 @@ function InformacionTab({ establishment, hours, photos }: any) {
       <section>
         <h2 className="text-[#334155] mb-3">Horarios</h2>
         <div className="space-y-2">
-          {hours.map((hour: any, index: number) => (
+          {hours.map((hour: Schedule, index: number) => (
             <div
               key={index}
               className="flex justify-between items-center py-2 border-b border-[#E2E8F0] last:border-0"
@@ -317,7 +331,7 @@ function InformacionTab({ establishment, hours, photos }: any) {
 }
 
 // Tab 2: Menú
-function MenuTab({ categories, isLoading }: any) {
+function MenuTab({ categories, isLoading }: MenuTabProps) {
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -340,11 +354,11 @@ function MenuTab({ categories, isLoading }: any) {
     <div className="space-y-8">
       <h2 className="text-[#334155]">Menú</h2>
 
-      {categories.map((category: any) => (
+      {categories.map((category: MenuItemCategory) => (
         <section key={category.id}>
           <h3 className="text-[#334155] mb-4">{category.nombre}</h3>
           <div className="space-y-4">
-            {category.productos.map((item: any) => (
+            {category.productos.map((item: MenuItem) => (
               <div
                 key={item.id}
                 className="bg-white rounded-xl border border-[#E2E8F0] p-4 flex gap-4"
@@ -394,7 +408,7 @@ function OpinionesTab({
   isLoggedIn,
   onSubmitOpinion,
   onLoginClick,
-}: any) {
+}: OpinionesTabProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoverRating, setHoverRating] = useState(0);
@@ -403,11 +417,11 @@ function OpinionesTab({
 
   const avgRating =
     opinions.length > 0
-      ? opinions.reduce((sum: number, op: any) => sum + op.puntuacion, 0) /
+      ? opinions.reduce((sum: number, op: Review) => sum + op.puntuacion, 0) /
         opinions.length
       : 0;
   const ratingDistribution = [5, 4, 3, 2, 1].map(
-    (stars) => opinions.filter((op: any) => op.puntuacion === stars).length
+    (stars) => opinions.filter((op: Review) => op.puntuacion === stars).length
   );
 
   const handleSubmit = () => {
@@ -423,7 +437,7 @@ function OpinionesTab({
   );
   const startIndex = (currentPage - 1) * opinionsPerPage;
   const displayedOpinions = opinions
-    .filter((op: any) => op.id !== currentUserOpinion?.id)
+    .filter((op: Review) => op.id !== currentUserOpinion?.id)
     .slice(startIndex, startIndex + opinionsPerPage);
 
   return (
@@ -646,19 +660,19 @@ function ReservasTab({
   establishmentId,
   establishment,
   tablesLoading,
-}: any) {
+}: ReservasTabProps) {
   const router = useRouter();
   const [reservationStep, setReservationStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [selectedMesa, setSelectedMesa] = useState<any>(null);
+  const [selectedMesa, setSelectedMesa] = useState<MesaInfo | null>(null);
   const [partySize, setPartySize] = useState(2);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingMesas, setIsCheckingMesas] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reservaCreada, setReservaCreada] = useState<any>(null);
-  const [availableMesas, setAvailableMesas] = useState<any[]>([]);
+  const [reservaCreada, setReservaCreada] = useState<Reservation | null>(null);
+  const [availableMesas, setAvailableMesas] = useState<MesaInfo[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -691,10 +705,11 @@ function ReservasTab({
       };
       fetchSlots();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, establishmentId]);
 
   // Función para verificar disponibilidad de mesas
-  const checkMesaAvailability = async (date: string, time: string) => {
+  const checkMesaAvailability = async (date: string, time: string): Promise<MesaInfo[]> => {
     if (!establishmentId) return [];
 
     try {
@@ -703,10 +718,10 @@ function ReservasTab({
         date,
         time
       );
-      return response.mesas || [];
+      return (response.mesas as MesaInfo[]) || [];
     } catch (error) {
       console.error('Error al verificar disponibilidad de mesas:', error);
-      return tables;
+      return [];
     }
   };
 
@@ -730,6 +745,7 @@ function ReservasTab({
       };
       fetchAvailability();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedTime, tablesLoading, establishmentId]);
 
   const getTodayDate = () => {
@@ -777,6 +793,11 @@ function ReservasTab({
     setError(null);
 
     try {
+      if (!selectedMesa) {
+        setError('Debe seleccionar una mesa');
+        return;
+      }
+
       // Llamar al endpoint de crear reserva
       const response = await api.createReservation(
         establishmentId,
@@ -788,22 +809,19 @@ function ReservasTab({
 
       if (response.success) {
         // Guardar los datos de la reserva creada
-        console.log('Reserva creada:', response.reserva);
-        console.log('¿Tiene QR?', !!response.reserva?.qrImage);
-        console.log('Código QR:', response.reserva?.codigoQR);
         setReservaCreada(response.reserva);
         // Success - go to step 6
         setReservationStep(6);
       } else {
         setError(response.error || 'Error al confirmar la reserva');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating reservation:', err);
       // Mostrar mensaje de error específico del backend
       let errorMessage =
         'Error al confirmar la reserva. Por favor, intenta de nuevo.';
 
-      if (err.message) {
+      if (err instanceof Error) {
         if (err.message.includes('Mesa no disponible')) {
           errorMessage =
             'La mesa seleccionada no está disponible para este horario. Por favor, elige otra mesa u horario.';
@@ -868,9 +886,9 @@ function ReservasTab({
                       ) {
                         input.showPicker();
                       }
-                    } catch (error) {
+                    } catch {
                       // Si showPicker falla, el input ya está enfocado
-                      console.log('showPicker not supported or failed');
+                      // Si showPicker falla, el input ya está enfocado
                     }
                   }
                 }}
@@ -894,7 +912,7 @@ function ReservasTab({
                       ) {
                         e.currentTarget.showPicker();
                       }
-                    } catch (error) {
+                    } catch {
                       // Ignorar si falla
                     }
                   }}
@@ -995,7 +1013,7 @@ function ReservasTab({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {availableMesas.map((mesa) => {
-                const isAvailable = mesa.estado === 'disponible';
+                const isAvailable = mesa.estado.toLowerCase() === 'disponible';
                 const isSelected = selectedMesa?.id === mesa.id;
 
                 return (
@@ -1069,7 +1087,7 @@ function ReservasTab({
 
   // STEP 3: SELECT PARTY SIZE
   if (reservationStep === 3) {
-    const isStep3Valid = partySize >= 1 && partySize <= selectedMesa.capacidad;
+    const isStep3Valid = selectedMesa && partySize >= 1 && partySize <= selectedMesa.capacidad;
 
     return (
       <div className="space-y-6">
@@ -1079,7 +1097,7 @@ function ReservasTab({
             <span className="text-sm text-[#64748B]">Paso 3 de 6</span>
           </div>
           <p className="text-[#64748B]">
-            Capacidad de {selectedMesa.nombre}: {selectedMesa.capacidad}{' '}
+            Capacidad de {selectedMesa?.nombre}: {selectedMesa?.capacidad}{' '}
             personas
           </p>
         </div>
@@ -1099,15 +1117,15 @@ function ReservasTab({
             </div>
             <button
               onClick={() =>
-                setPartySize(Math.min(selectedMesa.capacidad, partySize + 1))
+                setPartySize(Math.min(selectedMesa?.capacidad || 10, partySize + 1))
               }
               className="w-12 h-12 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-colors flex items-center justify-center text-2xl"
-              disabled={partySize >= selectedMesa.capacidad}
+              disabled={!selectedMesa || partySize >= selectedMesa.capacidad}
             >
               +
             </button>
           </div>
-          {partySize > selectedMesa.capacidad && (
+          {selectedMesa && partySize > selectedMesa.capacidad && (
             <p className="text-sm text-[#EF4444] text-center mt-4">
               Máximo {selectedMesa.capacidad} personas (capacidad de la mesa)
             </p>
@@ -1228,7 +1246,7 @@ function ReservasTab({
             <div className="flex justify-between py-3 border-b border-[#E2E8F0]">
               <span className="text-[#64748B]">Mesa</span>
               <span className="text-[#334155]">
-                {selectedMesa.nombre} (Capacidad: {selectedMesa.capacidad})
+                {selectedMesa?.nombre} (Capacidad: {selectedMesa?.capacidad})
               </span>
             </div>
 
@@ -1332,7 +1350,7 @@ function ReservasTab({
 
             <div className="flex justify-between py-3 border-b border-[#E2E8F0]">
               <span className="text-[#64748B]">Mesa</span>
-              <span className="text-[#334155]">{selectedMesa.nombre}</span>
+              <span className="text-[#334155]">{selectedMesa?.nombre}</span>
             </div>
 
             <div className="flex justify-between py-3 border-b border-[#E2E8F0]">
@@ -1347,7 +1365,7 @@ function ReservasTab({
                 </label>
                 <div className="flex flex-col items-center gap-4">
                   <div className="bg-white p-4 rounded-xl border-2 border-[#F97316]">
-                    <img
+                    <ImageWithFallback
                       src={reservaCreada.qrImage}
                       alt="Código QR de reserva"
                       className="w-48 h-48"
@@ -1380,9 +1398,11 @@ function ReservasTab({
                   />
                   {reservaCreada?.codigoQR && (
                     <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(reservaCreada.codigoQR)
-                      }
+                      onClick={() => {
+                        if (reservaCreada?.codigoQR) {
+                          navigator.clipboard.writeText(reservaCreada.codigoQR);
+                        }
+                      }}
                       className="px-4 py-2 text-sm text-[#F97316] hover:text-[#EA580C] transition-colors"
                     >
                       Copiar
@@ -1426,12 +1446,14 @@ export default function EstablishmentDetail() {
   // Estados para datos de la API
   const [establishment, setEstablishment] =
     useState<DetailedEstablishment | null>(null);
-  const [menuData, setMenuData] = useState<any>(null);
+  const [menuData, setMenuData] = useState<{ categorias: MenuItemCategory[] } | null>(
+    null
+  );
   const [opinions, setOpinions] = useState<Review[]>([]);
   const [tables, setTables] = useState<MesaInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
-  const [isLoadingOpinions, setIsLoadingOpinions] = useState(false);
+
   const [isLoadingTables, setIsLoadingTables] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUserOpinion, setCurrentUserOpinion] =
@@ -1447,9 +1469,9 @@ export default function EstablishmentDetail() {
         const data = await api.getEstablishment(id);
         setEstablishment(data);
         setOpinions(data.reviews || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error loading establishment:', err);
-        setError(err.message || 'Error al cargar el establecimiento');
+        setError(err instanceof Error ? err.message : 'Error al cargar el establecimiento');
       } finally {
         setIsLoading(false);
       }
@@ -1500,7 +1522,8 @@ export default function EstablishmentDetail() {
       };
       loadMenu();
     }
-  }, [activeTab, id, menuData, establishment]);
+     
+  }, [activeTab, id, menuData, establishment, setIsLoadingMenu]);
 
   // Cargar mesas cuando se abre la pestaña de reservas
   useEffect(() => {
@@ -1538,12 +1561,12 @@ export default function EstablishmentDetail() {
             comment: data.comentario,
             date: data.fecha,
           });
-        } catch (err: any) {
+        } catch (err: unknown) {
           // Si devuelve 404, significa que el usuario no tiene opinión para este local (comportamiento esperado)
           if (
-            err.status === 404 ||
-            err.message?.includes('404') ||
-            err.message?.includes('No tienes opinión')
+            err instanceof Error &&
+            (err.message?.includes('404') ||
+            err.message?.includes('No tienes opinión'))
           ) {
             // No hacer nada, es normal no tener opinión
             setCurrentUserOpinion(null);
@@ -1574,7 +1597,7 @@ export default function EstablishmentDetail() {
     setActiveTab('reservas');
   };
 
-  const handleSubmitOpinion = async (opinionData: any) => {
+  const handleSubmitOpinion = async (opinionData: { rating: number; comment: string }) => {
     try {
       const response = await api.createOpinion(
         id,
@@ -1596,12 +1619,12 @@ export default function EstablishmentDetail() {
       // Recargar opiniones del establecimiento
       const data = await api.getEstablishment(id);
       setOpinions(data.reviews || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting opinion:', err);
       // Mostrar mensaje de error específico
-      const errorMessage = err.message?.includes('Ya tienes una opinión')
+      const errorMessage = err instanceof Error && err.message?.includes('Ya tienes una opinión')
         ? 'Ya tienes una opinión para este local'
-        : err.message || 'Error al enviar la opinión';
+        : err instanceof Error ? err.message : 'Error al enviar la opinión';
       alert(errorMessage);
     }
   };
@@ -1626,9 +1649,9 @@ export default function EstablishmentDetail() {
         setIsLoadingFavorite(true);
         await api.addFavorite(id);
         setIsFavorite(true);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error al agregar favorito:', error);
-        alert(error.message || 'Error al agregar favorito');
+        alert(error instanceof Error ? error.message : 'Error al agregar favorito');
       } finally {
         setIsLoadingFavorite(false);
       }
@@ -1641,9 +1664,9 @@ export default function EstablishmentDetail() {
       await api.removeFavorite(id);
       setIsFavorite(false);
       setShowConfirmDialog(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al eliminar favorito:', error);
-      alert(error.message || 'Error al eliminar favorito');
+      alert(error instanceof Error ? error.message : 'Error al eliminar favorito');
     } finally {
       setIsLoadingFavorite(false);
     }

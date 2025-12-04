@@ -7,6 +7,6 @@ const EstablishmentDetail = dynamic(
   { ssr: false }
 );
 
-export default function EstablishmentPage({ params }: { params: { id: string } }) {
+export default function EstablishmentPage() {
   return <EstablishmentDetail />;
 }

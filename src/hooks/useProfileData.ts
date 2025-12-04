@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FavoriteData } from '../components/profile/FavoriteCard';
 import { OpinionData } from '../components/profile/OpinionCard';
 import { ReservationData } from '../components/profile/ReservationCard';
 import {
-  mapFavorites,
-  mapOpinions,
-  mapReservations,
+    mapFavorites,
+    mapOpinions,
+    mapReservations,
 } from '../services/profileDataMapper';
 import { api } from '../utils/apiClient';
 
@@ -28,7 +28,7 @@ export function useProfileData(
   const [favorites, setFavorites] = useState<FavoriteData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!userId) return;
 
     setIsLoading(true);
@@ -46,7 +46,7 @@ export function useProfileData(
       setReservations(mappedReservations);
       setOpinions(mappedOpinions);
       setFavorites(mappedFavorites);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading user data:', error);
       if (onError) {
         onError('Error al cargar datos');
@@ -54,11 +54,11 @@ export function useProfileData(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, onError]);
 
   useEffect(() => {
     loadUserData();
-  }, [userId]);
+  }, [loadUserData]);
 
   return {
     reservations,

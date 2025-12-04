@@ -39,7 +39,6 @@ export default function ProfileScreen() {
     reservations,
     opinions,
     favorites,
-    isLoading,
     setReservations,
     setFavorites,
   } = useProfileData(user?.id, (error) => showToast('error', error));

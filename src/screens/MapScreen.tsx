@@ -4,7 +4,7 @@ import { Heart, MapPin, Menu, Search, Star, X } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
 import { FilterChip } from '../components/inputs/FilterChip';
@@ -273,6 +273,7 @@ function SimpleMap({
         mapRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update markers when establishments change
@@ -345,7 +346,7 @@ function SimpleMap({
 
       markersRef.current.set(est.id, marker);
     });
-  }, [establishments, selectedEstablishmentId]);
+  }, [establishments, selectedEstablishmentId, onMarkerClick, mapRef]);
 
   // Fly to commune when selected
   useEffect(() => {
@@ -364,6 +365,7 @@ function SimpleMap({
         duration: 1500,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCommune, establishments.length]);
 
   return (
@@ -784,7 +786,7 @@ export default function MapScreen() {
   const { isLoggedIn } = useAuth();
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
-  const [selectedCommune, setSelectedCommune] = useState('');
+  const [selectedCommune] = useState('');
   const [selectedType, setSelectedType] = useState<EstablishmentType | 'Todos'>(
     'Todos'
   );
@@ -812,10 +814,11 @@ export default function MapScreen() {
         const data = await api.getEstablishments();
 
         // Transform API response to match Establishment interface
-        const transformedData: Establishment[] = data.map((item: any) => ({
+        // Transform API response to match Establishment interface
+        const transformedData: Establishment[] = data.map((item: Establishment) => ({
           id: item.id,
           name: item.name,
-          type: item.type as EstablishmentType,
+          type: item.type,
           address: item.address,
           commune: item.commune,
           phone: item.phone,
@@ -826,9 +829,9 @@ export default function MapScreen() {
             'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
           rating: item.rating,
           reviewCount: item.reviewCount,
-          status: item.status as 'open' | 'closed',
+          status: item.status,
           closingTime: item.closingTime,
-          coordinates: item.coordinates as [number, number],
+          coordinates: item.coordinates,
         }));
 
         setEstablishments(transformedData);
@@ -854,7 +857,7 @@ export default function MapScreen() {
 
       try {
         const response = await api.getFavorites();
-        const favoriteIds = response.favoritos.map((fav: any) => fav.localId);
+        const favoriteIds = response.favoritos.map((fav: { localId: string }) => fav.localId);
         setFavorites(favoriteIds);
       } catch (error) {
         console.error('Error loading favorites:', error);
@@ -914,7 +917,7 @@ export default function MapScreen() {
     setSelectedType(type);
   };
 
-  const handleMarkerClick = (establishment: Establishment) => {
+  const handleMarkerClick = useCallback((establishment: Establishment) => {
     setSelectedEstablishmentId(establishment.id);
 
     // En mobile, abrir el drawer cuando se hace click en un marcador
@@ -922,7 +925,7 @@ export default function MapScreen() {
       // md breakpoint
       setIsDrawerOpen(true);
     }
-  };
+  }, []);
 
   const handleSelectEstablishment = (id: string) => {
     setSelectedEstablishmentId(id);
@@ -951,9 +954,13 @@ export default function MapScreen() {
       try {
         await api.addFavorite(localId);
         setFavorites([...favorites, localId]);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error al agregar favorito:', error);
-        alert(error.message || 'Error al agregar favorito');
+        if (error instanceof Error) {
+            alert(error.message || 'Error al agregar favorito');
+        } else {
+            alert('Error al agregar favorito');
+        }
       }
     }
   };
@@ -966,9 +973,13 @@ export default function MapScreen() {
       await api.removeFavorite(establishmentId);
       setFavorites(favorites.filter((id) => id !== establishmentId));
       setConfirmDialog({ isOpen: false, establishmentId: null });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al eliminar favorito:', error);
-      alert(error.message || 'Error al eliminar favorito');
+      if (error instanceof Error) {
+          alert(error.message || 'Error al eliminar favorito');
+      } else {
+          alert('Error al eliminar favorito');
+      }
     }
   };
 

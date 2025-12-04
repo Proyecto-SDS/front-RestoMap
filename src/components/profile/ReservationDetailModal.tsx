@@ -1,11 +1,11 @@
 import {
-  Calendar,
-  Clock,
-  Copy,
-  ExternalLink,
-  MapPin,
-  Users,
-  X,
+    Calendar,
+    Clock,
+    Copy,
+    ExternalLink,
+    MapPin,
+    Users,
+    X,
 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import { PrimaryButton } from '../buttons/PrimaryButton';
@@ -196,13 +196,13 @@ export function ReservationDetailModal({
               <h3 className="text-[#334155] mb-3">Código QR</h3>
               <div className="flex justify-center mb-3">
                 {reservation.qrImage ? (
-                  <img
+                  <ImageWithFallback
                     src={reservation.qrImage}
                     alt="QR Code"
                     className="w-48 h-48 border border-[#E2E8F0] rounded-lg"
                   />
                 ) : (
-                  <img
+                  <ImageWithFallback
                     src={qrCodeUrl}
                     alt="QR Code"
                     className="w-48 h-48 border border-[#E2E8F0] rounded-lg"

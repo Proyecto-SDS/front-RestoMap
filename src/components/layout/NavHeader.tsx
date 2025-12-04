@@ -1,15 +1,16 @@
 'use client';
 
 import { LogOut, Menu, User, X } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
+  // const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -57,10 +58,16 @@ export function NavHeader() {
             href="/"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 bg-linear-to-r from-[#F97316] to-[#EF4444] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">R</span>
+            <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center p-1">
+              <Image
+                src="/logo.png"
+                alt="RestoMap Logo"
+                width={64}
+                height={64}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <span className="hidden sm:block text-[#334155] font-semibold">
+            <span className="hidden sm:block text-[#334155] font-semibold text-lg">
               RestoMap
             </span>
           </Link>
