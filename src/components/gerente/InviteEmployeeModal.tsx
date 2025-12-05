@@ -8,7 +8,10 @@ interface InviteEmployeeModalProps {
   onSuccess: () => void;
 }
 
-export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalProps) {
+export function InviteEmployeeModal({
+  onClose,
+  onSuccess,
+}: InviteEmployeeModalProps) {
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
@@ -88,7 +91,7 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
@@ -127,7 +130,9 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
                   : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
               }`}
             />
-            {errors.nombre && <p className="mt-1.5 text-xs text-[#EF4444]">{errors.nombre}</p>}
+            {errors.nombre && (
+              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.nombre}</p>
+            )}
           </div>
 
           {/* Correo */}
@@ -149,7 +154,9 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
                   : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
               }`}
             />
-            {errors.correo && <p className="mt-1.5 text-xs text-[#EF4444]">{errors.correo}</p>}
+            {errors.correo && (
+              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.correo}</p>
+            )}
           </div>
 
           {/* Rol */}
@@ -159,7 +166,9 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
             </label>
             <select
               value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, rol: e.target.value })
+              }
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:border-[#F97316] focus:ring-[#F97316]/20 transition-all"
             >
               {roles.map((role) => (
@@ -172,11 +181,15 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
 
           {/* Teléfono */}
           <div>
-            <label className="block text-sm text-[#334155] mb-2">Teléfono (opcional)</label>
+            <label className="block text-sm text-[#334155] mb-2">
+              Teléfono (opcional)
+            </label>
             <input
               type="tel"
               value={formData.telefono}
-              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, telefono: e.target.value })
+              }
               placeholder="+56 9 1234 5678"
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:border-[#F97316] focus:ring-[#F97316]/20 transition-all"
             />
@@ -203,7 +216,11 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
                 }`}
                 readOnly
               />
-              <SecondaryButton type="button" onClick={generatePassword} size="sm">
+              <SecondaryButton
+                type="button"
+                onClick={generatePassword}
+                size="sm"
+              >
                 Generar
               </SecondaryButton>
               {formData.contrasena && (
@@ -213,12 +230,18 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
                   className="px-3 py-2 border border-[#E2E8F0] rounded-xl hover:bg-[#F1F5F9] transition-colors"
                   title="Copiar"
                 >
-                  {copied ? <Check size={16} className="text-[#22C55E]" /> : <Copy size={16} />}
+                  {copied ? (
+                    <Check size={16} className="text-[#22C55E]" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </button>
               )}
             </div>
             {errors.contrasena && (
-              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.contrasena}</p>
+              <p className="mt-1.5 text-xs text-[#EF4444]">
+                {errors.contrasena}
+              </p>
             )}
             <p className="mt-1.5 text-xs text-[#94A3B8]">
               Esta contraseña será enviada por correo al empleado
@@ -229,7 +252,8 @@ export function InviteEmployeeModal({ onClose, onSuccess }: InviteEmployeeModalP
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2">
             <Mail size={16} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="text-xs text-[#64748B]">
-              Se enviará un correo a <strong>{formData.correo || 'este correo'}</strong> con las
+              Se enviará un correo a{' '}
+              <strong>{formData.correo || 'este correo'}</strong> con las
               credenciales y un enlace de activación.
             </p>
           </div>

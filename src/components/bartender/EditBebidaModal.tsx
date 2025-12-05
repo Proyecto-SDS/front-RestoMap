@@ -1,9 +1,10 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import { Producto } from '../../screens/cocinero/DashboardCocineroScreen';
+import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
-import { Toast, useToast } from '../notifications/Toast';
+import { ModalPortal } from '../modals/ModalPortal';
 
 interface EditBebidaModalProps {
   bebida: Producto;
@@ -11,47 +12,48 @@ interface EditBebidaModalProps {
   onUpdate: (bebida: Producto) => void;
 }
 
-export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalProps) {
-  const [disponible, setDisponible] = useState(bebida.disponible);
+export function EditBebidaModal({
+  bebida,
+  onClose,
+  onUpdate,
+}: EditBebidaModalProps) {
+  const [estado, setEstado] = useState<'disponible' | 'agotado' | 'inactivo'>(
+    bebida.estado
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
 
   const handleSave = async () => {
     setIsLoading(true);
 
     try {
-      // Mock API call - PATCH /api/empresa/productos/{id}
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Llamar al API real
+      await api.empresa.updateProductoEstado(parseInt(bebida.id), estado);
 
       const updatedBebida = {
         ...bebida,
-        disponible,
+        estado,
       };
 
       onUpdate(updatedBebida);
-      showToast('success', 'Bebida actualizada correctamente');
-
-      setTimeout(() => {
-        onClose();
-      }, 1000);
-    } catch {
-      alert('Error al actualizar la bebida');
+      onClose();
+    } catch (error) {
+      console.error('Error al actualizar la bebida:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <>
+    <ModalPortal>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+        className="fixed inset-0 bg-black/50 z-[100] animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+        <div className="bg-white rounded-xl shadow-xl max-w-md w-full pointer-events-auto">
           {/* Header */}
           <div className="border-b border-[#E2E8F0] px-6 py-4 flex items-center justify-between">
             <div>
@@ -70,7 +72,9 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
           <div className="p-6 space-y-4">
             {/* Read-only fields */}
             <div>
-              <label className="block text-sm text-[#94A3B8] mb-1">Nombre</label>
+              <label className="block text-sm text-[#94A3B8] mb-1">
+                Nombre
+              </label>
               <input
                 type="text"
                 value={bebida.nombre}
@@ -80,7 +84,9 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
             </div>
 
             <div>
-              <label className="block text-sm text-[#94A3B8] mb-1">Categoría</label>
+              <label className="block text-sm text-[#94A3B8] mb-1">
+                Categoría
+              </label>
               <input
                 type="text"
                 value={bebida.categoria_nombre}
@@ -90,7 +96,9 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
             </div>
 
             <div>
-              <label className="block text-sm text-[#94A3B8] mb-1">Precio</label>
+              <label className="block text-sm text-[#94A3B8] mb-1">
+                Precio
+              </label>
               <input
                 type="text"
                 value={`$${bebida.precio.toLocaleString('es-CL')}`}
@@ -101,26 +109,41 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
 
             {/* Editable field */}
             <div>
-              <label className="block text-sm text-[#334155] mb-2">Disponibilidad</label>
+              <label className="block text-sm text-[#334155] mb-2">
+                Disponibilidad
+              </label>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setDisponible(!disponible)}
+                  onClick={() =>
+                    setEstado(
+                      estado === 'disponible' ? 'agotado' : 'disponible'
+                    )
+                  }
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    disponible ? 'bg-[#22C55E]' : 'bg-[#E2E8F0]'
+                    estado === 'disponible' ? 'bg-[#22C55E]' : 'bg-[#E2E8F0]'
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      disponible ? 'translate-x-6' : 'translate-x-1'
+                      estado === 'disponible'
+                        ? 'translate-x-6'
+                        : 'translate-x-1'
                     }`}
                   />
                 </button>
-                <span className={`text-sm ${disponible ? 'text-[#22C55E]' : 'text-[#94A3B8]'}`}>
-                  {disponible ? 'Disponible' : 'No disponible'}
+                <span
+                  className={`text-sm ${
+                    estado === 'disponible'
+                      ? 'text-[#22C55E]'
+                      : 'text-[#94A3B8]'
+                  }`}
+                >
+                  {estado === 'disponible' ? 'Disponible' : 'No disponible'}
                 </span>
               </div>
               <p className="text-xs text-[#64748B] mt-2">
-                Las bebidas marcadas como "No disponible" no aparecerán en el menú del cliente
+                Las bebidas marcadas como &quot;No disponible&quot; no
+                aparecerán en el menú del cliente
               </p>
             </div>
           </div>
@@ -133,7 +156,7 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
             <PrimaryButton
               onClick={handleSave}
               isLoading={isLoading}
-              disabled={isLoading || disponible === bebida.disponible}
+              disabled={isLoading || estado === bebida.estado}
               className="flex-1"
             >
               Guardar
@@ -141,16 +164,6 @@ export function EditBebidaModal({ bebida, onClose, onUpdate }: EditBebidaModalPr
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
-    </>
+    </ModalPortal>
   );
 }

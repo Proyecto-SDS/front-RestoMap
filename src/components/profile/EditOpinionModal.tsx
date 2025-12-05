@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X, Star } from 'lucide-react';
-import { OpinionData } from './OpinionCard';
+import { Star, X } from 'lucide-react';
+import { useState } from 'react';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { OpinionData } from './OpinionCard';
 
 interface EditOpinionModalProps {
   opinion: OpinionData;
@@ -11,7 +11,11 @@ interface EditOpinionModalProps {
   onSave: (id: string, rating: number, comment: string) => void;
 }
 
-export function EditOpinionModal({ opinion, onClose, onSave }: EditOpinionModalProps) {
+export function EditOpinionModal({
+  opinion,
+  onClose,
+  onSave,
+}: EditOpinionModalProps) {
   const [rating, setRating] = useState(opinion.puntuacion);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState(opinion.comentario);
@@ -22,14 +26,14 @@ export function EditOpinionModal({ opinion, onClose, onSave }: EditOpinionModalP
 
   const handleSave = async () => {
     if (rating === 0 || comment.trim() === '') return;
-    
+
     setIsLoading(true);
     await onSave(opinion.id, rating, comment);
     setIsLoading(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-[#E2E8F0] p-6 flex items-center justify-between">
@@ -55,7 +59,9 @@ export function EditOpinionModal({ opinion, onClose, onSave }: EditOpinionModalP
               />
             </div>
             <div>
-              <h3 className="text-[#334155] mb-1">{opinion.establishment.name}</h3>
+              <h3 className="text-[#334155] mb-1">
+                {opinion.establishment.name}
+              </h3>
               <span className="text-xs px-2 py-1 rounded bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white">
                 {opinion.establishment.type}
               </span>
@@ -110,7 +116,11 @@ export function EditOpinionModal({ opinion, onClose, onSave }: EditOpinionModalP
               <p className="text-xs text-[#94A3B8]">
                 Máximo {maxChars} caracteres
               </p>
-              <p className={`text-xs ${remainingChars < 50 ? 'text-[#EF4444]' : 'text-[#94A3B8]'}`}>
+              <p
+                className={`text-xs ${
+                  remainingChars < 50 ? 'text-[#EF4444]' : 'text-[#94A3B8]'
+                }`}
+              >
                 {remainingChars} caracteres restantes
               </p>
             </div>

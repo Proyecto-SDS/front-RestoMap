@@ -173,4 +173,99 @@ export const api = {
 
   checkFavorite: (localId: string) =>
     apiCall(`/api/favoritos/check/${localId}`),
+
+  // ============================================
+  // EMPRESA ENDPOINTS - /api/empresa/*
+  // ============================================
+
+  // Mesas
+  empresa: {
+    getMesas: () => apiCall('/api/empresa/mesas/'),
+    createMesa: (nombre: string, capacidad: number) =>
+      apiCall('/api/empresa/mesas/', {
+        method: 'POST',
+        body: JSON.stringify({ nombre, capacidad }),
+      }),
+    updateMesa: (id: number, data: { nombre?: string; capacidad?: number }) =>
+      apiCall(`/api/empresa/mesas/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    updateMesaEstado: (id: number, estado: string) =>
+      apiCall(`/api/empresa/mesas/${id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado }),
+      }),
+    deleteMesa: (id: number) =>
+      apiCall(`/api/empresa/mesas/${id}`, { method: 'DELETE' }),
+    generarQRMesa: (id: number) =>
+      apiCall(`/api/empresa/mesas/${id}/qr`, { method: 'POST' }),
+    getMesaDetalle: (id: number) => apiCall(`/api/empresa/mesas/${id}`),
+    getPedidoActivoMesa: (id: number) =>
+      apiCall(`/api/empresa/mesas/${id}/pedido-activo`),
+    cancelarMesa: (id: number) =>
+      apiCall(`/api/empresa/mesas/${id}/cancelar`, { method: 'POST' }),
+
+    // Pedidos
+    getPedidos: (estado?: string, mesaId?: string) => {
+      const params = new URLSearchParams();
+      if (estado) params.append('estado', estado);
+      if (mesaId) params.append('mesa_id', mesaId);
+      const query = params.toString();
+      return apiCall(`/api/empresa/pedidos/${query ? `?${query}` : ''}`);
+    },
+    getPedido: (id: number) => apiCall(`/api/empresa/pedidos/${id}`),
+    updatePedidoEstado: (id: number, estado: string, nota?: string) =>
+      apiCall(`/api/empresa/pedidos/${id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado, nota }),
+      }),
+    getPedidosCocina: () => apiCall('/api/empresa/pedidos/cocina'),
+    getPedidosBarra: () => apiCall('/api/empresa/pedidos/barra'),
+
+    // Empleados
+    getEmpleados: () => apiCall('/api/empresa/empleados/'),
+    createEmpleado: (data: {
+      nombre: string;
+      correo: string;
+      telefono?: string;
+      rol: string;
+    }) =>
+      apiCall('/api/empresa/empleados/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateEmpleado: (
+      id: number,
+      data: { nombre?: string; telefono?: string; rol?: string }
+    ) =>
+      apiCall(`/api/empresa/empleados/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    updateEmpleadoEstado: (id: number, estado: string) =>
+      apiCall(`/api/empresa/empleados/${id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado }),
+      }),
+    deleteEmpleado: (id: number) =>
+      apiCall(`/api/empresa/empleados/${id}`, { method: 'DELETE' }),
+
+    // Productos
+    getProductos: (categoria?: string, estado?: string) => {
+      const params = new URLSearchParams();
+      if (categoria) params.append('categoria', categoria);
+      if (estado) params.append('estado', estado);
+      const query = params.toString();
+      return apiCall(`/api/empresa/productos/${query ? `?${query}` : ''}`);
+    },
+    updateProductoEstado: (id: number, estado: string) =>
+      apiCall(`/api/empresa/productos/${id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado }),
+      }),
+
+    // Stats
+    getStats: () => apiCall('/api/empresa/stats/dashboard'),
+  },
 };

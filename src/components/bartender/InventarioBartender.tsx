@@ -1,7 +1,7 @@
 import { Edit, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Producto } from '../../screens/cocinero/DashboardCocineroScreen';
-import { Toast, useToast } from '../notifications/Toast';
+import { api } from '../../utils/apiClient';
 import { EditBebidaModal } from './EditBebidaModal';
 
 interface InventarioBartenderProps {
@@ -10,21 +10,29 @@ interface InventarioBartenderProps {
   onRefresh: () => void;
 }
 
-export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBartenderProps) {
+export function InventarioBartender({
+  bebidas,
+  onBebidaUpdate,
+}: InventarioBartenderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedBebida, setSelectedBebida] = useState<Producto | null>(null);
   const [sortBy, setSortBy] = useState<'nombre' | 'categoria'>('nombre');
-  const { toast, showToast, hideToast } = useToast();
 
   // Get unique categories (only alcoholic beverages)
-  const categories = ['Todos', ...Array.from(new Set(bebidas.map(b => b.categoria_nombre)))];
+  const categories = [
+    'Todos',
+    ...Array.from(new Set(bebidas.map((b) => b.categoria_nombre))),
+  ];
 
   // Filter and sort bebidas
   const filteredBebidas = bebidas
-    .filter(b => {
-      const matchesSearch = b.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'Todos' || b.categoria_nombre === selectedCategory;
+    .filter((b) => {
+      const matchesSearch = b.nombre
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'Todos' || b.categoria_nombre === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -38,10 +46,10 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
   // Get category color
   const getCategoryColor = (categoria: string) => {
     const colors: Record<string, string> = {
-      'Cervezas': '#F59E0B',
-      'Vinos': '#8B5CF6',
-      'Cócteles': '#EC4899',
-      'Licores': '#10B981',
+      Cervezas: '#F59E0B',
+      Vinos: '#8B5CF6',
+      Cócteles: '#EC4899',
+      Licores: '#10B981',
     };
     return colors[categoria] || '#94A3B8';
   };
@@ -49,32 +57,44 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
   // Toggle availability
   const handleToggleAvailability = async (bebida: Producto) => {
     try {
-      // Mock API call - PATCH /api/empresa/productos/{id}
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Determinar el nuevo estado
+      const nuevoEstado =
+        bebida.estado === 'disponible' ? 'agotado' : 'disponible';
+
+      // Llamar al API real
+      await api.empresa.updateProductoEstado(parseInt(bebida.id), nuevoEstado);
 
       const updatedBebida = {
         ...bebida,
-        disponible: !bebida.disponible,
+        estado: nuevoEstado as 'disponible' | 'agotado' | 'inactivo',
       };
 
       onBebidaUpdate(updatedBebida);
-      showToast(
-        'success',
-        `${bebida.nombre} marcado como ${!bebida.disponible ? 'disponible' : 'no disponible'}`
-      );
-    } catch {
-      alert('Error al actualizar el stock');
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl text-[#334155] mb-2">Inventario de Barra</h1>
-        <p className="text-[#64748B]">
-          Gestiona la disponibilidad de bebidas alcohólicas. Los productos NO disponibles no aparecerán en el menú del cliente.
-        </p>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">Total Bebidas</p>
+          <p className="text-2xl text-[#334155]">{bebidas.length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">Disponibles</p>
+          <p className="text-2xl text-[#22C55E]">
+            {bebidas.filter((b) => b.estado === 'disponible').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">No Disponibles</p>
+          <p className="text-2xl text-[#EF4444]">
+            {bebidas.filter((b) => b.estado !== 'disponible').length}
+          </p>
+        </div>
       </div>
 
       {/* Category Tabs */}
@@ -101,7 +121,10 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+            <Search
+              size={20}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+            />
             <input
               type="text"
               placeholder="Buscar bebida..."
@@ -114,7 +137,9 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'nombre' | 'categoria')}
+            onChange={(e) =>
+              setSortBy(e.target.value as 'nombre' | 'categoria')
+            }
             className="px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
           >
             <option value="nombre">Ordenar por nombre</option>
@@ -138,11 +163,21 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
             <table className="w-full">
               <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
                 <tr>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Bebida</th>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Categoría</th>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Precio</th>
-                  <th className="text-center px-6 py-3 text-xs text-[#64748B]">Estado</th>
-                  <th className="text-center px-6 py-3 text-xs text-[#64748B]">Acciones</th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Bebida
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Categoría
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Precio
+                  </th>
+                  <th className="text-center px-6 py-3 text-xs text-[#64748B] w-40">
+                    Estado
+                  </th>
+                  <th className="text-center px-6 py-3 text-xs text-[#64748B] w-24">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -160,7 +195,11 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
                     <td className="px-6 py-4">
                       <span
                         className="px-2 py-1 rounded text-xs text-white"
-                        style={{ backgroundColor: getCategoryColor(bebida.categoria_nombre) }}
+                        style={{
+                          backgroundColor: getCategoryColor(
+                            bebida.categoria_nombre
+                          ),
+                        }}
                       >
                         {bebida.categoria_nombre}
                       </span>
@@ -179,21 +218,29 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
                         <button
                           onClick={() => handleToggleAvailability(bebida)}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            bebida.disponible ? 'bg-[#22C55E]' : 'bg-[#E2E8F0]'
+                            bebida.estado === 'disponible'
+                              ? 'bg-[#22C55E]'
+                              : 'bg-[#E2E8F0]'
                           }`}
                         >
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              bebida.disponible ? 'translate-x-6' : 'translate-x-1'
+                              bebida.estado === 'disponible'
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
                             }`}
                           />
                         </button>
                         <span
-                          className={`text-xs ${
-                            bebida.disponible ? 'text-[#22C55E]' : 'text-[#94A3B8]'
+                          className={`text-xs w-20 text-center ${
+                            bebida.estado === 'disponible'
+                              ? 'text-[#22C55E]'
+                              : 'text-[#94A3B8]'
                           }`}
                         >
-                          {bebida.disponible ? 'Disponible' : 'No disponible'}
+                          {bebida.estado === 'disponible'
+                            ? 'Disponible'
+                            : 'No disponible'}
                         </span>
                       </div>
                     </td>
@@ -218,42 +265,12 @@ export function InventarioBartender({ bebidas, onBebidaUpdate }: InventarioBarte
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">Total Bebidas</p>
-          <p className="text-2xl text-[#334155]">{bebidas.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">Disponibles</p>
-          <p className="text-2xl text-[#22C55E]">
-            {bebidas.filter(b => b.disponible).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">No Disponibles</p>
-          <p className="text-2xl text-[#EF4444]">
-            {bebidas.filter(b => !b.disponible).length}
-          </p>
-        </div>
-      </div>
-
       {/* Edit Modal */}
       {selectedBebida && (
         <EditBebidaModal
           bebida={selectedBebida}
           onClose={() => setSelectedBebida(null)}
           onUpdate={onBebidaUpdate}
-        />
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
         />
       )}
     </div>

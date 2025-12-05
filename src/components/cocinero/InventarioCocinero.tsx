@@ -1,8 +1,7 @@
-
 import { Edit, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Producto } from '../../screens/cocinero/DashboardCocineroScreen';
-import { Toast, useToast } from '../notifications/Toast';
+import { api } from '../../utils/apiClient';
 import { EditProductModal } from './EditProductModal';
 
 interface InventarioCocineroProps {
@@ -11,21 +10,31 @@ interface InventarioCocineroProps {
   onRefresh?: () => void | Promise<void>;
 }
 
-export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCocineroProps) {
+export function InventarioCocinero({
+  productos,
+  onProductoUpdate,
+}: InventarioCocineroProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
-  const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
+  const [selectedProducto, setSelectedProducto] = useState<Producto | null>(
+    null
+  );
   const [sortBy, setSortBy] = useState<'nombre' | 'categoria'>('nombre');
-  const { toast, showToast, hideToast } = useToast();
 
   // Get unique categories (excluding alcohol)
-  const categories = ['Todos', ...Array.from(new Set(productos.map(p => p.categoria_nombre)))];
+  const categories = [
+    'Todos',
+    ...Array.from(new Set(productos.map((p) => p.categoria_nombre))),
+  ];
 
   // Filter and sort products
   const filteredProductos = productos
-    .filter(p => {
-      const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'Todos' || p.categoria_nombre === selectedCategory;
+    .filter((p) => {
+      const matchesSearch = p.nombre
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'Todos' || p.categoria_nombre === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -39,9 +48,9 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
   // Get category color
   const getCategoryColor = (categoria: string) => {
     const colors: Record<string, string> = {
-      'Comidas': '#3B82F6',
-      'Acompañamientos': '#F97316',
-      'Postres': '#EC4899',
+      Comidas: '#3B82F6',
+      Acompañamientos: '#F97316',
+      Postres: '#EC4899',
       'Bebidas Sin Alcohol': '#22C55E',
     };
     return colors[categoria] || '#94A3B8';
@@ -50,32 +59,47 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
   // Toggle availability
   const handleToggleAvailability = async (producto: Producto) => {
     try {
-      // Mock API call - PATCH /api/empresa/productos/{id}
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Determinar el nuevo estado
+      const nuevoEstado =
+        producto.estado === 'disponible' ? 'agotado' : 'disponible';
+
+      // Llamar al API real
+      await api.empresa.updateProductoEstado(
+        parseInt(producto.id),
+        nuevoEstado
+      );
 
       const updatedProducto = {
         ...producto,
-        disponible: !producto.disponible,
+        estado: nuevoEstado as 'disponible' | 'agotado' | 'inactivo',
       };
 
       onProductoUpdate(updatedProducto);
-      showToast(
-        'success',
-        `${producto.nombre} marcado como ${!producto.disponible ? 'disponible' : 'no disponible'}`
-      );
-    } catch {
-      alert('Error al actualizar el stock');
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl text-[#334155] mb-2">Inventario de Cocina</h1>
-        <p className="text-[#64748B]">
-          Gestiona la disponibilidad de productos. Los productos NO disponibles no aparecerán en el menú del cliente.
-        </p>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">Total Productos</p>
+          <p className="text-2xl text-[#334155]">{productos.length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">Disponibles</p>
+          <p className="text-2xl text-[#22C55E]">
+            {productos.filter((p) => p.estado === 'disponible').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
+          <p className="text-xs text-[#94A3B8] mb-1">No Disponibles</p>
+          <p className="text-2xl text-[#EF4444]">
+            {productos.filter((p) => p.estado !== 'disponible').length}
+          </p>
+        </div>
       </div>
 
       {/* Category Tabs */}
@@ -102,7 +126,10 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+            <Search
+              size={20}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+            />
             <input
               type="text"
               placeholder="Buscar producto..."
@@ -115,7 +142,9 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'nombre' | 'categoria')}
+            onChange={(e) =>
+              setSortBy(e.target.value as 'nombre' | 'categoria')
+            }
             className="px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
           >
             <option value="nombre">Ordenar por nombre</option>
@@ -139,11 +168,21 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
             <table className="w-full">
               <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
                 <tr>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Producto</th>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Categoría</th>
-                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">Precio</th>
-                  <th className="text-center px-6 py-3 text-xs text-[#64748B]">Estado</th>
-                  <th className="text-center px-6 py-3 text-xs text-[#64748B]">Acciones</th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Producto
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Categoría
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs text-[#64748B]">
+                    Precio
+                  </th>
+                  <th className="text-center px-6 py-3 text-xs text-[#64748B] w-40">
+                    Estado
+                  </th>
+                  <th className="text-center px-6 py-3 text-xs text-[#64748B] w-24">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -154,14 +193,20 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
                   >
                     {/* Producto */}
                     <td className="px-6 py-4">
-                      <p className="text-sm text-[#334155]">{producto.nombre}</p>
+                      <p className="text-sm text-[#334155]">
+                        {producto.nombre}
+                      </p>
                     </td>
 
                     {/* Categoría */}
                     <td className="px-6 py-4">
                       <span
                         className="px-2 py-1 rounded text-xs text-white"
-                        style={{ backgroundColor: getCategoryColor(producto.categoria_nombre) }}
+                        style={{
+                          backgroundColor: getCategoryColor(
+                            producto.categoria_nombre
+                          ),
+                        }}
                       >
                         {producto.categoria_nombre}
                       </span>
@@ -180,21 +225,29 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
                         <button
                           onClick={() => handleToggleAvailability(producto)}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            producto.disponible ? 'bg-[#22C55E]' : 'bg-[#E2E8F0]'
+                            producto.estado === 'disponible'
+                              ? 'bg-[#22C55E]'
+                              : 'bg-[#E2E8F0]'
                           }`}
                         >
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              producto.disponible ? 'translate-x-6' : 'translate-x-1'
+                              producto.estado === 'disponible'
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
                             }`}
                           />
                         </button>
                         <span
-                          className={`text-xs ${
-                            producto.disponible ? 'text-[#22C55E]' : 'text-[#94A3B8]'
+                          className={`text-xs w-20 text-center ${
+                            producto.estado === 'disponible'
+                              ? 'text-[#22C55E]'
+                              : 'text-[#94A3B8]'
                           }`}
                         >
-                          {producto.disponible ? 'Disponible' : 'No disponible'}
+                          {producto.estado === 'disponible'
+                            ? 'Disponible'
+                            : 'No disponible'}
                         </span>
                       </div>
                     </td>
@@ -219,42 +272,12 @@ export function InventarioCocinero({ productos, onProductoUpdate }: InventarioCo
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">Total Productos</p>
-          <p className="text-2xl text-[#334155]">{productos.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">Disponibles</p>
-          <p className="text-2xl text-[#22C55E]">
-            {productos.filter(p => p.disponible).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-4">
-          <p className="text-xs text-[#94A3B8] mb-1">No Disponibles</p>
-          <p className="text-2xl text-[#EF4444]">
-            {productos.filter(p => !p.disponible).length}
-          </p>
-        </div>
-      </div>
-
       {/* Edit Modal */}
       {selectedProducto && (
         <EditProductModal
           producto={selectedProducto}
           onClose={() => setSelectedProducto(null)}
           onUpdate={onProductoUpdate}
-        />
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
         />
       )}
     </div>

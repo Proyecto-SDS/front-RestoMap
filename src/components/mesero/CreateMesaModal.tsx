@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
-import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 
 interface CreateMesaModalProps {
   onClose: () => void;
   onMesaCreate: (mesa: Mesa) => void;
 }
 
-export function CreateMesaModal({ onClose, onMesaCreate }: CreateMesaModalProps) {
+export function CreateMesaModal({
+  onClose,
+  onMesaCreate,
+}: CreateMesaModalProps) {
   const [formData, setFormData] = useState({
     nombre: '',
     capacidad: 4,
@@ -41,7 +44,7 @@ export function CreateMesaModal({ onClose, onMesaCreate }: CreateMesaModalProps)
 
     try {
       // Mock API call - POST /api/empresa/mesas
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       const newMesa: Mesa = {
         id: `M-${Date.now()}`,
@@ -63,7 +66,7 @@ export function CreateMesaModal({ onClose, onMesaCreate }: CreateMesaModalProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
@@ -87,15 +90,18 @@ export function CreateMesaModal({ onClose, onMesaCreate }: CreateMesaModalProps)
               type="text"
               id="nombre"
               value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, nombre: e.target.value })
+              }
               placeholder="Ej: Mesa 1, Mesa VIP, Terraza A"
               className={`
                 w-full px-3 py-2.5 border rounded-xl
                 transition-all duration-200
                 focus:outline-none focus:ring-2
-                ${errors.nombre
-                  ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20'
-                  : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
+                ${
+                  errors.nombre
+                    ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20'
+                    : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
                 }
               `}
             />
@@ -115,21 +121,31 @@ export function CreateMesaModal({ onClose, onMesaCreate }: CreateMesaModalProps)
               min="1"
               max="20"
               value={formData.capacidad}
-              onChange={(e) => setFormData({ ...formData, capacidad: parseInt(e.target.value) || 1 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  capacidad: parseInt(e.target.value) || 1,
+                })
+              }
               className={`
                 w-full px-3 py-2.5 border rounded-xl
                 transition-all duration-200
                 focus:outline-none focus:ring-2
-                ${errors.capacidad
-                  ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20'
-                  : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
+                ${
+                  errors.capacidad
+                    ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20'
+                    : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
                 }
               `}
             />
             {errors.capacidad && (
-              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.capacidad}</p>
+              <p className="mt-1.5 text-xs text-[#EF4444]">
+                {errors.capacidad}
+              </p>
             )}
-            <p className="mt-1.5 text-xs text-[#64748B]">Entre 1 y 20 personas</p>
+            <p className="mt-1.5 text-xs text-[#64748B]">
+              Entre 1 y 20 personas
+            </p>
           </div>
 
           {/* Submit Error */}

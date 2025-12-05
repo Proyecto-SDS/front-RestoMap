@@ -60,7 +60,7 @@ export function Toast({
     <div
       className={`
         fixed top-4 right-4 md:right-4 left-4 md:left-auto
-        z-50
+        z-[60]
         flex items-center gap-3
         px-4 py-3
         ${bg}
@@ -68,12 +68,9 @@ export function Toast({
         rounded-xl
         shadow-lg
         max-w-md
+        pointer-events-auto
         transition-all duration-300
-        ${
-          isExiting
-            ? 'opacity-0 translate-y-2'
-            : 'opacity-100 translate-y-0'
-        }
+        ${isExiting ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}
       `}
       role="alert"
       aria-live="polite"

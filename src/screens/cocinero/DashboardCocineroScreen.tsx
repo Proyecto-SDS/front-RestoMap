@@ -1,14 +1,26 @@
 'use client';
 
+import { ChefHat, Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { InventarioCocinero } from '../../components/cocinero/InventarioCocinero';
 import { KanbanBoard } from '../../components/cocinero/KanbanBoard';
-import { SidebarCocinero } from '../../components/cocinero/SidebarCocinero';
-import { TopNavCocinero } from '../../components/cocinero/TopNavCocinero';
+import { CustomScrollbar } from '../../components/layout/CustomScrollbar';
+import {
+  MiPerfilEmpleado,
+  PanelSidebar,
+  PanelTopNav,
+} from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/apiClient';
 
-export type PedidoEstado = 'TOMADO' | 'EN_PROCESO' | 'LISTO' | 'ENTREGADO';
+export type PedidoEstado =
+  | 'INICIADO'
+  | 'RECEPCION'
+  | 'EN_PROCESO'
+  | 'TERMINADO'
+  | 'COMPLETADO'
+  | 'CANCELADO';
 
 export interface LineaPedido {
   id: string;
@@ -40,7 +52,7 @@ export interface Producto {
   categoria_nombre: string;
   nombre: string;
   precio: number;
-  disponible: boolean;
+  estado: 'disponible' | 'agotado' | 'inactivo';
 }
 
 interface PedidosByEstado {
@@ -72,348 +84,56 @@ export default function DashboardCocineroScreen() {
   }, [isLoggedIn, userType, router]);
 
   const loadPedidos = async () => {
-    // Mock API call - GET /api/empresa/pedidos?estado=tomado,en_proceso,listo,entregado
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const data = await api.empresa.getPedidosCocina();
+      const pedidosList = data.map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        id_mesa: String(p.id_mesa),
+        mesa_nombre: p.mesa_nombre as string,
+        fecha_pedido: p.creado_el as string,
+        total: (p.total as number) || 0,
+        estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
+        creado_el: p.creado_el as string,
+        lineas:
+          (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
+            id: String(l.id),
+            id_pedido: String(p.id),
+            id_producto: String(l.producto_id),
+            producto_nombre: l.producto_nombre as string,
+            cantidad: l.cantidad as number,
+            precio_unitario: l.precio_unitario as number,
+          })) || [],
+      })) as Pedido[];
 
-    const mockPedidos: Pedido[] = [
-      {
-        id: 'ORD-001',
-        id_mesa: '2',
-        mesa_nombre: 'Mesa 2',
-        fecha_pedido: new Date().toISOString(),
-        total: 24500,
-        estado: 'TOMADO',
-        creado_el: new Date(Date.now() - 3 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L1',
-            id_pedido: 'ORD-001',
-            id_producto: 'P1',
-            producto_nombre: 'Lomo Saltado',
-            cantidad: 1,
-            precio_unitario: 15000,
-          },
-          {
-            id: 'L2',
-            id_pedido: 'ORD-001',
-            id_producto: 'P2',
-            producto_nombre: 'Papas Fritas',
-            cantidad: 2,
-            precio_unitario: 4750,
-            notas: 'Sin sal',
-          },
-        ],
-        notas: 'Sin cebolla',
-      },
-      {
-        id: 'ORD-002',
-        id_mesa: '4',
-        mesa_nombre: 'Mesa 4',
-        fecha_pedido: new Date().toISOString(),
-        total: 32000,
-        estado: 'EN_PROCESO',
-        creado_el: new Date(Date.now() - 18 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L3',
-            id_pedido: 'ORD-002',
-            id_producto: 'P3',
-            producto_nombre: 'Ceviche',
-            cantidad: 2,
-            precio_unitario: 12000,
-          },
-          {
-            id: 'L4',
-            id_pedido: 'ORD-002',
-            id_producto: 'P4',
-            producto_nombre: 'Arroz',
-            cantidad: 2,
-            precio_unitario: 4000,
-          },
-        ],
-      },
-      {
-        id: 'ORD-003',
-        id_mesa: '5',
-        mesa_nombre: 'Mesa 5',
-        fecha_pedido: new Date().toISOString(),
-        total: 18000,
-        estado: 'EN_PROCESO',
-        creado_el: new Date(Date.now() - 12 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L5',
-            id_pedido: 'ORD-003',
-            id_producto: 'P5',
-            producto_nombre: 'Pizza Margherita',
-            cantidad: 1,
-            precio_unitario: 14000,
-          },
-          {
-            id: 'L6',
-            id_pedido: 'ORD-003',
-            id_producto: 'P6',
-            producto_nombre: 'Ensalada César',
-            cantidad: 1,
-            precio_unitario: 4000,
-          },
-        ],
-      },
-      {
-        id: 'ORD-004',
-        id_mesa: '6',
-        mesa_nombre: 'Mesa 6',
-        fecha_pedido: new Date().toISOString(),
-        total: 45000,
-        estado: 'LISTO',
-        creado_el: new Date(Date.now() - 25 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L7',
-            id_pedido: 'ORD-004',
-            id_producto: 'P7',
-            producto_nombre: 'Sushi Roll Premium',
-            cantidad: 2,
-            precio_unitario: 18000,
-          },
-          {
-            id: 'L8',
-            id_pedido: 'ORD-004',
-            id_producto: 'P8',
-            producto_nombre: 'Sopa Miso',
-            cantidad: 3,
-            precio_unitario: 3000,
-          },
-        ],
-        notas: 'Mesa celebrando cumpleaños',
-      },
-      {
-        id: 'ORD-005',
-        id_mesa: '1',
-        mesa_nombre: 'Mesa 1',
-        fecha_pedido: new Date().toISOString(),
-        total: 35000,
-        estado: 'TOMADO',
-        creado_el: new Date(Date.now() - 35 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L9',
-            id_pedido: 'ORD-005',
-            id_producto: 'P9',
-            producto_nombre: 'Parrillada para 2',
-            cantidad: 1,
-            precio_unitario: 28000,
-          },
-          {
-            id: 'L10',
-            id_pedido: 'ORD-005',
-            id_producto: 'P10',
-            producto_nombre: 'Ensalada Mixta',
-            cantidad: 2,
-            precio_unitario: 3500,
-          },
-        ],
-      },
-      {
-        id: 'ORD-006',
-        id_mesa: '7',
-        mesa_nombre: 'Mesa 7',
-        fecha_pedido: new Date().toISOString(),
-        total: 16000,
-        estado: 'LISTO',
-        creado_el: new Date(Date.now() - 8 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L11',
-            id_pedido: 'ORD-006',
-            id_producto: 'P11',
-            producto_nombre: 'Hamburguesa Clásica',
-            cantidad: 2,
-            precio_unitario: 8000,
-          },
-        ],
-      },
-      {
-        id: 'ORD-007',
-        id_mesa: '3',
-        mesa_nombre: 'Mesa 3',
-        fecha_pedido: new Date().toISOString(),
-        total: 27000,
-        estado: 'ENTREGADO',
-        creado_el: new Date(Date.now() - 45 * 60000).toISOString(),
-        lineas: [
-          {
-            id: 'L12',
-            id_pedido: 'ORD-007',
-            id_producto: 'P12',
-            producto_nombre: 'Lasagna',
-            cantidad: 1,
-            precio_unitario: 16000,
-          },
-          {
-            id: 'L13',
-            id_pedido: 'ORD-007',
-            id_producto: 'P13',
-            producto_nombre: 'Tiramisu',
-            cantidad: 2,
-            precio_unitario: 5500,
-          },
-        ],
-      },
-    ];
-
-    // Group by estado
-    setPedidos({
-      tomados: mockPedidos.filter((p) => p.estado === 'TOMADO'),
-      en_proceso: mockPedidos.filter((p) => p.estado === 'EN_PROCESO'),
-      listos: mockPedidos.filter((p) => p.estado === 'LISTO'),
-      entregados: mockPedidos.filter((p) => p.estado === 'ENTREGADO'),
-    });
+      setPedidos({
+        tomados: pedidosList.filter((p) => p.estado === 'INICIADO'),
+        en_proceso: pedidosList.filter(
+          (p) => p.estado === 'RECEPCION' || p.estado === 'EN_PROCESO'
+        ),
+        listos: pedidosList.filter((p) => p.estado === 'TERMINADO'),
+        entregados: pedidosList.filter((p) => p.estado === 'COMPLETADO'),
+      });
+    } catch (error) {
+      console.error('Error loading pedidos:', error);
+    }
   };
 
   const loadProductos = async () => {
-    // Mock API call - GET /api/empresa/productos?excluir_bartender=true
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const mockProductos: Producto[] = [
-      {
-        id: 'P1',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Lomo Saltado',
-        precio: 15000,
-        disponible: true,
-      },
-      {
-        id: 'P2',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Ceviche',
-        precio: 12000,
-        disponible: true,
-      },
-      {
-        id: 'P3',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Pizza Margherita',
-        precio: 14000,
-        disponible: true,
-      },
-      {
-        id: 'P4',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Hamburguesa Clásica',
-        precio: 8000,
-        disponible: false,
-      },
-      {
-        id: 'P5',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Lasagna',
-        precio: 16000,
-        disponible: true,
-      },
-      {
-        id: 'P6',
-        id_empresa: '1',
-        id_categoria: 'C1',
-        categoria_nombre: 'Comidas',
-        nombre: 'Parrillada para 2',
-        precio: 28000,
-        disponible: true,
-      },
-      {
-        id: 'P7',
-        id_empresa: '1',
-        id_categoria: 'C2',
-        categoria_nombre: 'Acompañamientos',
-        nombre: 'Papas Fritas',
-        precio: 4000,
-        disponible: true,
-      },
-      {
-        id: 'P8',
-        id_empresa: '1',
-        id_categoria: 'C2',
-        categoria_nombre: 'Acompañamientos',
-        nombre: 'Ensalada César',
-        precio: 5000,
-        disponible: true,
-      },
-      {
-        id: 'P9',
-        id_empresa: '1',
-        id_categoria: 'C2',
-        categoria_nombre: 'Acompañamientos',
-        nombre: 'Arroz',
-        precio: 3000,
-        disponible: true,
-      },
-      {
-        id: 'P10',
-        id_empresa: '1',
-        id_categoria: 'C3',
-        categoria_nombre: 'Postres',
-        nombre: 'Tiramisu',
-        precio: 5500,
-        disponible: true,
-      },
-      {
-        id: 'P11',
-        id_empresa: '1',
-        id_categoria: 'C3',
-        categoria_nombre: 'Postres',
-        nombre: 'Cheesecake',
-        precio: 6000,
-        disponible: false,
-      },
-      {
-        id: 'P12',
-        id_empresa: '1',
-        id_categoria: 'C3',
-        categoria_nombre: 'Postres',
-        nombre: 'Brownie con Helado',
-        precio: 4500,
-        disponible: true,
-      },
-      {
-        id: 'P13',
-        id_empresa: '1',
-        id_categoria: 'C4',
-        categoria_nombre: 'Bebidas Sin Alcohol',
-        nombre: 'Agua Mineral',
-        precio: 2000,
-        disponible: true,
-      },
-      {
-        id: 'P14',
-        id_empresa: '1',
-        id_categoria: 'C4',
-        categoria_nombre: 'Bebidas Sin Alcohol',
-        nombre: 'Jugo Natural',
-        precio: 3500,
-        disponible: true,
-      },
-      {
-        id: 'P15',
-        id_empresa: '1',
-        id_categoria: 'C4',
-        categoria_nombre: 'Bebidas Sin Alcohol',
-        nombre: 'Limonada',
-        precio: 3000,
-        disponible: true,
-      },
-    ];
-
-    setProductos(mockProductos);
+    try {
+      const data = await api.empresa.getProductos();
+      const productosList = data.map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        id_empresa: String(p.id_local),
+        id_categoria: String(p.categoria_id),
+        categoria_nombre: p.categoria_nombre as string,
+        nombre: p.nombre as string,
+        precio: p.precio as number,
+        estado: (p.estado as string) || 'disponible',
+      })) as Producto[];
+      setProductos(productosList);
+    } catch (error) {
+      console.error('Error loading productos:', error);
+    }
   };
 
   const handlePedidoUpdate = (updatedPedido: Pedido) => {
@@ -429,13 +149,16 @@ export default function DashboardCocineroScreen() {
       });
 
       // Add to appropriate column
-      if (updatedPedido.estado === 'TOMADO') {
+      if (updatedPedido.estado === 'INICIADO') {
         newState.tomados.push(updatedPedido);
-      } else if (updatedPedido.estado === 'EN_PROCESO') {
+      } else if (
+        updatedPedido.estado === 'RECEPCION' ||
+        updatedPedido.estado === 'EN_PROCESO'
+      ) {
         newState.en_proceso.push(updatedPedido);
-      } else if (updatedPedido.estado === 'LISTO') {
+      } else if (updatedPedido.estado === 'TERMINADO') {
         newState.listos.push(updatedPedido);
-      } else if (updatedPedido.estado === 'ENTREGADO') {
+      } else if (updatedPedido.estado === 'COMPLETADO') {
         newState.entregados.push(updatedPedido);
       }
 
@@ -457,21 +180,50 @@ export default function DashboardCocineroScreen() {
     loadProductos();
   }, []);
 
+  const [showProfile, setShowProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const menuItems = [
+    { id: 'pedidos' as const, label: 'Pedidos', icon: ChefHat },
+    { id: 'inventario' as const, label: 'Inventario', icon: Package },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-[#F1F5F9]">
+    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
       {/* Sidebar */}
-      <SidebarCocinero
+      <PanelSidebar
+        title="Panel Cocina"
+        subtitle="Cocinero"
+        icon={ChefHat}
+        menuItems={menuItems}
         activeItem={activeSection}
-        onNavigate={setActiveSection}
+        onNavigate={(id: string) =>
+          setActiveSection(id as 'pedidos' | 'inventario')
+        }
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
-        <TopNavCocinero user={user} />
+        <PanelTopNav
+          panelName="Panel de Cocina"
+          pageTitle={
+            activeSection === 'pedidos' ? 'Pedidos' : 'Inventario de Cocina'
+          }
+          pageDescription={
+            activeSection === 'pedidos'
+              ? 'Gestiona los pedidos de comida en tiempo real'
+              : 'Gestiona la disponibilidad de productos. Los productos NO disponibles no aparecerán en el menú del cliente.'
+          }
+          user={user}
+          onOpenProfile={() => setShowProfile(true)}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
 
         {/* Content Area */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <CustomScrollbar className="flex-1 p-6">
           {activeSection === 'pedidos' && (
             <KanbanBoard
               pedidos={pedidos}
@@ -486,8 +238,15 @@ export default function DashboardCocineroScreen() {
               onRefresh={loadProductos}
             />
           )}
-        </main>
+        </CustomScrollbar>
       </div>
+
+      {/* Modal Mi Perfil */}
+      <MiPerfilEmpleado
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+      />
     </div>
   );
 }

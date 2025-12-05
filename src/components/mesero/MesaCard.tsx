@@ -1,59 +1,51 @@
-import React from 'react';
-import { Users, ShoppingBag } from 'lucide-react';
-import type { Mesa, MesaEstado } from '../../screens/mesero/DashboardMeseroScreen';
+import { ShoppingBag, Users } from 'lucide-react';
+import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 
 interface MesaCardProps {
   mesa: Mesa;
   onClick: () => void;
 }
 
-const estadoConfig: Record<MesaEstado, { color: string; bgColor: string; label: string; shape: string }> = {
+// Estados del backend: DISPONIBLE, RESERVADA, OCUPADA, FUERA_DE_SERVICIO
+const estadoConfig: Record<
+  string,
+  { color: string; bgColor: string; label: string; shape: string }
+> = {
   DISPONIBLE: {
     color: '#22C55E',
     bgColor: 'bg-green-50',
     label: 'Disponible',
-    shape: 'rounded-full'
+    shape: 'rounded-full',
+  },
+  RESERVADA: {
+    color: '#3B82F6',
+    bgColor: 'bg-blue-50',
+    label: 'Reservada',
+    shape: 'rounded-full',
   },
   OCUPADA: {
     color: '#F97316',
     bgColor: 'bg-orange-50',
     label: 'Ocupada',
-    shape: 'rounded-lg'
+    shape: 'rounded-lg',
   },
-  PIDIENDO: {
-    color: '#3B82F6',
-    bgColor: 'bg-blue-50',
-    label: 'Pidiendo',
-    shape: 'rounded-full'
-  },
-  EN_COCINA: {
-    color: '#8B5CF6',
-    bgColor: 'bg-purple-50',
-    label: 'En Cocina',
-    shape: 'rounded-full'
-  },
-  COMIENDO: {
-    color: '#FBBF24',
-    bgColor: 'bg-yellow-50',
-    label: 'Comiendo',
-    shape: 'rounded-full'
-  },
-  PIDIENDO_CUENTA: {
-    color: '#EF4444',
-    bgColor: 'bg-red-50',
-    label: 'Pidiendo Cuenta',
-    shape: 'rounded-full'
-  },
-  PAGADO: {
+  FUERA_DE_SERVICIO: {
     color: '#94A3B8',
     bgColor: 'bg-slate-50',
-    label: 'Pagado',
-    shape: 'rounded-full'
-  }
+    label: 'Fuera de Servicio',
+    shape: 'rounded-full',
+  },
+};
+
+const defaultConfig = {
+  color: '#64748B',
+  bgColor: 'bg-gray-50',
+  label: 'Desconocido',
+  shape: 'rounded-full',
 };
 
 export function MesaCard({ mesa, onClick }: MesaCardProps) {
-  const config = estadoConfig[mesa.estado];
+  const config = estadoConfig[mesa.estado] || defaultConfig;
 
   return (
     <button
@@ -89,7 +81,8 @@ export function MesaCard({ mesa, onClick }: MesaCardProps) {
           <div className="flex items-center gap-2 text-[#64748B]">
             <ShoppingBag size={16} />
             <span className="text-sm">
-              {mesa.pedidos_count} {mesa.pedidos_count === 1 ? 'pedido' : 'pedidos'}
+              {mesa.pedidos_count}{' '}
+              {mesa.pedidos_count === 1 ? 'pedido' : 'pedidos'}
             </span>
           </div>
         )}

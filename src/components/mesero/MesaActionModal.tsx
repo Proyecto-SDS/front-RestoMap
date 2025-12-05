@@ -1,5 +1,12 @@
-
-import { CheckCircle, Edit, Eye, Receipt, Trash2, UserPlus, X } from 'lucide-react';
+import {
+  CheckCircle,
+  Edit,
+  Eye,
+  Receipt,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { SecondaryButton } from '../buttons/SecondaryButton';
@@ -12,7 +19,12 @@ interface MesaActionModalProps {
   onMesaDelete: (mesaId: string) => void;
 }
 
-export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: MesaActionModalProps) {
+export function MesaActionModal({
+  mesa,
+  onClose,
+  onMesaUpdate,
+  onMesaDelete,
+}: MesaActionModalProps) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
@@ -22,7 +34,11 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
 
   const handleLimpiarMesa = async () => {
     // Update mesa status to DISPONIBLE
-    const updatedMesa = { ...mesa, estado: 'DISPONIBLE' as const, pedidos_count: 0 };
+    const updatedMesa = {
+      ...mesa,
+      estado: 'DISPONIBLE' as const,
+      pedidos_count: 0,
+    };
     onMesaUpdate(updatedMesa);
     onClose();
   };
@@ -34,18 +50,18 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
     }
 
     // Mock API call - DELETE /api/empresa/mesas/{id}
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     onMesaDelete(mesa.id);
     onClose();
   };
 
   const canSentarCliente = mesa.estado === 'DISPONIBLE';
-  const canLimpiarMesa = mesa.estado === 'PAGADO';
+  const canLimpiarMesa = mesa.estado === 'OCUPADA'; // Cambiar mesa ocupada a disponible
   const hasPedidos = (mesa.pedidos_count || 0) > 0;
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
@@ -74,7 +90,9 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
                 <UserPlus size={20} />
                 <div className="text-left flex-1">
                   <p className="text-sm">Sentar Cliente</p>
-                  <p className="text-xs opacity-80">Generar código QR para la mesa</p>
+                  <p className="text-xs opacity-80">
+                    Generar código QR para la mesa
+                  </p>
                 </div>
               </button>
             )}
@@ -88,7 +106,9 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
                 <Eye size={20} />
                 <div className="text-left flex-1">
                   <p className="text-sm">Ver Pedidos</p>
-                  <p className="text-xs text-[#64748B]">{mesa.pedidos_count} pedidos activos</p>
+                  <p className="text-xs text-[#64748B]">
+                    {mesa.pedidos_count} pedidos activos
+                  </p>
                 </div>
               </button>
             )}
@@ -129,7 +149,9 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
               <Edit size={20} />
               <div className="text-left flex-1">
                 <p className="text-sm">Editar Mesa</p>
-                <p className="text-xs text-[#64748B]">Modificar nombre o capacidad</p>
+                <p className="text-xs text-[#64748B]">
+                  Modificar nombre o capacidad
+                </p>
               </div>
             </button>
 
@@ -138,19 +160,24 @@ export function MesaActionModal({ mesa, onClose, onMesaUpdate, onMesaDelete }: M
               onClick={handleDeleteMesa}
               className={`
                 w-full flex items-center gap-3 px-4 py-3 border rounded-xl transition-all
-                ${showConfirmDelete
-                  ? 'border-[#EF4444] bg-red-50 text-[#EF4444]'
-                  : 'border-[#E2E8F0] bg-white text-[#EF4444] hover:bg-red-50'
+                ${
+                  showConfirmDelete
+                    ? 'border-[#EF4444] bg-red-50 text-[#EF4444]'
+                    : 'border-[#E2E8F0] bg-white text-[#EF4444] hover:bg-red-50'
                 }
               `}
             >
               <Trash2 size={20} />
               <div className="text-left flex-1">
                 <p className="text-sm">
-                  {showConfirmDelete ? '¿Confirmar eliminación?' : 'Eliminar Mesa'}
+                  {showConfirmDelete
+                    ? '¿Confirmar eliminación?'
+                    : 'Eliminar Mesa'}
                 </p>
                 <p className="text-xs opacity-80">
-                  {showConfirmDelete ? 'Click nuevamente para confirmar' : 'Acción permanente'}
+                  {showConfirmDelete
+                    ? 'Click nuevamente para confirmar'
+                    : 'Acción permanente'}
                 </p>
               </div>
             </button>

@@ -1,6 +1,12 @@
+'use client';
+
 import { CheckCircle, ChefHat, Clock, DollarSign, X } from 'lucide-react';
 import { useState } from 'react';
-import { Mesa, Pedido, PedidoEstado } from '../../screens/mesero/DashboardMeseroScreen';
+import {
+  Mesa,
+  Pedido,
+  PedidoEstado,
+} from '../../screens/mesero/DashboardMeseroScreen';
 import { PedidoDetailModal } from './PedidoDetailModal';
 
 interface PedidosManagementProps {
@@ -8,24 +14,38 @@ interface PedidosManagementProps {
   mesas?: Mesa[];
   onPedidoUpdate: (pedido: Pedido) => void;
   onRefresh?: () => void | Promise<void>;
+  readOnly?: boolean;
 }
 
-export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagementProps) {
-  const [filterEstado, setFilterEstado] = useState<PedidoEstado | 'TODOS'>('TODOS');
-  const [sortBy, setSortBy] = useState<'reciente' | 'mesa' | 'total'>('reciente');
+export function PedidosManagement({
+  pedidos,
+  onPedidoUpdate,
+  readOnly = false,
+}: PedidosManagementProps) {
+  const [filterEstado, setFilterEstado] = useState<PedidoEstado | 'TODOS'>(
+    'TODOS'
+  );
+  const [sortBy, setSortBy] = useState<'reciente' | 'mesa' | 'total'>(
+    'reciente'
+  );
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
 
   // Get status info
   const getStatusInfo = (estado: PedidoEstado) => {
-    const statusMap = {
-      TOMADO: { label: 'Tomado', color: '#3B82F6', icon: Clock },
-      EN_COCINA: { label: 'En Cocina', color: '#8B5CF6', icon: ChefHat },
-      LISTO: { label: 'Listo', color: '#FBBF24', icon: CheckCircle },
-      ENTREGADO: { label: 'Entregado', color: '#22C55E', icon: CheckCircle },
-      PAGADO: { label: 'Pagado', color: '#94A3B8', icon: DollarSign },
+    const statusMap: Record<
+      string,
+      { label: string; color: string; icon: typeof Clock }
+    > = {
+      INICIADO: { label: 'Iniciado', color: '#3B82F6', icon: Clock },
+      RECEPCION: { label: 'Recepción', color: '#8B5CF6', icon: ChefHat },
+      EN_PROCESO: { label: 'En Proceso', color: '#F59E0B', icon: ChefHat },
+      TERMINADO: { label: 'Terminado', color: '#22C55E', icon: CheckCircle },
+      COMPLETADO: { label: 'Completado', color: '#94A3B8', icon: DollarSign },
       CANCELADO: { label: 'Cancelado', color: '#EF4444', icon: X },
     };
-    return statusMap[estado];
+    return (
+      statusMap[estado] || { label: estado, color: '#64748B', icon: Clock }
+    );
   };
 
   // Format currency
@@ -43,7 +63,7 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
     const date = new Date(dateString);
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'recién';
     if (diffMins < 60) return `hace ${diffMins} min`;
     const diffHours = Math.floor(diffMins / 60);
@@ -53,10 +73,12 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
 
   // Filter and sort pedidos
   const filteredPedidos = pedidos
-    .filter(p => filterEstado === 'TODOS' || p.estado === filterEstado)
+    .filter((p) => filterEstado === 'TODOS' || p.estado === filterEstado)
     .sort((a, b) => {
       if (sortBy === 'reciente') {
-        return new Date(b.creado_el).getTime() - new Date(a.creado_el).getTime();
+        return (
+          new Date(b.creado_el).getTime() - new Date(a.creado_el).getTime()
+        );
       } else if (sortBy === 'mesa') {
         return (a.mesa_nombre || '').localeCompare(b.mesa_nombre || '');
       } else {
@@ -66,12 +88,6 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl text-[#334155] mb-2">Mis Pedidos</h1>
-        <p className="text-[#64748B]">Gestiona todos los pedidos del establecimiento</p>
-      </div>
-
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -80,25 +96,31 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
             <label className="block text-sm text-[#64748B] mb-2">Estado</label>
             <select
               value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value as PedidoEstado | 'TODOS')}
+              onChange={(e) =>
+                setFilterEstado(e.target.value as PedidoEstado | 'TODOS')
+              }
               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
             >
               <option value="TODOS">Todos los estados</option>
-              <option value="TOMADO">Tomados</option>
-              <option value="EN_COCINA">En Cocina</option>
-              <option value="LISTO">Listos</option>
-              <option value="ENTREGADO">Entregados</option>
-              <option value="PAGADO">Pagados</option>
+              <option value="INICIADO">Iniciados</option>
+              <option value="RECEPCION">En Recepción</option>
+              <option value="EN_PROCESO">En Proceso</option>
+              <option value="TERMINADO">Terminados</option>
+              <option value="COMPLETADO">Completados</option>
               <option value="CANCELADO">Cancelados</option>
             </select>
           </div>
 
           {/* Sort filter */}
           <div className="flex-1">
-            <label className="block text-sm text-[#64748B] mb-2">Ordenar por</label>
+            <label className="block text-sm text-[#64748B] mb-2">
+              Ordenar por
+            </label>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'reciente' | 'mesa' | 'total')}
+              onChange={(e) =>
+                setSortBy(e.target.value as 'reciente' | 'mesa' | 'total')
+              }
               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
             >
               <option value="reciente">Más recientes</option>
@@ -130,9 +152,7 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
                   {/* Left: Order info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-[#334155]">
-                        Orden #{pedido.id}
-                      </h3>
+                      <h3 className="text-[#334155]">Orden #{pedido.id}</h3>
                       <div
                         className="px-2 py-1 rounded-lg text-xs flex items-center gap-1"
                         style={{
@@ -183,15 +203,17 @@ export function PedidosManagement({ pedidos, onPedidoUpdate }: PedidosManagement
                       </p>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPedido(pedido);
-                      }}
-                      className="px-4 py-2 text-sm text-[#F97316] hover:bg-[#F97316] hover:text-white border border-[#F97316] rounded-lg transition-colors"
-                    >
-                      Ver detalles
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPedido(pedido);
+                        }}
+                        className="px-4 py-2 text-sm text-[#F97316] hover:bg-[#F97316] hover:text-white border border-[#F97316] rounded-lg transition-colors"
+                      >
+                        Ver detalles
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

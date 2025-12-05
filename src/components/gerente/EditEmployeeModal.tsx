@@ -18,7 +18,11 @@ interface EditEmployeeModalProps {
   onSuccess: () => void;
 }
 
-export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployeeModalProps) {
+export function EditEmployeeModal({
+  empleado,
+  onClose,
+  onSuccess,
+}: EditEmployeeModalProps) {
   const [formData, setFormData] = useState({
     nombre: empleado.nombre,
     telefono: empleado.telefono || '',
@@ -87,7 +91,7 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
@@ -123,19 +127,25 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
                   : 'border-[#E2E8F0] focus:border-[#F97316] focus:ring-[#F97316]/20'
               }`}
             />
-            {errors.nombre && <p className="mt-1.5 text-xs text-[#EF4444]">{errors.nombre}</p>}
+            {errors.nombre && (
+              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.nombre}</p>
+            )}
           </div>
 
           {/* Correo (read-only) */}
           <div>
-            <label className="block text-sm text-[#334155] mb-2">Correo electrónico</label>
+            <label className="block text-sm text-[#334155] mb-2">
+              Correo electrónico
+            </label>
             <input
               type="email"
               value={empleado.correo}
               readOnly
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl bg-[#F1F5F9] text-[#94A3B8] cursor-not-allowed"
             />
-            <p className="mt-1.5 text-xs text-[#94A3B8]">El correo no se puede modificar</p>
+            <p className="mt-1.5 text-xs text-[#94A3B8]">
+              El correo no se puede modificar
+            </p>
           </div>
 
           {/* Rol */}
@@ -145,7 +155,9 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
             </label>
             <select
               value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, rol: e.target.value })
+              }
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:border-[#F97316] focus:ring-[#F97316]/20 transition-all"
             >
               {roles.map((role) => (
@@ -158,11 +170,15 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
 
           {/* Teléfono */}
           <div>
-            <label className="block text-sm text-[#334155] mb-2">Teléfono</label>
+            <label className="block text-sm text-[#334155] mb-2">
+              Teléfono
+            </label>
             <input
               type="tel"
               value={formData.telefono}
-              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, telefono: e.target.value })
+              }
               placeholder="+56 9 1234 5678"
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:border-[#F97316] focus:ring-[#F97316]/20 transition-all"
             />
@@ -178,7 +194,9 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
                   name="estado"
                   value="activo"
                   checked={formData.estado === 'activo'}
-                  onChange={() => setFormData({ ...formData, estado: 'activo' })}
+                  onChange={() =>
+                    setFormData({ ...formData, estado: 'activo' })
+                  }
                   className="w-4 h-4 text-[#F97316] focus:ring-[#F97316]"
                 />
                 <span className="text-sm text-[#334155]">Activo</span>
@@ -189,7 +207,9 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
                   name="estado"
                   value="inactivo"
                   checked={formData.estado === 'inactivo'}
-                  onChange={() => setFormData({ ...formData, estado: 'inactivo' })}
+                  onChange={() =>
+                    setFormData({ ...formData, estado: 'inactivo' })
+                  }
                   className="w-4 h-4 text-[#F97316] focus:ring-[#F97316]"
                 />
                 <span className="text-sm text-[#334155]">Inactivo</span>
@@ -234,12 +254,14 @@ export function EditEmployeeModal({ empleado, onClose, onSuccess }: EditEmployee
 
       {/* Reset password confirmation */}
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <h3 className="text-lg text-[#334155] mb-2">¿Resetear contraseña?</h3>
+            <h3 className="text-lg text-[#334155] mb-2">
+              ¿Resetear contraseña?
+            </h3>
             <p className="text-sm text-[#64748B] mb-6">
-              Se enviará un correo a <strong>{empleado.correo}</strong> con instrucciones para
-              restablecer su contraseña.
+              Se enviará un correo a <strong>{empleado.correo}</strong> con
+              instrucciones para restablecer su contraseña.
             </p>
             <div className="flex gap-3">
               <SecondaryButton

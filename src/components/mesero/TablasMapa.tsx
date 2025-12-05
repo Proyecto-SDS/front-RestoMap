@@ -1,10 +1,10 @@
 import { Plus, Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { CreateMesaModal } from './CreateMesaModal';
-import { MesaActionModal } from './MesaActionModal';
 import { MesaCard } from './MesaCard';
 
 interface TablasMapaProps {
@@ -13,26 +13,27 @@ interface TablasMapaProps {
   onMesaCreate: (mesa: Mesa) => void;
   onMesaDelete: (mesaId: string) => void;
   onRefresh?: () => void | Promise<void>;
+  readOnly?: boolean;
 }
 
-export function TablasMapa({ mesas, onMesaUpdate, onMesaCreate, onMesaDelete }: TablasMapaProps) {
+export function TablasMapa({
+  mesas,
+  onMesaCreate,
+  readOnly = false,
+}: TablasMapaProps) {
+  const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
-  const [showActionModal, setShowActionModal] = useState(false);
 
   const handleMesaClick = (mesa: Mesa) => {
-    setSelectedMesa(mesa);
-    setShowActionModal(true);
+    // Navegar a la pagina de detalle de mesa
+    router.push(`/dashboard-mesero/mesa/${mesa.id}`);
   };
 
-  const handleCloseActionModal = () => {
-    setShowActionModal(false);
-    setSelectedMesa(null);
-  };
-
-  // Count active tables
-  const mesasOcupadas = mesas.filter(m => ['OCUPADA', 'PIDIENDO', 'EN_COCINA', 'COMIENDO', 'PIDIENDO_CUENTA'].includes(m.estado)).length;
-  const mesasDisponibles = mesas.filter(m => m.estado === 'DISPONIBLE').length;
+  // Count active tables - usando estados del backend
+  const mesasOcupadas = mesas.filter((m) => m.estado === 'OCUPADA').length;
+  const mesasDisponibles = mesas.filter(
+    (m) => m.estado === 'DISPONIBLE'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -46,50 +47,43 @@ export function TablasMapa({ mesas, onMesaUpdate, onMesaCreate, onMesaDelete }: 
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <SecondaryButton onClick={() => alert('Configurar mapa - Próximamente')} size="sm">
-              <Settings size={16} />
-              Configurar Mapa
-            </SecondaryButton>
-            <PrimaryButton onClick={() => setShowCreateModal(true)} size="sm">
-              <Plus size={16} />
-              Nueva Mesa
-            </PrimaryButton>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-3">
+              <SecondaryButton
+                onClick={() => alert('Configurar mapa - Próximamente')}
+                size="sm"
+              >
+                <Settings size={16} />
+                Configurar Mapa
+              </SecondaryButton>
+              <PrimaryButton onClick={() => setShowCreateModal(true)} size="sm">
+                <Plus size={16} />
+                Nueva Mesa
+              </PrimaryButton>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Status Legend */}
       <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
         <h3 className="text-sm text-[#64748B] mb-3">Estados de Mesa:</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-[#22C55E] rounded-full"></div>
             <span className="text-xs text-[#64748B]">Disponible</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-[#3B82F6] rounded-full"></div>
+            <span className="text-xs text-[#64748B]">Reservada</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-[#F97316] rounded"></div>
             <span className="text-xs text-[#64748B]">Ocupada</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#3B82F6] rounded-full"></div>
-            <span className="text-xs text-[#64748B]">Pidiendo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#8B5CF6] rounded-full"></div>
-            <span className="text-xs text-[#64748B]">En Cocina</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#FBBF24] rounded-full"></div>
-            <span className="text-xs text-[#64748B]">Comiendo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#EF4444] rounded-full"></div>
-            <span className="text-xs text-[#64748B]">Pidiendo Cuenta</span>
-          </div>
-          <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-[#94A3B8] rounded-full"></div>
-            <span className="text-xs text-[#64748B]">Pagado</span>
+            <span className="text-xs text-[#64748B]">Fuera de Servicio</span>
           </div>
         </div>
       </div>
@@ -127,16 +121,6 @@ export function TablasMapa({ mesas, onMesaUpdate, onMesaCreate, onMesaDelete }: 
         <CreateMesaModal
           onClose={() => setShowCreateModal(false)}
           onMesaCreate={onMesaCreate}
-        />
-      )}
-
-      {/* Mesa Action Modal */}
-      {showActionModal && selectedMesa && (
-        <MesaActionModal
-          mesa={selectedMesa}
-          onClose={handleCloseActionModal}
-          onMesaUpdate={onMesaUpdate}
-          onMesaDelete={onMesaDelete}
         />
       )}
     </div>

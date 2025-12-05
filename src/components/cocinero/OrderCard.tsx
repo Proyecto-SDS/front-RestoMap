@@ -20,7 +20,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
     const now = new Date();
     const created = new Date(pedido.creado_el);
     const diffMinutes = Math.floor((now.getTime() - created.getTime()) / 60000);
-    
+
     if (diffMinutes < 1) return 'recién';
     if (diffMinutes < 60) return `hace ${diffMinutes} min`;
     const diffHours = Math.floor(diffMinutes / 60);
@@ -32,7 +32,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
     const now = new Date();
     const created = new Date(pedido.creado_el);
     const diffMinutes = (now.getTime() - created.getTime()) / 60000;
-    
+
     if (diffMinutes > 30) return 'critical';
     if (diffMinutes > 15) return 'urgent';
     return 'normal';
@@ -42,12 +42,14 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
   const timeSince = getTimeSince();
 
   // Handle status change
-  const handleStatusChange = async (newEstado: 'EN_PROCESO' | 'LISTO' | 'ENTREGADO') => {
+  const handleStatusChange = async (
+    newEstado: 'RECEPCION' | 'EN_PROCESO' | 'TERMINADO'
+  ) => {
     setIsLoading(true);
 
     try {
       // Mock API call - PATCH /api/empresa/pedidos/{id}
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       const updatedPedido = {
         ...pedido,
@@ -55,13 +57,13 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
       };
 
       onUpdate(updatedPedido);
-      
-      const messages = {
+
+      const messages: Record<string, string> = {
+        RECEPCION: 'Pedido recibido',
         EN_PROCESO: 'Pedido en proceso',
-        LISTO: '¡Pedido listo para servir!',
-        ENTREGADO: 'Pedido entregado',
+        TERMINADO: '¡Pedido listo para servir!',
       };
-      
+
       showToast('success', messages[newEstado]);
     } catch {
       showToast('error', 'Error al actualizar el pedido');
@@ -72,7 +74,18 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
 
   // Get button config based on status
   const getActionButton = () => {
-    if (pedido.estado === 'TOMADO') {
+    if (pedido.estado === 'INICIADO') {
+      return (
+        <PrimaryButton
+          onClick={() => handleStatusChange('RECEPCION')}
+          isLoading={isLoading}
+          disabled={isLoading}
+          className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED]"
+        >
+          Recibir Pedido
+        </PrimaryButton>
+      );
+    } else if (pedido.estado === 'RECEPCION') {
       return (
         <PrimaryButton
           onClick={() => handleStatusChange('EN_PROCESO')}
@@ -86,7 +99,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
     } else if (pedido.estado === 'EN_PROCESO') {
       return (
         <PrimaryButton
-          onClick={() => handleStatusChange('LISTO')}
+          onClick={() => handleStatusChange('TERMINADO')}
           isLoading={isLoading}
           disabled={isLoading}
           className="w-full bg-[#22C55E] hover:bg-[#16A34A]"
@@ -94,7 +107,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
           Marcar Listo
         </PrimaryButton>
       );
-    } else if (pedido.estado === 'LISTO') {
+    } else if (pedido.estado === 'TERMINADO') {
       return (
         <button
           disabled
@@ -109,7 +122,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
           disabled
           className="w-full px-4 py-2 text-sm bg-[#F0FDF4] text-[#22C55E] rounded-lg cursor-not-allowed"
         >
-          ✓ Entregado
+          Completado
         </button>
       );
     }
@@ -154,7 +167,10 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
           {/* Items */}
           <div className="space-y-1">
             {pedido.lineas.slice(0, isExpanded ? undefined : 2).map((linea) => (
-              <div key={linea.id} className="text-sm text-[#334155] flex justify-between">
+              <div
+                key={linea.id}
+                className="text-sm text-[#334155] flex justify-between"
+              >
                 <span>
                   {linea.cantidad}x {linea.producto_nombre}
                 </span>
@@ -163,7 +179,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
                 )}
               </div>
             ))}
-            
+
             {/* Expand/Collapse */}
             {pedido.lineas.length > 2 && (
               <button
@@ -185,14 +201,15 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
             )}
 
             {/* Special notes */}
-            {isExpanded && pedido.lineas.some(l => l.notas) && (
+            {isExpanded && pedido.lineas.some((l) => l.notas) && (
               <div className="mt-2 p-2 bg-white/50 rounded text-xs">
                 <p className="text-[#64748B] mb-1">Notas especiales:</p>
                 {pedido.lineas
-                  .filter(l => l.notas)
-                  .map(linea => (
+                  .filter((l) => l.notas)
+                  .map((linea) => (
                     <p key={linea.id} className="text-[#334155]">
-                      • {linea.producto_nombre}: <span className="italic">{linea.notas}</span>
+                      • {linea.producto_nombre}:{' '}
+                      <span className="italic">{linea.notas}</span>
                     </p>
                   ))}
               </div>
@@ -208,9 +225,7 @@ export function OrderCard({ pedido, bgColor, onUpdate }: OrderCardProps) {
           </div>
 
           {/* Action button */}
-          <div className="pt-2">
-            {getActionButton()}
-          </div>
+          <div className="pt-2">{getActionButton()}</div>
         </div>
       </div>
 

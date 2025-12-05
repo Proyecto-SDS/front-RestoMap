@@ -1,19 +1,38 @@
 'use client';
 
-import { BarChart3, Download, UserPlus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import {
+  BarChart3,
+  Calendar,
+  ChefHat,
+  Download,
+  Eye,
+  Home,
+  Settings,
+  UserPlus,
+  Users,
+  UtensilsCrossed,
+  Wine,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
 import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
 import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
 import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModal';
 import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
-import { Sidebar } from '../../components/gerente/Sidebar';
 import { StatsOverview } from '../../components/gerente/StatsOverview';
-import { TopNav } from '../../components/gerente/TopNav';
+import { PedidosManagement } from '../../components/mesero/PedidosManagement';
+import { ReservasManagement } from '../../components/mesero/ReservasManagement';
+import { TablasMapa } from '../../components/mesero/TablasMapa';
 import { Toast, useToast } from '../../components/notifications/Toast';
+import {
+  MiPerfilEmpleado,
+  PanelSidebar,
+  PanelTopNav,
+} from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/apiClient';
+import type { Mesa, Pedido } from '../mesero/DashboardMeseroScreen';
 
 interface Empleado {
   id: string;
@@ -26,21 +45,8 @@ interface Empleado {
 }
 
 export default function DashboardGerenteScreen() {
-  const router = useRouter();
   const { user } = useAuth();
   const { toast, showToast, hideToast } = useToast();
-
-  const [stats, setStats] = useState({
-    ventasHoy: 0,
-    trendVentas: 0,
-    ordenesHoy: 0,
-    ordenesEnProceso: 0,
-    empleadosTotal: 0,
-    empleadosActivos: 0,
-    empleadosInactivos: 0,
-    clientesHoy: 0,
-    clientesNuevos: 0,
-  });
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -49,73 +55,100 @@ export default function DashboardGerenteScreen() {
     null
   );
   const [dateRange, setDateRange] = useState<string>('mes');
+  const [showProfile, setShowProfile] = useState(false);
+  const [activeSection, setActiveSection] = useState<
+    | 'dashboard'
+    | 'empleados'
+    | 'metricas'
+    | 'panel-mesero'
+    | 'panel-cocina'
+    | 'panel-bartender'
+    | 'panel-reservas'
+    | 'configuracion'
+  >('dashboard');
+  const [mesas, setMesas] = useState<Mesa[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
-  const updateStatsFromEmpleados = (emps: Empleado[]) => {
-    const activos = emps.filter((e) => e.estado === 'activo').length;
-    const inactivos = emps.filter((e) => e.estado === 'inactivo').length;
+  // Cargar mesas y pedidos cuando se navega a paneles
+  useEffect(() => {
+    const loadPanelData = async () => {
+      if (
+        activeSection === 'panel-mesero' ||
+        activeSection === 'panel-cocina' ||
+        activeSection === 'panel-bartender' ||
+        activeSection === 'panel-reservas'
+      ) {
+        try {
+          const [mesasData, pedidosData] = await Promise.all([
+            api.empresa.getMesas(),
+            api.empresa.getPedidos(),
+          ]);
+          setMesas(
+            mesasData.map((m: Record<string, unknown>) => ({
+              id: String(m.id),
+              id_empresa: String(m.id_local),
+              nombre: m.nombre as string,
+              capacidad: m.capacidad as number,
+              estado: (m.estado as string).toUpperCase(),
+            })) as Mesa[]
+          );
+          setPedidos(
+            pedidosData.map((p: Record<string, unknown>) => ({
+              id: String(p.id),
+              id_mesa: String(p.id_mesa),
+              fecha_pedido: p.creado_el as string,
+              total: p.total as number,
+              estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
+              creado_el: p.creado_el as string,
+              mesa_nombre: p.mesa_nombre as string,
+            })) as Pedido[]
+          );
+        } catch (error) {
+          console.error('Error loading panel data:', error);
+        }
+      }
+    };
+    loadPanelData();
+  }, [activeSection]);
 
-    setStats((prev) => ({
-      ...prev,
-      empleadosTotal: emps.length,
+  // Cargar empleados desde API
+  useEffect(() => {
+    const loadEmpleados = async () => {
+      try {
+        const data = await api.empresa.getEmpleados();
+        const empleadosList = data.map((e: Record<string, unknown>) => ({
+          id: String(e.id),
+          nombre: e.nombre as string,
+          correo: e.correo as string,
+          telefono: (e.telefono as string) || '',
+          rol: e.rol as string,
+          estado: (e.estado as string) === 'activo' ? 'activo' : 'inactivo',
+          creado_el: (e.creado_el as string) || '',
+        })) as Empleado[];
+        setEmpleados(empleadosList);
+      } catch (error) {
+        console.error('Error loading empleados:', error);
+      }
+    };
+    loadEmpleados();
+  }, []);
+
+  // Calcular stats derivados de empleados usando useMemo
+  const stats = useMemo(() => {
+    const activos = empleados.filter((e) => e.estado === 'activo').length;
+    const inactivos = empleados.filter((e) => e.estado === 'inactivo').length;
+    return {
+      ventasHoy: 0,
+      trendVentas: 0,
+      ordenesHoy: 0,
+      ordenesEnProceso: 0,
+      empleadosTotal: empleados.length,
       empleadosActivos: activos,
       empleadosInactivos: inactivos,
-    }));
-  };
-
-  // Load empleados
-  useEffect(() => {
-    // Mock data - replace with API call
-    const mockEmpleados: Empleado[] = [
-      {
-        id: '1',
-        nombre: 'Juan Pérez',
-        correo: 'juan@ejemplo.com',
-        telefono: '+56912345678',
-        rol: 'admin',
-        estado: 'activo',
-        creado_el: '2024-01-15',
-      },
-      {
-        id: '2',
-        nombre: 'María García',
-        correo: 'maria@ejemplo.com',
-        telefono: '+56923456789',
-        rol: 'mesero',
-        estado: 'activo',
-        creado_el: '2024-02-10',
-      },
-      {
-        id: '3',
-        nombre: 'Carlos López',
-        correo: 'carlos@ejemplo.com',
-        telefono: '+56934567890',
-        rol: 'cocinero',
-        estado: 'activo',
-        creado_el: '2024-02-20',
-      },
-      {
-        id: '4',
-        nombre: 'Ana Martínez',
-        correo: 'ana@ejemplo.com',
-        telefono: '+56945678901',
-        rol: 'bartender',
-        estado: 'activo',
-        creado_el: '2024-03-05',
-      },
-      {
-        id: '5',
-        nombre: 'Pedro Sánchez',
-        correo: 'pedro@ejemplo.com',
-        rol: 'reservas',
-        estado: 'inactivo',
-        creado_el: '2024-01-20',
-      },
-    ];
-
-    // eslint-disable-next-line
-    setEmpleados(mockEmpleados);
-    updateStatsFromEmpleados(mockEmpleados);
-  }, []);
+      clientesHoy: 0,
+      clientesNuevos: 0,
+    };
+  }, [empleados]);
 
   const handleInviteSuccess = () => {
     showToast('success', 'Invitación enviada exitosamente');
@@ -167,59 +200,238 @@ export default function DashboardGerenteScreen() {
     }
   };
 
+  const menuItems = [
+    {
+      id: 'dashboard' as const,
+      label: 'Dashboard',
+      icon: Home,
+    },
+    {
+      id: 'empleados' as const,
+      label: 'Empleados',
+      icon: Users,
+    },
+    {
+      id: 'metricas' as const,
+      label: 'Metricas',
+      icon: BarChart3,
+    },
+    {
+      id: 'panel-mesero' as const,
+      label: 'Panel Mesero',
+      icon: UtensilsCrossed,
+    },
+    {
+      id: 'panel-cocina' as const,
+      label: 'Panel Cocina',
+      icon: ChefHat,
+    },
+    {
+      id: 'panel-bartender' as const,
+      label: 'Panel Barra',
+      icon: Wine,
+    },
+    {
+      id: 'panel-reservas' as const,
+      label: 'Panel Reservas',
+      icon: Calendar,
+    },
+    {
+      id: 'configuracion' as const,
+      label: 'Configuracion',
+      icon: Settings,
+    },
+  ];
+
   if (!user) {
     return null;
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F1F5F9]">
+    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
       {/* Sidebar */}
-      <Sidebar activeItem="dashboard" />
+      <PanelSidebar
+        title="ReservaYa"
+        subtitle="Panel Gerente"
+        icon={Home}
+        menuItems={menuItems}
+        activeItem={activeSection}
+        onNavigate={(id) => setActiveSection(id as typeof activeSection)}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Nav */}
-        <TopNav />
+        <PanelTopNav
+          panelName="Panel de Gerente"
+          pageTitle={
+            activeSection === 'dashboard'
+              ? 'Dashboard'
+              : activeSection === 'empleados'
+              ? 'Empleados'
+              : activeSection === 'metricas'
+              ? 'Metricas'
+              : activeSection === 'panel-mesero'
+              ? 'Panel Mesero (Solo Lectura)'
+              : activeSection === 'panel-cocina'
+              ? 'Panel Cocina (Solo Lectura)'
+              : activeSection === 'panel-bartender'
+              ? 'Panel Barra (Solo Lectura)'
+              : activeSection === 'panel-reservas'
+              ? 'Panel Reservas (Solo Lectura)'
+              : 'Configuracion'
+          }
+          pageDescription="Vista del gerente"
+          user={user}
+          onOpenProfile={() => setShowProfile(true)}
+        />
 
         {/* Content */}
         <main className="flex-1 p-6 overflow-y-auto">
-          {/* Stats Overview */}
-          <StatsOverview stats={stats} />
+          {/* Dashboard Section */}
+          {activeSection === 'dashboard' && (
+            <>
+              <StatsOverview stats={stats} />
+              <div className="flex flex-wrap gap-3 mb-8">
+                <PrimaryButton onClick={() => setShowInviteModal(true)}>
+                  <UserPlus size={16} />
+                  Invitar Empleado
+                </PrimaryButton>
+                <SecondaryButton onClick={() => setActiveSection('metricas')}>
+                  <BarChart3 size={16} />
+                  Ver Metricas
+                </SecondaryButton>
+                <SecondaryButton>
+                  <Download size={16} />
+                  Descargar Reporte
+                </SecondaryButton>
+              </div>
+              <EmployeeManagement
+                empleados={empleados}
+                onInvite={() => setShowInviteModal(true)}
+                onEdit={(empleado) => setEditingEmpleado(empleado)}
+                onDelete={(id) => setShowDeleteConfirm(id)}
+                onToggleStatus={handleToggleStatus}
+              />
+              <div className="mt-8">
+                <MetricsDashboard
+                  dateRange={dateRange}
+                  onDateRangeChange={setDateRange}
+                />
+              </div>
+            </>
+          )}
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-3 mb-8">
-            <PrimaryButton onClick={() => setShowInviteModal(true)}>
-              <UserPlus size={16} />
-              Invitar Empleado
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => router.push('/dashboard-gerente/metricas')}
-            >
-              <BarChart3 size={16} />
-              Ver Métricas
-            </SecondaryButton>
-            <SecondaryButton>
-              <Download size={16} />
-              Descargar Reporte
-            </SecondaryButton>
-          </div>
+          {/* Empleados Section */}
+          {activeSection === 'empleados' && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl text-[#334155]">Gestion de Empleados</h2>
+                <PrimaryButton onClick={() => setShowInviteModal(true)}>
+                  <UserPlus size={16} />
+                  Invitar Empleado
+                </PrimaryButton>
+              </div>
+              <EmployeeManagement
+                empleados={empleados}
+                onInvite={() => setShowInviteModal(true)}
+                onEdit={(empleado) => setEditingEmpleado(empleado)}
+                onDelete={(id) => setShowDeleteConfirm(id)}
+                onToggleStatus={handleToggleStatus}
+              />
+            </>
+          )}
 
-          {/* Employee Management */}
-          <EmployeeManagement
-            empleados={empleados}
-            onInvite={() => setShowInviteModal(true)}
-            onEdit={(empleado) => setEditingEmpleado(empleado)}
-            onDelete={(id) => setShowDeleteConfirm(id)}
-            onToggleStatus={handleToggleStatus}
-          />
-
-          {/* Metrics Dashboard */}
-          <div className="mt-8">
+          {/* Metricas Section */}
+          {activeSection === 'metricas' && (
             <MetricsDashboard
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
             />
-          </div>
+          )}
+
+          {/* Panel Mesero - Solo Visualizacion */}
+          {activeSection === 'panel-mesero' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+                <Eye size={20} className="text-blue-600" />
+                <p className="text-sm text-blue-800">
+                  <strong>Modo visualizacion:</strong> Estas viendo el panel del
+                  mesero en modo solo lectura.
+                </p>
+              </div>
+              <TablasMapa
+                mesas={mesas}
+                onMesaUpdate={() => {}}
+                onMesaCreate={() => {}}
+                onMesaDelete={() => {}}
+                readOnly={true}
+              />
+            </div>
+          )}
+
+          {/* Panel Cocina - Solo Visualizacion */}
+          {activeSection === 'panel-cocina' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+                <Eye size={20} className="text-blue-600" />
+                <p className="text-sm text-blue-800">
+                  <strong>Modo visualizacion:</strong> Estas viendo el panel de
+                  cocina en modo solo lectura.
+                </p>
+              </div>
+              <PedidosManagement
+                pedidos={pedidos}
+                mesas={mesas}
+                onPedidoUpdate={() => {}}
+                readOnly={true}
+              />
+            </div>
+          )}
+
+          {/* Panel Bartender - Solo Visualizacion */}
+          {activeSection === 'panel-bartender' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+                <Eye size={20} className="text-blue-600" />
+                <p className="text-sm text-blue-800">
+                  <strong>Modo visualizacion:</strong> Estas viendo el panel de
+                  barra en modo solo lectura.
+                </p>
+              </div>
+              <PedidosManagement
+                pedidos={pedidos}
+                mesas={mesas}
+                onPedidoUpdate={() => {}}
+                readOnly={true}
+              />
+            </div>
+          )}
+
+          {/* Panel Reservas - Solo Visualizacion */}
+          {activeSection === 'panel-reservas' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+                <Eye size={20} className="text-blue-600" />
+                <p className="text-sm text-blue-800">
+                  <strong>Modo visualizacion:</strong> Estas viendo el panel de
+                  reservas en modo solo lectura.
+                </p>
+              </div>
+              <ReservasManagement mesas={mesas} readOnly={true} />
+            </div>
+          )}
+
+          {/* Configuracion */}
+          {activeSection === 'configuracion' && (
+            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-8 text-center">
+              <Settings size={48} className="text-[#94A3B8] mx-auto mb-4" />
+              <h3 className="text-[#334155] mb-2">Configuracion</h3>
+              <p className="text-sm text-[#64748B]">
+                Seccion de configuracion del local (proximamente)
+              </p>
+            </div>
+          )}
         </main>
       </div>
 
@@ -278,6 +490,13 @@ export default function DashboardGerenteScreen() {
           onClose={hideToast}
         />
       )}
+
+      {/* Modal Mi Perfil */}
+      <MiPerfilEmpleado
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+      />
     </div>
   );
 }

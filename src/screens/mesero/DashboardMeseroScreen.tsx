@@ -1,29 +1,39 @@
 'use client';
 
+import {
+  Calendar,
+  ClipboardList,
+  LayoutGrid,
+  QrCode,
+  UtensilsCrossed,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { GenerarBoleta } from '../../components/mesero/GenerarBoleta';
 import { PedidosManagement } from '../../components/mesero/PedidosManagement';
+import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { ScanQRReserva } from '../../components/mesero/ScanQRReserva';
-import { SidebarMesero } from '../../components/mesero/SidebarMesero';
 import { TablasMapa } from '../../components/mesero/TablasMapa';
-import { TopNavMesero } from '../../components/mesero/TopNavMesero';
+import {
+  MiPerfilEmpleado,
+  PanelSidebar,
+  PanelTopNav,
+} from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/apiClient';
 
+// Estados del backend
 export type MesaEstado =
   | 'DISPONIBLE'
+  | 'RESERVADA'
   | 'OCUPADA'
-  | 'PIDIENDO'
-  | 'EN_COCINA'
-  | 'COMIENDO'
-  | 'PIDIENDO_CUENTA'
-  | 'PAGADO';
+  | 'FUERA_DE_SERVICIO';
+
 export type PedidoEstado =
-  | 'TOMADO'
-  | 'EN_COCINA'
-  | 'LISTO'
-  | 'ENTREGADO'
-  | 'PAGADO'
+  | 'INICIADO'
+  | 'RECEPCION'
+  | 'EN_PROCESO'
+  | 'TERMINADO'
+  | 'COMPLETADO'
   | 'CANCELADO';
 
 export interface Mesa {
@@ -64,7 +74,7 @@ export default function DashboardMeseroScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
   const [activeSection, setActiveSection] = useState<
-    'mesas' | 'pedidos' | 'boleta' | 'qr'
+    'mesas' | 'pedidos' | 'reservas' | 'qr'
   >('mesas');
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -77,207 +87,50 @@ export default function DashboardMeseroScreen() {
   }, [isLoggedIn, userType, router]);
 
   const loadMesas = useCallback(async () => {
-    // Mock API call - GET /api/empresa/mesas
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const mockMesas: Mesa[] = [
-      {
-        id: '1',
-        id_empresa: '1',
-        nombre: 'Mesa 1',
-        capacidad: 4,
-        estado: 'DISPONIBLE',
-        pedidos_count: 0,
-      },
-      {
-        id: '2',
-        id_empresa: '1',
-        nombre: 'Mesa 2',
-        capacidad: 2,
-        estado: 'OCUPADA',
-        pedidos_count: 1,
-      },
-      {
-        id: '3',
-        id_empresa: '1',
-        nombre: 'Mesa 3',
-        capacidad: 6,
-        estado: 'PIDIENDO',
-        pedidos_count: 0,
-      },
-      {
-        id: '4',
-        id_empresa: '1',
-        nombre: 'Mesa 4',
-        capacidad: 4,
-        estado: 'EN_COCINA',
-        pedidos_count: 2,
-      },
-      {
-        id: '5',
-        id_empresa: '1',
-        nombre: 'Mesa 5',
-        capacidad: 2,
-        estado: 'COMIENDO',
-        pedidos_count: 1,
-      },
-      {
-        id: '6',
-        id_empresa: '1',
-        nombre: 'Mesa 6',
-        capacidad: 4,
-        estado: 'PIDIENDO_CUENTA',
-        pedidos_count: 1,
-      },
-      {
-        id: '7',
-        id_empresa: '1',
-        nombre: 'Mesa 7',
-        capacidad: 8,
-        estado: 'DISPONIBLE',
-        pedidos_count: 0,
-      },
-      {
-        id: '8',
-        id_empresa: '1',
-        nombre: 'Mesa 8',
-        capacidad: 4,
-        estado: 'DISPONIBLE',
-        pedidos_count: 0,
-      },
-      {
-        id: '9',
-        id_empresa: '1',
-        nombre: 'Mesa 9',
-        capacidad: 2,
-        estado: 'OCUPADA',
-        pedidos_count: 1,
-      },
-    ];
-
-    setMesas(mockMesas);
+    try {
+      const data = await api.empresa.getMesas();
+      // Mapear respuesta del backend a interface Mesa
+      const mesasData: Mesa[] = data.map((m: Record<string, unknown>) => ({
+        id: String(m.id),
+        id_empresa: String(m.id_local),
+        nombre: m.nombre as string,
+        capacidad: m.capacidad as number,
+        estado: (m.estado as string).toUpperCase() as MesaEstado,
+        pedidos_count: m.pedidos_count as number,
+      }));
+      setMesas(mesasData);
+    } catch (error) {
+      console.error('Error loading mesas:', error);
+    }
   }, []);
 
   const loadPedidos = useCallback(async () => {
-    // Mock API call - GET /api/empresa/pedidos
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const mockPedidos: Pedido[] = [
-      {
-        id: 'PED-001',
-        id_mesa: '2',
-        id_usuario: 'U1',
-        fecha_pedido: new Date().toISOString(),
-        total: 24500,
-        estado: 'EN_COCINA',
-        creado_el: new Date(Date.now() - 15 * 60000).toISOString(),
-        mesa_nombre: 'Mesa 2',
-        usuario_nombre: 'Juan Pérez',
-        lineas: [
-          {
-            id: 'L1',
-            id_pedido: 'PED-001',
-            id_producto: 'P1',
-            producto_nombre: 'Lomo Saltado',
-            cantidad: 1,
-            precio_unitario: 15000,
-          },
-          {
-            id: 'L2',
-            id_pedido: 'PED-001',
-            id_producto: 'P2',
-            producto_nombre: 'Pisco Sour',
-            cantidad: 2,
-            precio_unitario: 4750,
-          },
-        ],
-        notas: 'Sin cebolla',
-      },
-      {
-        id: 'PED-002',
-        id_mesa: '4',
-        fecha_pedido: new Date().toISOString(),
-        total: 32000,
-        estado: 'LISTO',
-        creado_el: new Date(Date.now() - 25 * 60000).toISOString(),
-        mesa_nombre: 'Mesa 4',
-        lineas: [
-          {
-            id: 'L3',
-            id_pedido: 'PED-002',
-            id_producto: 'P3',
-            producto_nombre: 'Ceviche',
-            cantidad: 2,
-            precio_unitario: 12000,
-          },
-          {
-            id: 'L4',
-            id_pedido: 'PED-002',
-            id_producto: 'P4',
-            producto_nombre: 'Cerveza',
-            cantidad: 2,
-            precio_unitario: 4000,
-          },
-        ],
-      },
-      {
-        id: 'PED-003',
-        id_mesa: '5',
-        fecha_pedido: new Date().toISOString(),
-        total: 18000,
-        estado: 'ENTREGADO',
-        creado_el: new Date(Date.now() - 40 * 60000).toISOString(),
-        mesa_nombre: 'Mesa 5',
-        lineas: [
-          {
-            id: 'L5',
-            id_pedido: 'PED-003',
-            id_producto: 'P5',
-            producto_nombre: 'Pizza Margherita',
-            cantidad: 1,
-            precio_unitario: 14000,
-          },
-          {
-            id: 'L6',
-            id_pedido: 'PED-003',
-            id_producto: 'P6',
-            producto_nombre: 'Agua Mineral',
-            cantidad: 2,
-            precio_unitario: 2000,
-          },
-        ],
-      },
-      {
-        id: 'PED-004',
-        id_mesa: '6',
-        fecha_pedido: new Date().toISOString(),
-        total: 45000,
-        estado: 'ENTREGADO',
-        creado_el: new Date(Date.now() - 50 * 60000).toISOString(),
-        mesa_nombre: 'Mesa 6',
-        usuario_nombre: 'María González',
-        lineas: [
-          {
-            id: 'L7',
-            id_pedido: 'PED-004',
-            id_producto: 'P7',
-            producto_nombre: 'Sushi Roll Premium',
-            cantidad: 2,
-            precio_unitario: 18000,
-          },
-          {
-            id: 'L8',
-            id_pedido: 'PED-004',
-            id_producto: 'P8',
-            producto_nombre: 'Sake',
-            cantidad: 3,
-            precio_unitario: 3000,
-          },
-        ],
-      },
-    ];
-
-    setPedidos(mockPedidos);
+    try {
+      const data = await api.empresa.getPedidos();
+      // Mapear respuesta del backend a interface Pedido
+      const pedidosData: Pedido[] = data.map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        id_mesa: String(p.id_mesa),
+        fecha_pedido: p.creado_el as string,
+        total: p.total as number,
+        estado: (
+          (p.estado as string) || 'INICIADO'
+        ).toUpperCase() as PedidoEstado,
+        creado_el: p.creado_el as string,
+        mesa_nombre: p.mesa_nombre as string,
+        lineas: (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
+          id: String(l.id),
+          id_pedido: String(p.id),
+          id_producto: String(l.producto_id),
+          producto_nombre: l.producto_nombre as string,
+          cantidad: l.cantidad as number,
+          precio_unitario: l.precio_unitario as number,
+        })),
+      }));
+      setPedidos(pedidosData);
+    } catch (error) {
+      console.error('Error loading pedidos:', error);
+    }
   }, []);
 
   // Load initial data
@@ -308,15 +161,55 @@ export default function DashboardMeseroScreen() {
     );
   };
 
+  const [showProfile, setShowProfile] = useState(false);
+
+  const menuItems = [
+    { id: 'mesas' as const, label: 'Mesas', icon: LayoutGrid },
+    { id: 'pedidos' as const, label: 'Pedidos', icon: ClipboardList },
+    { id: 'reservas' as const, label: 'Reservas', icon: Calendar },
+    { id: 'qr' as const, label: 'Escanear QR', icon: QrCode },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-[#F1F5F9]">
+    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
       {/* Sidebar */}
-      <SidebarMesero activeItem={activeSection} onNavigate={setActiveSection} />
+      <PanelSidebar
+        title="Panel Mesero"
+        subtitle="Mesero"
+        icon={UtensilsCrossed}
+        menuItems={menuItems}
+        activeItem={activeSection}
+        onNavigate={(id: string) =>
+          setActiveSection(id as 'mesas' | 'pedidos' | 'reservas' | 'qr')
+        }
+      />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
-        <TopNavMesero user={user} />
+        <PanelTopNav
+          panelName="Panel de Mesero"
+          pageTitle={
+            activeSection === 'mesas'
+              ? 'Mesas'
+              : activeSection === 'pedidos'
+              ? 'Pedidos'
+              : activeSection === 'reservas'
+              ? 'Reservas'
+              : 'Escanear QR'
+          }
+          pageDescription={
+            activeSection === 'mesas'
+              ? 'Gestiona las mesas del restaurante'
+              : activeSection === 'pedidos'
+              ? 'Gestiona los pedidos de las mesas'
+              : activeSection === 'reservas'
+              ? 'Gestiona las reservas del dia'
+              : 'Escanea codigo QR de reservas'
+          }
+          user={user}
+          onOpenProfile={() => setShowProfile(true)}
+        />
 
         {/* Content Area */}
         <main className="flex-1 p-6 overflow-y-auto">
@@ -337,20 +230,21 @@ export default function DashboardMeseroScreen() {
               onRefresh={loadPedidos}
             />
           )}
-          {activeSection === 'boleta' && (
-            <GenerarBoleta
-              mesas={mesas}
-              pedidos={pedidos}
-              user={user}
-              onPedidoUpdate={handlePedidoUpdate}
-              onMesaUpdate={handleMesaUpdate}
-            />
+          {activeSection === 'reservas' && (
+            <ReservasManagement mesas={mesas} onMesaUpdate={handleMesaUpdate} />
           )}
           {activeSection === 'qr' && (
             <ScanQRReserva mesas={mesas} onMesaUpdate={handleMesaUpdate} />
           )}
         </main>
       </div>
+
+      {/* Modal Mi Perfil */}
+      <MiPerfilEmpleado
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+      />
     </div>
   );
 }
