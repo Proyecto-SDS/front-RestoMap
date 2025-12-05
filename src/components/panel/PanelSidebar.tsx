@@ -94,7 +94,7 @@ export function PanelSidebar({
 
       {/* Footer */}
       <div className="p-4 border-t border-[#E2E8F0] flex-shrink-0">
-        <p className="text-xs text-[#94A3B8] text-center">ReservaYa v1.0</p>
+        <p className="text-xs text-[#94A3B8] text-center">RestoMap v1.0</p>
       </div>
     </>
   );

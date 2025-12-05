@@ -355,7 +355,16 @@ export default function LoginScreen() {
                   test123
                 </p>
                 <p className="text-sm text-blue-800">
-                  <strong>Demo Empresa (Chef):</strong> chef@test.cl / test123
+                  <strong>Demo Empresa (Chef):</strong> cocinero@test.cl /
+                  test123
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Empresa (Bartender):</strong> bartender@test.cl /
+                  test123
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Empresa (Gerente):</strong> gerente@test.cl /
+                  test123
                 </p>
               </>
             )}

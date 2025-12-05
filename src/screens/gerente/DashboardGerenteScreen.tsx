@@ -7,6 +7,7 @@ import {
   Download,
   Eye,
   Home,
+  Package,
   Settings,
   UserPlus,
   Users,
@@ -20,6 +21,7 @@ import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
 import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
 import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModal';
 import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
+import { ProductosManagement } from '../../components/gerente/ProductosManagement';
 import { StatsOverview } from '../../components/gerente/StatsOverview';
 import { PedidosManagement } from '../../components/mesero/PedidosManagement';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
@@ -64,6 +66,7 @@ export default function DashboardGerenteScreen() {
     | 'panel-cocina'
     | 'panel-bartender'
     | 'panel-reservas'
+    | 'inventario'
     | 'configuracion'
   >('dashboard');
   const [mesas, setMesas] = useState<Mesa[]>([]);
@@ -237,6 +240,11 @@ export default function DashboardGerenteScreen() {
       icon: Calendar,
     },
     {
+      id: 'inventario' as const,
+      label: 'Inventario',
+      icon: Package,
+    },
+    {
       id: 'configuracion' as const,
       label: 'Configuracion',
       icon: Settings,
@@ -251,7 +259,7 @@ export default function DashboardGerenteScreen() {
     <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
       {/* Sidebar */}
       <PanelSidebar
-        title="ReservaYa"
+        title="RestoMap"
         subtitle="Panel Gerente"
         icon={Home}
         menuItems={menuItems}
@@ -278,7 +286,9 @@ export default function DashboardGerenteScreen() {
               : activeSection === 'panel-bartender'
               ? 'Panel Barra (Solo Lectura)'
               : activeSection === 'panel-reservas'
-              ? 'Panel Reservas (Solo Lectura)'
+              ? 'Panel Reservas'
+              : activeSection === 'inventario'
+              ? 'Inventario'
               : 'Configuracion'
           }
           pageDescription="Vista del gerente"
@@ -408,19 +418,11 @@ export default function DashboardGerenteScreen() {
             </div>
           )}
 
-          {/* Panel Reservas - Solo Visualizacion */}
-          {activeSection === 'panel-reservas' && (
-            <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-                <Eye size={20} className="text-blue-600" />
-                <p className="text-sm text-blue-800">
-                  <strong>Modo visualizacion:</strong> Estas viendo el panel de
-                  reservas en modo solo lectura.
-                </p>
-              </div>
-              <ReservasManagement mesas={mesas} readOnly={true} />
-            </div>
-          )}
+          {/* Panel Reservas - Gerente puede interactuar */}
+          {activeSection === 'panel-reservas' && <ReservasManagement />}
+
+          {/* Inventario */}
+          {activeSection === 'inventario' && <ProductosManagement />}
 
           {/* Configuracion */}
           {activeSection === 'configuracion' && (

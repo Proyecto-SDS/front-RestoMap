@@ -1,86 +1,75 @@
 'use client';
 
-import { Calendar, Clock, MapPin, Phone, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Calendar, Clock, Phone, Users, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
-import { PrimaryButton } from '../buttons/PrimaryButton';
+import { api } from '../../utils/apiClient';
+import { DangerButton } from '../buttons/DangerButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 
 interface Reserva {
-  id: string;
+  id: number;
   usuario_nombre: string;
   usuario_telefono?: string;
   fecha: string;
   hora: string;
-  num_personas: number;
-  estado: 'pendiente' | 'confirmada' | 'cancelada' | 'completada';
-  mesa_asignada?: string;
-  notas?: string;
+  estado: 'pendiente' | 'confirmada' | 'rechazada' | 'expirada';
+  mesas: string[];
+  codigo_qr: string;
+  creado_el: string;
 }
 
 interface ReservasManagementProps {
-  mesas: Mesa[];
-  onMesaUpdate?: (mesa: Mesa) => void;
+  mesas?: Mesa[];
   readOnly?: boolean;
 }
 
 export function ReservasManagement({
-  mesas,
-  onMesaUpdate,
   readOnly = false,
 }: ReservasManagementProps) {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
-  const [showAsignarMesa, setShowAsignarMesa] = useState(false);
-  const [selectedMesaId, setSelectedMesaId] = useState<string>('');
+  const [showCancelar, setShowCancelar] = useState<Reserva | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [filterEstado, setFilterEstado] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
 
-  // Cargar reservas del dia
+  const loadReservas = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await api.empresa.getReservas(
+        selectedDate,
+        filterEstado || undefined
+      );
+      setReservas(data || []);
+    } catch (error) {
+      console.error('Error loading reservas:', error);
+      setReservas([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filterEstado, selectedDate]);
+
   useEffect(() => {
-    const loadReservas = async () => {
-      try {
-        setLoading(true);
-        // Mock data - en produccion llamar a api.empresa.getReservas()
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const mockReservas: Reserva[] = [
-          {
-            id: '1',
-            usuario_nombre: 'Juan Perez',
-            usuario_telefono: '+56912345678',
-            fecha: new Date().toISOString().split('T')[0],
-            hora: '19:00',
-            num_personas: 4,
-            estado: 'confirmada',
-            notas: 'Celebracion de cumpleanos',
-          },
-          {
-            id: '2',
-            usuario_nombre: 'Maria Gonzalez',
-            usuario_telefono: '+56987654321',
-            fecha: new Date().toISOString().split('T')[0],
-            hora: '20:30',
-            num_personas: 2,
-            estado: 'pendiente',
-          },
-          {
-            id: '3',
-            usuario_nombre: 'Carlos Lopez',
-            fecha: new Date().toISOString().split('T')[0],
-            hora: '21:00',
-            num_personas: 6,
-            estado: 'confirmada',
-            mesa_asignada: 'Mesa 3',
-          },
-        ];
-        setReservas(mockReservas);
-      } catch (error) {
-        console.error('Error loading reservas:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadReservas();
-  }, []);
+  }, [loadReservas]);
+
+  const handleCancelar = async () => {
+    if (!showCancelar) return;
+
+    try {
+      setCancelling(true);
+      await api.empresa.cancelarReserva(showCancelar.id);
+      await loadReservas();
+      setShowCancelar(null);
+    } catch (error) {
+      console.error('Error cancelling reserva:', error);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const getEstadoColor = (estado: Reserva['estado']) => {
     switch (estado) {
@@ -96,49 +85,17 @@ export function ReservasManagement({
           text: 'text-green-700',
           label: 'Confirmada',
         };
-      case 'cancelada':
+      case 'rechazada':
         return { bg: 'bg-red-50', text: 'text-red-700', label: 'Cancelada' };
-      case 'completada':
+      case 'expirada':
         return {
           bg: 'bg-slate-50',
           text: 'text-slate-700',
-          label: 'Completada',
+          label: 'Expirada',
         };
       default:
         return { bg: 'bg-gray-50', text: 'text-gray-700', label: estado };
     }
-  };
-
-  const mesasDisponibles = mesas.filter(
-    (m) =>
-      m.estado === 'DISPONIBLE' &&
-      m.capacidad >= (selectedReserva?.num_personas || 0)
-  );
-
-  const handleAsignarMesa = async () => {
-    if (!selectedReserva || !selectedMesaId) return;
-
-    // Mock - actualizar reserva
-    setReservas((prev) =>
-      prev.map((r) =>
-        r.id === selectedReserva.id
-          ? {
-              ...r,
-              mesa_asignada: mesas.find((m) => m.id === selectedMesaId)?.nombre,
-            }
-          : r
-      )
-    );
-
-    // Actualizar mesa a ocupada
-    const mesa = mesas.find((m) => m.id === selectedMesaId);
-    if (mesa && onMesaUpdate) {
-      onMesaUpdate({ ...mesa, estado: 'OCUPADA' });
-    }
-
-    setShowAsignarMesa(false);
-    setSelectedReserva(null);
-    setSelectedMesaId('');
   };
 
   if (loading) {
@@ -149,36 +106,44 @@ export function ReservasManagement({
     );
   }
 
-  const reservasHoy = reservas.filter(
-    (r) => r.fecha === new Date().toISOString().split('T')[0]
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl text-[#334155] mb-1">Reservas de Hoy</h2>
+            <h2 className="text-xl text-[#334155] mb-1">Reservas</h2>
             <p className="text-sm text-[#94A3B8]">
-              {reservasHoy.length} reservas para hoy
+              {reservas.length} reservas para la fecha seleccionada
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar size={20} className="text-[#F97316]" />
-            <span className="text-[#334155]">
-              {new Date().toLocaleDateString('es-CL', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
-            </span>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar size={20} className="text-[#F97316]" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+              />
+            </div>
+            <select
+              value={filterEstado}
+              onChange={(e) => setFilterEstado(e.target.value)}
+              className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155]"
+            >
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="rechazada">Cancelada</option>
+              <option value="expirada">Expirada</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* Reservas List */}
-      {reservasHoy.length === 0 ? (
+      {reservas.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-12 text-center">
           <Calendar size={48} className="text-[#94A3B8] mx-auto mb-4" />
           <h3 className="text-[#334155] mb-2">No hay reservas para hoy</h3>
@@ -188,7 +153,7 @@ export function ReservasManagement({
         </div>
       ) : (
         <div className="space-y-4">
-          {reservasHoy.map((reserva) => {
+          {reservas.map((reserva) => {
             const estadoStyle = getEstadoColor(reserva.estado);
 
             return (
@@ -215,45 +180,40 @@ export function ReservasManagement({
                         <Clock size={14} />
                         {reserva.hora}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Users size={14} />
-                        {reserva.num_personas} personas
-                      </span>
                       {reserva.usuario_telefono && (
                         <span className="flex items-center gap-1">
                           <Phone size={14} />
                           {reserva.usuario_telefono}
                         </span>
                       )}
-                      {reserva.mesa_asignada && (
+                      {reserva.mesas.length > 0 && (
                         <span className="flex items-center gap-1 text-[#22C55E]">
-                          <MapPin size={14} />
-                          {reserva.mesa_asignada}
+                          <Users size={14} />
+                          {reserva.mesas.join(', ')}
                         </span>
                       )}
                     </div>
 
-                    {reserva.notas && (
-                      <p className="text-xs text-[#94A3B8] mt-2 italic">
-                        Nota: {reserva.notas}
-                      </p>
-                    )}
+                    {/* Codigo QR */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-xs text-[#94A3B8]">Codigo:</span>
+                      <code className="px-2 py-1 bg-[#F1F5F9] rounded text-xs text-[#334155] font-mono">
+                        {reserva.codigo_qr}
+                      </code>
+                    </div>
                   </div>
 
                   {/* Acciones */}
                   {!readOnly &&
-                    reserva.estado === 'confirmada' &&
-                    !reserva.mesa_asignada && (
-                      <PrimaryButton
-                        onClick={() => {
-                          setSelectedReserva(reserva);
-                          setShowAsignarMesa(true);
-                        }}
+                    reserva.estado !== 'rechazada' &&
+                    reserva.estado !== 'expirada' && (
+                      <DangerButton
+                        onClick={() => setShowCancelar(reserva)}
                         size="sm"
                       >
-                        <MapPin size={16} />
-                        Asignar Mesa
-                      </PrimaryButton>
+                        <XCircle size={16} />
+                        Cancelar
+                      </DangerButton>
                     )}
                 </div>
               </div>
@@ -262,85 +222,47 @@ export function ReservasManagement({
         </div>
       )}
 
-      {/* Modal Asignar Mesa */}
-      {showAsignarMesa && selectedReserva && (
+      {/* Modal Cancelar Reserva */}
+      {showCancelar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg text-[#334155] mb-2">Asignar Mesa</h3>
-            <p className="text-sm text-[#64748B] mb-4">
-              Selecciona una mesa para {selectedReserva.usuario_nombre} (
-              {selectedReserva.num_personas} personas)
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg text-[#334155]">Cancelar Reserva</h3>
+              <button
+                onClick={() => setShowCancelar(null)}
+                className="p-1 hover:bg-[#F1F5F9] rounded"
+              >
+                <X size={20} className="text-[#64748B]" />
+              </button>
+            </div>
 
-            {mesasDisponibles.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {mesasDisponibles.map((mesa) => (
-                    <label
-                      key={mesa.id}
-                      className={`
-                        flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all
-                        ${
-                          selectedMesaId === mesa.id
-                            ? 'border-[#F97316] bg-[#FFF7ED]'
-                            : 'border-[#E2E8F0] hover:border-[#F97316]/30'
-                        }
-                      `}
-                    >
-                      <input
-                        type="radio"
-                        name="mesa"
-                        value={mesa.id}
-                        checked={selectedMesaId === mesa.id}
-                        onChange={(e) => setSelectedMesaId(e.target.value)}
-                        className="sr-only"
-                      />
-                      <span className="text-sm text-[#334155]">
-                        {mesa.nombre}
-                      </span>
-                      <span className="text-xs text-[#64748B]">
-                        {mesa.capacidad} personas
-                      </span>
-                    </label>
-                  ))}
-                </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-700">
+                Esta a punto de cancelar la reserva de{' '}
+                <strong>{showCancelar.usuario_nombre}</strong> para las{' '}
+                <strong>{showCancelar.hora}</strong>.
+              </p>
+              <p className="text-xs text-red-600 mt-2">
+                Esta accion no se puede deshacer.
+              </p>
+            </div>
 
-                <div className="flex gap-3">
-                  <SecondaryButton
-                    onClick={() => {
-                      setShowAsignarMesa(false);
-                      setSelectedReserva(null);
-                      setSelectedMesaId('');
-                    }}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </SecondaryButton>
-                  <PrimaryButton
-                    onClick={handleAsignarMesa}
-                    disabled={!selectedMesaId}
-                    className="flex-1"
-                  >
-                    Asignar
-                  </PrimaryButton>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-[#64748B] mb-4">
-                  No hay mesas disponibles con capacidad para{' '}
-                  {selectedReserva.num_personas} personas
-                </p>
-                <SecondaryButton
-                  onClick={() => {
-                    setShowAsignarMesa(false);
-                    setSelectedReserva(null);
-                  }}
-                >
-                  Cerrar
-                </SecondaryButton>
-              </div>
-            )}
+            <div className="flex gap-3">
+              <SecondaryButton
+                onClick={() => setShowCancelar(null)}
+                className="flex-1"
+                disabled={cancelling}
+              >
+                Volver
+              </SecondaryButton>
+              <DangerButton
+                onClick={handleCancelar}
+                className="flex-1"
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelando...' : 'Confirmar Cancelacion'}
+              </DangerButton>
+            </div>
           </div>
         </div>
       )}

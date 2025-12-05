@@ -259,11 +259,47 @@ export const api = {
       const query = params.toString();
       return apiCall(`/api/empresa/productos/${query ? `?${query}` : ''}`);
     },
+    createProducto: (data: {
+      nombre: string;
+      descripcion?: string;
+      precio: number;
+      categoria_id?: number;
+    }) =>
+      apiCall('/api/empresa/productos/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateProducto: (
+      id: number,
+      data: {
+        nombre?: string;
+        descripcion?: string;
+        precio?: number;
+        categoria_id?: number;
+      }
+    ) =>
+      apiCall(`/api/empresa/productos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     updateProductoEstado: (id: number, estado: string) =>
       apiCall(`/api/empresa/productos/${id}/estado`, {
         method: 'PATCH',
         body: JSON.stringify({ estado }),
       }),
+    deleteProducto: (id: number) =>
+      apiCall(`/api/empresa/productos/${id}`, { method: 'DELETE' }),
+
+    // Reservas
+    getReservas: (fecha?: string, estado?: string) => {
+      const params = new URLSearchParams();
+      if (fecha) params.append('fecha', fecha);
+      if (estado) params.append('estado', estado);
+      const query = params.toString();
+      return apiCall(`/api/empresa/reservas/${query ? `?${query}` : ''}`);
+    },
+    cancelarReserva: (id: number) =>
+      apiCall(`/api/empresa/reservas/${id}/cancelar`, { method: 'PATCH' }),
 
     // Stats
     getStats: () => apiCall('/api/empresa/stats/dashboard'),
