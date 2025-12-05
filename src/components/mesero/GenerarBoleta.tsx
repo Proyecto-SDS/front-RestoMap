@@ -1,7 +1,7 @@
 import { Check, Download, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Mesa, Pedido } from '../../screens/mesero/DashboardMeseroScreen';
-import { Empresa } from '../../types';
+import { User } from '../../types';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { Toast, useToast } from '../notifications/Toast';
@@ -9,17 +9,25 @@ import { Toast, useToast } from '../notifications/Toast';
 interface GenerarBoletaProps {
   mesas: Mesa[];
   pedidos: Pedido[];
-  empresa: Empresa | null;
+  user?: User | null;
   onPedidoUpdate: (pedido: Pedido) => void;
   onMesaUpdate: (mesa: Mesa) => void;
 }
 
 type PaymentMethod = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'OTRO';
 
-export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaUpdate }: GenerarBoletaProps) {
+export function GenerarBoleta({
+  mesas,
+  pedidos,
+  user,
+  onPedidoUpdate,
+  onMesaUpdate,
+}: GenerarBoletaProps) {
   const [selectedMesaId, setSelectedMesaId] = useState<string>('');
   const [mesaPedidos, setMesaPedidos] = useState<Pedido[]>([]);
-  const [selectedPedidoIds, setSelectedPedidoIds] = useState<Set<string>>(new Set());
+  const [selectedPedidoIds, setSelectedPedidoIds] = useState<Set<string>>(
+    new Set()
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('EFECTIVO');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,20 +36,27 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
   const IVA_RATE = 0.19; // 19% IVA Chile
 
   // Filter mesas that have orders
-  const mesasWithOrders = mesas.filter(mesa => 
-    ['OCUPADA', 'PIDIENDO', 'EN_COCINA', 'COMIENDO', 'PIDIENDO_CUENTA'].includes(mesa.estado)
+  const mesasWithOrders = mesas.filter((mesa) =>
+    [
+      'OCUPADA',
+      'PIDIENDO',
+      'EN_COCINA',
+      'COMIENDO',
+      'PIDIENDO_CUENTA',
+    ].includes(mesa.estado)
   );
 
   // Load pedidos for selected mesa
   useEffect(() => {
     if (selectedMesaId) {
-      const filteredPedidos = pedidos.filter(p => 
-        p.id_mesa === selectedMesaId && 
-        ['TOMADO', 'EN_COCINA', 'LISTO', 'ENTREGADO'].includes(p.estado)
+      const filteredPedidos = pedidos.filter(
+        (p) =>
+          p.id_mesa === selectedMesaId &&
+          ['TOMADO', 'EN_COCINA', 'LISTO', 'ENTREGADO'].includes(p.estado)
       );
       setMesaPedidos(filteredPedidos);
       // Pre-select all pedidos
-      setSelectedPedidoIds(new Set(filteredPedidos.map(p => p.id)));
+      setSelectedPedidoIds(new Set(filteredPedidos.map((p) => p.id)));
     } else {
       setMesaPedidos([]);
       setSelectedPedidoIds(new Set());
@@ -50,11 +65,13 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
 
   // Calculate totals
   const calculateTotals = () => {
-    const selectedPedidos = mesaPedidos.filter(p => selectedPedidoIds.has(p.id));
+    const selectedPedidos = mesaPedidos.filter((p) =>
+      selectedPedidoIds.has(p.id)
+    );
     const subtotal = selectedPedidos.reduce((sum, p) => sum + p.total, 0);
     const iva = subtotal * IVA_RATE;
     const total = subtotal + iva;
-    
+
     return { subtotal, iva, total };
   };
 
@@ -102,10 +119,10 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
 
     try {
       // Mock API call - Update pedidos to PAGADO
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Update all selected pedidos
-      mesaPedidos.forEach(pedido => {
+      mesaPedidos.forEach((pedido) => {
         if (selectedPedidoIds.has(pedido.id)) {
           onPedidoUpdate({
             ...pedido,
@@ -115,7 +132,7 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
       });
 
       // Update mesa to DISPONIBLE if all pedidos are paid
-      const mesa = mesas.find(m => m.id === selectedMesaId);
+      const mesa = mesas.find((m) => m.id === selectedMesaId);
       if (mesa) {
         onMesaUpdate({
           ...mesa,
@@ -154,7 +171,9 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
       {/* Header */}
       <div>
         <h1 className="text-2xl text-[#334155] mb-2">Generar Boleta</h1>
-        <p className="text-[#64748B]">Selecciona una mesa y sus pedidos para generar la boleta de pago</p>
+        <p className="text-[#64748B]">
+          Selecciona una mesa y sus pedidos para generar la boleta de pago
+        </p>
       </div>
 
       {/* Mesa Selector */}
@@ -208,12 +227,15 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
           </div>
 
           {/* Bill Preview */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6" id="bill-preview">
+          <div
+            className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6"
+            id="bill-preview"
+          >
             <div className="border-b border-[#E2E8F0] pb-4 mb-4">
               <h2 className="text-xl text-[#334155] mb-1">
-                {empresa?.nombre || 'Establecimiento'}
+                {user?.nombre_local || 'Establecimiento'}
               </h2>
-              <p className="text-sm text-[#64748B]">{empresa?.direccion || 'Dirección no disponible'}</p>
+              <p className="text-sm text-[#64748B]">Boleta de consumo</p>
 
               <p className="text-xs text-[#94A3B8] mt-2">
                 {new Date().toLocaleString('es-CL', {
@@ -230,16 +252,21 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
             <div className="space-y-2 mb-4">
               <h3 className="text-sm text-[#64748B] mb-3">Detalles</h3>
               {mesaPedidos
-                .filter(p => selectedPedidoIds.has(p.id))
+                .filter((p) => selectedPedidoIds.has(p.id))
                 .map((pedido) => (
                   <div key={pedido.id} className="space-y-1">
                     {pedido.lineas?.map((linea) => (
-                      <div key={linea.id} className="flex justify-between text-sm">
+                      <div
+                        key={linea.id}
+                        className="flex justify-between text-sm"
+                      >
                         <span className="text-[#334155]">
                           {linea.cantidad}x {linea.producto_nombre}
                         </span>
                         <span className="text-[#64748B]">
-                          {formatCurrency(linea.cantidad * linea.precio_unitario)}
+                          {formatCurrency(
+                            linea.cantidad * linea.precio_unitario
+                          )}
                         </span>
                       </div>
                     ))}
@@ -251,7 +278,9 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
             <div className="border-t border-[#E2E8F0] pt-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-[#64748B]">Subtotal</span>
-                <span className="text-[#334155]">{formatCurrency(subtotal)}</span>
+                <span className="text-[#334155]">
+                  {formatCurrency(subtotal)}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-[#64748B]">IVA (19%)</span>
@@ -267,16 +296,24 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
           {/* Payment Options */}
           <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
             <h3 className="text-[#334155] mb-4">Método de pago</h3>
-            
+
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {(['EFECTIVO', 'TARJETA', 'TRANSFERENCIA', 'OTRO'] as PaymentMethod[]).map((method) => (
+              {(
+                [
+                  'EFECTIVO',
+                  'TARJETA',
+                  'TRANSFERENCIA',
+                  'OTRO',
+                ] as PaymentMethod[]
+              ).map((method) => (
                 <label
                   key={method}
                   className={`
                     flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all
-                    ${paymentMethod === method
-                      ? 'border-[#F97316] bg-[#FFF7ED]'
-                      : 'border-[#E2E8F0] hover:border-[#F97316]/30'
+                    ${
+                      paymentMethod === method
+                        ? 'border-[#F97316] bg-[#FFF7ED]'
+                        : 'border-[#E2E8F0] hover:border-[#F97316]/30'
                     }
                   `}
                 >
@@ -285,10 +322,18 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
                     name="paymentMethod"
                     value={method}
                     checked={paymentMethod === method}
-                    onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                    onChange={(e) =>
+                      setPaymentMethod(e.target.value as PaymentMethod)
+                    }
                     className="sr-only"
                   />
-                  <span className={`text-sm ${paymentMethod === method ? 'text-[#F97316]' : 'text-[#64748B]'}`}>
+                  <span
+                    className={`text-sm ${
+                      paymentMethod === method
+                        ? 'text-[#F97316]'
+                        : 'text-[#64748B]'
+                    }`}
+                  >
                     {method.charAt(0) + method.slice(1).toLowerCase()}
                   </span>
                 </label>
@@ -328,12 +373,12 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
               <Printer size={16} />
               Imprimir Boleta
             </SecondaryButton>
-            
+
             <SecondaryButton onClick={handleGeneratePDF} className="flex-1">
               <Download size={16} />
               Generar PDF
             </SecondaryButton>
-            
+
             <PrimaryButton
               onClick={handleMarkAsPaid}
               isLoading={isLoading}
@@ -349,7 +394,9 @@ export function GenerarBoleta({ mesas, pedidos, empresa, onPedidoUpdate, onMesaU
 
       {selectedMesaId && mesaPedidos.length === 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-12 text-center">
-          <p className="text-[#94A3B8]">Esta mesa no tiene pedidos pendientes</p>
+          <p className="text-[#94A3B8]">
+            Esta mesa no tiene pedidos pendientes
+          </p>
         </div>
       )}
 

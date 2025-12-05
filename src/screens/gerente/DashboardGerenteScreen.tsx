@@ -3,15 +3,15 @@
 import { BarChart3, Download, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { EditEmployeeModal } from '../../components/admin/EditEmployeeModal';
-import { EmployeeManagement } from '../../components/admin/EmployeeManagement';
-import { InviteEmployeeModal } from '../../components/admin/InviteEmployeeModal';
-import { MetricsDashboard } from '../../components/admin/MetricsDashboard';
-import { Sidebar } from '../../components/admin/Sidebar';
-import { StatsOverview } from '../../components/admin/StatsOverview';
-import { TopNav } from '../../components/admin/TopNav';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
+import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
+import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
+import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModal';
+import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
+import { Sidebar } from '../../components/gerente/Sidebar';
+import { StatsOverview } from '../../components/gerente/StatsOverview';
+import { TopNav } from '../../components/gerente/TopNav';
 import { Toast, useToast } from '../../components/notifications/Toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,9 +25,9 @@ interface Empleado {
   creado_el: string;
 }
 
-export default function DashboardAdminScreen() {
+export default function DashboardGerenteScreen() {
   const router = useRouter();
-  const { empresa } = useAuth();
+  const { user } = useAuth();
   const { toast, showToast, hideToast } = useToast();
 
   const [stats, setStats] = useState({
@@ -45,7 +45,9 @@ export default function DashboardAdminScreen() {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null
+  );
   const [dateRange, setDateRange] = useState<string>('mes');
 
   const updateStatsFromEmpleados = (emps: Empleado[]) => {
@@ -134,7 +136,10 @@ export default function DashboardAdminScreen() {
       setEmpleados((prev) =>
         prev.map((emp) =>
           emp.id === id
-            ? { ...emp, estado: emp.estado === 'activo' ? 'inactivo' : 'activo' }
+            ? {
+                ...emp,
+                estado: emp.estado === 'activo' ? 'inactivo' : 'activo',
+              }
             : emp
         )
       );
@@ -152,7 +157,9 @@ export default function DashboardAdminScreen() {
       // DELETE /api/empresa/empleados/${showDeleteConfirm}
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      setEmpleados((prev) => prev.filter((emp) => emp.id !== showDeleteConfirm));
+      setEmpleados((prev) =>
+        prev.filter((emp) => emp.id !== showDeleteConfirm)
+      );
       showToast('success', 'Empleado eliminado');
       setShowDeleteConfirm(null);
     } catch {
@@ -160,7 +167,7 @@ export default function DashboardAdminScreen() {
     }
   };
 
-  if (!empresa) {
+  if (!user) {
     return null;
   }
 
@@ -185,7 +192,9 @@ export default function DashboardAdminScreen() {
               <UserPlus size={16} />
               Invitar Empleado
             </PrimaryButton>
-            <SecondaryButton onClick={() => router.push('/dashboard-admin/metricas')}>
+            <SecondaryButton
+              onClick={() => router.push('/dashboard-gerente/metricas')}
+            >
               <BarChart3 size={16} />
               Ver Métricas
             </SecondaryButton>
@@ -206,7 +215,10 @@ export default function DashboardAdminScreen() {
 
           {/* Metrics Dashboard */}
           <div className="mt-8">
-            <MetricsDashboard dateRange={dateRange} onDateRangeChange={setDateRange} />
+            <MetricsDashboard
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+            />
           </div>
         </main>
       </div>

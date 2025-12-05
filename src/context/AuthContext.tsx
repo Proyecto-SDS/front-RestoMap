@@ -1,14 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Empleado, Empresa, User, UserType } from '../types';
+import type { User, UserType } from '../types';
 import { api } from '../utils/apiClient';
 
 interface AuthContextType {
   user: User | null;
   userType: UserType;
-  empresa: Empresa | null;
-  empleado: Empleado | null;
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (
@@ -42,8 +40,6 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<UserType>('persona');
-  const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  const [empleado, setEmpleado] = useState<Empleado | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -57,8 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
     const storedUserType = localStorage.getItem('auth_user_type') as UserType;
-    const storedEmpresa = localStorage.getItem('auth_empresa');
-    const storedEmpleado = localStorage.getItem('auth_empleado');
 
     if (token && storedUser) {
       try {
@@ -66,20 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
         setUserType(storedUserType || 'persona');
         setIsLoggedIn(true);
-
-        if (storedEmpresa) {
-          setEmpresa(JSON.parse(storedEmpresa));
-        }
-        if (storedEmpleado) {
-          setEmpleado(JSON.parse(storedEmpleado));
-        }
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('auth_user_type');
-        localStorage.removeItem('auth_empresa');
-        localStorage.removeItem('auth_empleado');
       }
     }
 
@@ -101,9 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: response.user.nombre,
           email: response.user.correo,
           phone: response.user.telefono,
-          rol: response.user.rol, // Puede ser undefined para personas
-          id_local: response.user.id_local, // Puede ser undefined para personas
-          nombre_local: response.user.nombre_local, // Puede ser undefined para personas
+          rol: response.user.rol || 'cliente', // Default a 'cliente' para personas
+          id_local: response.user.id_local,
+          nombre_local: response.user.nombre_local,
         };
 
         // Detectar el tipo de usuario basándose en los datos de respuesta
@@ -182,13 +167,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('auth_user_type');
-        localStorage.removeItem('auth_empresa');
-        localStorage.removeItem('auth_empleado');
       }
       setUser(null);
       setUserType('persona');
-      setEmpresa(null);
-      setEmpleado(null);
       setIsLoggedIn(false);
     }
   };
@@ -207,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: response.user.nombre,
           email: response.user.correo,
           phone: response.user.telefono,
+          rol: response.user.rol || user?.rol || 'cliente',
         };
 
         if (typeof window !== 'undefined') {
@@ -233,8 +215,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     userType,
-    empresa,
-    empleado,
     isLoggedIn,
     isLoading,
     login,

@@ -10,7 +10,7 @@ export default function DashboardCocineroPage() {
   const { isLoggedIn, userType, user, isLoading } = useAuth();
 
   // Roles válidos para acceder al dashboard de cocinero
-  const isCocineroRol = user?.rol === 'cocinero' || user?.rol === 'chef';
+  const isCocineroRol = user?.rol === 'cocinero';
 
   useEffect(() => {
     // No redirigir mientras se carga el estado de autenticación

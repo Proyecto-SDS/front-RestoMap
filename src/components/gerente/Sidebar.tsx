@@ -1,6 +1,16 @@
 'use client';
 
-import { BarChart3, Calendar, ChefHat, Home, LogOut, Settings, Users, UtensilsCrossed, Wine } from 'lucide-react';
+import {
+  BarChart3,
+  Calendar,
+  ChefHat,
+  Home,
+  LogOut,
+  Settings,
+  Users,
+  UtensilsCrossed,
+  Wine,
+} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 
@@ -14,14 +24,54 @@ export function Sidebar({ activeItem }: SidebarProps = {}) {
   const { logout } = useAuth();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard-admin' },
-    { id: 'empleados', label: 'Empleados', icon: Users, path: '/dashboard-admin/empleados' },
-    { id: 'metricas', label: 'Métricas', icon: BarChart3, path: '/dashboard-admin/metricas' },
-    { id: 'mesero', label: 'Panel Mesero', icon: UtensilsCrossed, path: '/dashboard-mesero' },
-    { id: 'cocinero', label: 'Panel Cocina', icon: ChefHat, path: '/dashboard-cocinero' },
-    { id: 'bartender', label: 'Panel Barra', icon: Wine, path: '/dashboard-bartender' },
-    { id: 'reservas', label: 'Panel Reservas', icon: Calendar, path: '/dashboard-reservas' },
-    { id: 'configuracion', label: 'Configuración', icon: Settings, path: '/dashboard-admin/configuracion' },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      path: '/dashboard-gerente',
+    },
+    {
+      id: 'empleados',
+      label: 'Empleados',
+      icon: Users,
+      path: '/dashboard-gerente/empleados',
+    },
+    {
+      id: 'metricas',
+      label: 'Métricas',
+      icon: BarChart3,
+      path: '/dashboard-gerente/metricas',
+    },
+    {
+      id: 'mesero',
+      label: 'Panel Mesero',
+      icon: UtensilsCrossed,
+      path: '/dashboard-mesero',
+    },
+    {
+      id: 'cocinero',
+      label: 'Panel Cocina',
+      icon: ChefHat,
+      path: '/dashboard-cocinero',
+    },
+    {
+      id: 'bartender',
+      label: 'Panel Barra',
+      icon: Wine,
+      path: '/dashboard-bartender',
+    },
+    {
+      id: 'reservas',
+      label: 'Panel Reservas',
+      icon: Calendar,
+      path: '/dashboard-reservas',
+    },
+    {
+      id: 'configuracion',
+      label: 'Configuración',
+      icon: Settings,
+      path: '/dashboard-gerente/configuracion',
+    },
   ];
 
   const handleLogout = () => {
@@ -47,7 +97,7 @@ export function Sidebar({ activeItem }: SidebarProps = {}) {
           </div>
           <div>
             <h2 className="text-[#334155]">ReservaYa</h2>
-            <p className="text-xs text-[#94A3B8]">Admin Panel</p>
+            <p className="text-xs text-[#94A3B8]">Panel Gerente</p>
           </div>
         </div>
       </div>
@@ -58,16 +108,17 @@ export function Sidebar({ activeItem }: SidebarProps = {}) {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.id, item.path);
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => router.push(item.path)}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                  ${active
-                    ? 'bg-orange-50 text-[#F97316] border-l-4 border-[#F97316]'
-                    : 'text-[#64748B] hover:bg-[#F1F5F9]'
+                  ${
+                    active
+                      ? 'bg-orange-50 text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'text-[#64748B] hover:bg-[#F1F5F9]'
                   }
                 `}
               >

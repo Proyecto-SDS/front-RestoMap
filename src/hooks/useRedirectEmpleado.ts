@@ -30,10 +30,9 @@ export function useRedirectEmpleado() {
 
       // Mapear rol a dashboard correspondiente
       const rolToDashboard: Record<string, string> = {
-        admin: '/dashboard-admin',
-        gerente: '/dashboard-admin',
+        admin: '/dashboard-gerente',
+        gerente: '/dashboard-gerente',
         mesero: '/dashboard-mesero',
-        chef: '/dashboard-cocinero',
         cocinero: '/dashboard-cocinero',
         bartender: '/dashboard-bartender',
       };

@@ -10,7 +10,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
-  rol?: string; // Rol del empleado (admin, mesero, chef, etc.) - null para personas
+  rol: Rol; // Rol del usuario (cliente para personas, otros para empleados)
   id_local?: number; // ID del local para empleados - null para personas
   nombre_local?: string; // Nombre del local para empleados - null para personas
 }
@@ -170,14 +170,15 @@ export interface TabItem {
   value: string;
 }
 
-// Employee and Company Types
+// Roles del sistema (alineado con backend)
 
-export type EmpleadoRol =
+export type Rol =
   | 'admin'
+  | 'gerente'
   | 'cocinero'
   | 'mesero'
   | 'bartender'
-  | 'reservas';
+  | 'cliente';
 
 export interface Empresa {
   id: string;
@@ -195,7 +196,7 @@ export interface Empleado {
   nombre: string;
   correo: string;
   telefono?: string;
-  rol: EmpleadoRol;
+  rol: Rol;
   estado: 'activo' | 'inactivo';
   creado_el: string;
 }

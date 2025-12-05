@@ -54,10 +54,9 @@ export default function LoginScreen() {
       if (userType === 'empresa' && user?.id_local) {
         const userRol = user.rol?.toLowerCase() || 'mesero';
         const rolToDashboard: Record<string, string> = {
-          admin: '/dashboard-admin',
-          gerente: '/dashboard-admin',
+          admin: '/dashboard-gerente',
+          gerente: '/dashboard-gerente',
           mesero: '/dashboard-mesero',
-          chef: '/dashboard-cocinero',
           cocinero: '/dashboard-cocinero',
           bartender: '/dashboard-bartender',
         };
@@ -121,10 +120,9 @@ export default function LoginScreen() {
 
           // Mapear rol a dashboard correspondiente
           const rolToDashboard: Record<string, string> = {
-            admin: '/dashboard-admin',
-            gerente: '/dashboard-admin',
+            admin: '/dashboard-gerente',
+            gerente: '/dashboard-gerente',
             mesero: '/dashboard-mesero',
-            chef: '/dashboard-cocinero',
             cocinero: '/dashboard-cocinero',
             bartender: '/dashboard-bartender',
           };

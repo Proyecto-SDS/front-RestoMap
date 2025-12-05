@@ -18,8 +18,10 @@ interface PedidosByEstado {
 
 export default function DashboardBartenderScreen() {
   const router = useRouter();
-  const { empresa, userType, isLoggedIn } = useAuth();
-  const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>('pedidos');
+  const { user, userType, isLoggedIn } = useAuth();
+  const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>(
+    'pedidos'
+  );
   const [pedidos, setPedidos] = useState<PedidosByEstado>({
     tomados: [],
     en_proceso: [],
@@ -35,8 +37,6 @@ export default function DashboardBartenderScreen() {
       router.replace('/login');
     }
   }, [isLoggedIn, userType, router]);
-
-
 
   const loadPedidos = async () => {
     setIsLoading(true);
@@ -62,7 +62,7 @@ export default function DashboardBartenderScreen() {
 
   const fetchPedidosBebidas = async () => {
     // Mock API call - GET /api/empresa/pedidos?filtro=bebidas_alcoholicas
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const mockPedidos: Pedido[] = [
       {
@@ -74,9 +74,23 @@ export default function DashboardBartenderScreen() {
         estado: 'TOMADO',
         creado_el: new Date(Date.now() - 2 * 60000).toISOString(),
         lineas: [
-          { id: 'LB1', id_pedido: 'ORD-BAR-001', id_producto: 'B1', producto_nombre: 'Pisco Sour', cantidad: 2, precio_unitario: 6500 },
-          { id: 'LB2', id_pedido: 'ORD-BAR-001', id_producto: 'B2', producto_nombre: 'Cerveza Kunstmann', cantidad: 3, precio_unitario: 3500 },
-        ]
+          {
+            id: 'LB1',
+            id_pedido: 'ORD-BAR-001',
+            id_producto: 'B1',
+            producto_nombre: 'Pisco Sour',
+            cantidad: 2,
+            precio_unitario: 6500,
+          },
+          {
+            id: 'LB2',
+            id_pedido: 'ORD-BAR-001',
+            id_producto: 'B2',
+            producto_nombre: 'Cerveza Kunstmann',
+            cantidad: 3,
+            precio_unitario: 3500,
+          },
+        ],
       },
       {
         id: 'ORD-BAR-002',
@@ -87,11 +101,32 @@ export default function DashboardBartenderScreen() {
         estado: 'EN_PROCESO',
         creado_el: new Date(Date.now() - 20 * 60000).toISOString(),
         lineas: [
-          { id: 'LB3', id_pedido: 'ORD-BAR-002', id_producto: 'B3', producto_nombre: 'Mojito', cantidad: 2, precio_unitario: 7500 },
-          { id: 'LB4', id_pedido: 'ORD-BAR-002', id_producto: 'B4', producto_nombre: 'Margarita', cantidad: 2, precio_unitario: 8000 },
-          { id: 'LB5', id_pedido: 'ORD-BAR-002', id_producto: 'B5', producto_nombre: 'Shot de Tequila', cantidad: 4, precio_unitario: 3000 },
+          {
+            id: 'LB3',
+            id_pedido: 'ORD-BAR-002',
+            id_producto: 'B3',
+            producto_nombre: 'Mojito',
+            cantidad: 2,
+            precio_unitario: 7500,
+          },
+          {
+            id: 'LB4',
+            id_pedido: 'ORD-BAR-002',
+            id_producto: 'B4',
+            producto_nombre: 'Margarita',
+            cantidad: 2,
+            precio_unitario: 8000,
+          },
+          {
+            id: 'LB5',
+            id_pedido: 'ORD-BAR-002',
+            id_producto: 'B5',
+            producto_nombre: 'Shot de Tequila',
+            cantidad: 4,
+            precio_unitario: 3000,
+          },
         ],
-        notas: 'Sin azúcar en los cócteles'
+        notas: 'Sin azúcar en los cócteles',
       },
       {
         id: 'ORD-BAR-003',
@@ -102,9 +137,23 @@ export default function DashboardBartenderScreen() {
         estado: 'EN_PROCESO',
         creado_el: new Date(Date.now() - 10 * 60000).toISOString(),
         lineas: [
-          { id: 'LB6', id_pedido: 'ORD-BAR-003', id_producto: 'B6', producto_nombre: 'Copa de Vino Tinto Casillero del Diablo', cantidad: 3, precio_unitario: 6500 },
-          { id: 'LB7', id_pedido: 'ORD-BAR-003', id_producto: 'B7', producto_nombre: 'Aperol Spritz', cantidad: 1, precio_unitario: 7500 },
-        ]
+          {
+            id: 'LB6',
+            id_pedido: 'ORD-BAR-003',
+            id_producto: 'B6',
+            producto_nombre: 'Copa de Vino Tinto Casillero del Diablo',
+            cantidad: 3,
+            precio_unitario: 6500,
+          },
+          {
+            id: 'LB7',
+            id_pedido: 'ORD-BAR-003',
+            id_producto: 'B7',
+            producto_nombre: 'Aperol Spritz',
+            cantidad: 1,
+            precio_unitario: 7500,
+          },
+        ],
       },
       {
         id: 'ORD-BAR-004',
@@ -115,9 +164,23 @@ export default function DashboardBartenderScreen() {
         estado: 'LISTO',
         creado_el: new Date(Date.now() - 18 * 60000).toISOString(),
         lineas: [
-          { id: 'LB8', id_pedido: 'ORD-BAR-004', id_producto: 'B8', producto_nombre: 'Cerveza Corona', cantidad: 4, precio_unitario: 4000 },
-          { id: 'LB9', id_pedido: 'ORD-BAR-004', id_producto: 'B9', producto_nombre: 'Chupito Jägermeister', cantidad: 2, precio_unitario: 2500 },
-        ]
+          {
+            id: 'LB8',
+            id_pedido: 'ORD-BAR-004',
+            id_producto: 'B8',
+            producto_nombre: 'Cerveza Corona',
+            cantidad: 4,
+            precio_unitario: 4000,
+          },
+          {
+            id: 'LB9',
+            id_pedido: 'ORD-BAR-004',
+            id_producto: 'B9',
+            producto_nombre: 'Chupito Jägermeister',
+            cantidad: 2,
+            precio_unitario: 2500,
+          },
+        ],
       },
       {
         id: 'ORD-BAR-005',
@@ -128,10 +191,31 @@ export default function DashboardBartenderScreen() {
         estado: 'TOMADO',
         creado_el: new Date(Date.now() - 35 * 60000).toISOString(),
         lineas: [
-          { id: 'LB10', id_pedido: 'ORD-BAR-005', id_producto: 'B10', producto_nombre: 'Gin Tonic Premium', cantidad: 2, precio_unitario: 9000 },
-          { id: 'LB11', id_pedido: 'ORD-BAR-005', id_producto: 'B11', producto_nombre: 'Old Fashioned', cantidad: 2, precio_unitario: 8500 },
-          { id: 'LB12', id_pedido: 'ORD-BAR-005', id_producto: 'B12', producto_nombre: 'Cerveza Heineken', cantidad: 2, precio_unitario: 3500 },
-        ]
+          {
+            id: 'LB10',
+            id_pedido: 'ORD-BAR-005',
+            id_producto: 'B10',
+            producto_nombre: 'Gin Tonic Premium',
+            cantidad: 2,
+            precio_unitario: 9000,
+          },
+          {
+            id: 'LB11',
+            id_pedido: 'ORD-BAR-005',
+            id_producto: 'B11',
+            producto_nombre: 'Old Fashioned',
+            cantidad: 2,
+            precio_unitario: 8500,
+          },
+          {
+            id: 'LB12',
+            id_pedido: 'ORD-BAR-005',
+            id_producto: 'B12',
+            producto_nombre: 'Cerveza Heineken',
+            cantidad: 2,
+            precio_unitario: 3500,
+          },
+        ],
       },
       {
         id: 'ORD-BAR-006',
@@ -142,8 +226,15 @@ export default function DashboardBartenderScreen() {
         estado: 'LISTO',
         creado_el: new Date(Date.now() - 6 * 60000).toISOString(),
         lineas: [
-          { id: 'LB13', id_pedido: 'ORD-BAR-006', id_producto: 'B13', producto_nombre: 'Caipirinha', cantidad: 3, precio_unitario: 7000 },
-        ]
+          {
+            id: 'LB13',
+            id_pedido: 'ORD-BAR-006',
+            id_producto: 'B13',
+            producto_nombre: 'Caipirinha',
+            cantidad: 3,
+            precio_unitario: 7000,
+          },
+        ],
       },
       {
         id: 'ORD-BAR-007',
@@ -154,43 +245,194 @@ export default function DashboardBartenderScreen() {
         estado: 'ENTREGADO',
         creado_el: new Date(Date.now() - 50 * 60000).toISOString(),
         lineas: [
-          { id: 'LB14', id_pedido: 'ORD-BAR-007', id_producto: 'B14', producto_nombre: 'Copa Vino Blanco Sauvignon Blanc', cantidad: 2, precio_unitario: 6500 },
-        ]
+          {
+            id: 'LB14',
+            id_pedido: 'ORD-BAR-007',
+            id_producto: 'B14',
+            producto_nombre: 'Copa Vino Blanco Sauvignon Blanc',
+            cantidad: 2,
+            precio_unitario: 6500,
+          },
+        ],
       },
     ];
 
     // Group by estado
     setPedidos({
-      tomados: mockPedidos.filter(p => p.estado === 'TOMADO'),
-      en_proceso: mockPedidos.filter(p => p.estado === 'EN_PROCESO'),
-      listos: mockPedidos.filter(p => p.estado === 'LISTO'),
-      entregados: mockPedidos.filter(p => p.estado === 'ENTREGADO'),
+      tomados: mockPedidos.filter((p) => p.estado === 'TOMADO'),
+      en_proceso: mockPedidos.filter((p) => p.estado === 'EN_PROCESO'),
+      listos: mockPedidos.filter((p) => p.estado === 'LISTO'),
+      entregados: mockPedidos.filter((p) => p.estado === 'ENTREGADO'),
     });
   };
 
   const fetchBebidasAlcoholicas = async () => {
     // Mock API call - GET /api/empresa/productos?categoria=bebidas_alcoholicas
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const mockBebidas: Producto[] = [
-      { id: 'B1', id_empresa: '1', id_categoria: 'C5', categoria_nombre: 'Cervezas', nombre: 'Cerveza Kunstmann', precio: 3500, disponible: true },
-      { id: 'B2', id_empresa: '1', id_categoria: 'C5', categoria_nombre: 'Cervezas', nombre: 'Cerveza Corona', precio: 4000, disponible: true },
-      { id: 'B3', id_empresa: '1', id_categoria: 'C5', categoria_nombre: 'Cervezas', nombre: 'Cerveza Heineken', precio: 3500, disponible: true },
-      { id: 'B4', id_empresa: '1', id_categoria: 'C5', categoria_nombre: 'Cervezas', nombre: 'Cerveza Austral', precio: 3000, disponible: false },
-      { id: 'B5', id_empresa: '1', id_categoria: 'C6', categoria_nombre: 'Vinos', nombre: 'Copa Vino Tinto Casillero del Diablo', precio: 6500, disponible: true },
-      { id: 'B6', id_empresa: '1', id_categoria: 'C6', categoria_nombre: 'Vinos', nombre: 'Copa Vino Blanco Sauvignon Blanc', precio: 6500, disponible: true },
-      { id: 'B7', id_empresa: '1', id_categoria: 'C6', categoria_nombre: 'Vinos', nombre: 'Copa Vino Carmenere', precio: 7000, disponible: true },
-      { id: 'B8', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Pisco Sour', precio: 6500, disponible: true },
-      { id: 'B9', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Mojito', precio: 7500, disponible: true },
-      { id: 'B10', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Margarita', precio: 8000, disponible: true },
-      { id: 'B11', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Caipirinha', precio: 7000, disponible: true },
-      { id: 'B12', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Gin Tonic Premium', precio: 9000, disponible: false },
-      { id: 'B13', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Old Fashioned', precio: 8500, disponible: true },
-      { id: 'B14', id_empresa: '1', id_categoria: 'C7', categoria_nombre: 'Cócteles', nombre: 'Aperol Spritz', precio: 7500, disponible: true },
-      { id: 'B15', id_empresa: '1', id_categoria: 'C8', categoria_nombre: 'Licores', nombre: 'Shot de Tequila', precio: 3000, disponible: true },
-      { id: 'B16', id_empresa: '1', id_categoria: 'C8', categoria_nombre: 'Licores', nombre: 'Chupito Jägermeister', precio: 2500, disponible: true },
-      { id: 'B17', id_empresa: '1', id_categoria: 'C8', categoria_nombre: 'Licores', nombre: 'Ron Añejo', precio: 4500, disponible: true },
-      { id: 'B18', id_empresa: '1', id_categoria: 'C8', categoria_nombre: 'Licores', nombre: 'Whisky Johnnie Walker', precio: 5500, disponible: false },
+      {
+        id: 'B1',
+        id_empresa: '1',
+        id_categoria: 'C5',
+        categoria_nombre: 'Cervezas',
+        nombre: 'Cerveza Kunstmann',
+        precio: 3500,
+        disponible: true,
+      },
+      {
+        id: 'B2',
+        id_empresa: '1',
+        id_categoria: 'C5',
+        categoria_nombre: 'Cervezas',
+        nombre: 'Cerveza Corona',
+        precio: 4000,
+        disponible: true,
+      },
+      {
+        id: 'B3',
+        id_empresa: '1',
+        id_categoria: 'C5',
+        categoria_nombre: 'Cervezas',
+        nombre: 'Cerveza Heineken',
+        precio: 3500,
+        disponible: true,
+      },
+      {
+        id: 'B4',
+        id_empresa: '1',
+        id_categoria: 'C5',
+        categoria_nombre: 'Cervezas',
+        nombre: 'Cerveza Austral',
+        precio: 3000,
+        disponible: false,
+      },
+      {
+        id: 'B5',
+        id_empresa: '1',
+        id_categoria: 'C6',
+        categoria_nombre: 'Vinos',
+        nombre: 'Copa Vino Tinto Casillero del Diablo',
+        precio: 6500,
+        disponible: true,
+      },
+      {
+        id: 'B6',
+        id_empresa: '1',
+        id_categoria: 'C6',
+        categoria_nombre: 'Vinos',
+        nombre: 'Copa Vino Blanco Sauvignon Blanc',
+        precio: 6500,
+        disponible: true,
+      },
+      {
+        id: 'B7',
+        id_empresa: '1',
+        id_categoria: 'C6',
+        categoria_nombre: 'Vinos',
+        nombre: 'Copa Vino Carmenere',
+        precio: 7000,
+        disponible: true,
+      },
+      {
+        id: 'B8',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Pisco Sour',
+        precio: 6500,
+        disponible: true,
+      },
+      {
+        id: 'B9',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Mojito',
+        precio: 7500,
+        disponible: true,
+      },
+      {
+        id: 'B10',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Margarita',
+        precio: 8000,
+        disponible: true,
+      },
+      {
+        id: 'B11',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Caipirinha',
+        precio: 7000,
+        disponible: true,
+      },
+      {
+        id: 'B12',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Gin Tonic Premium',
+        precio: 9000,
+        disponible: false,
+      },
+      {
+        id: 'B13',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Old Fashioned',
+        precio: 8500,
+        disponible: true,
+      },
+      {
+        id: 'B14',
+        id_empresa: '1',
+        id_categoria: 'C7',
+        categoria_nombre: 'Cócteles',
+        nombre: 'Aperol Spritz',
+        precio: 7500,
+        disponible: true,
+      },
+      {
+        id: 'B15',
+        id_empresa: '1',
+        id_categoria: 'C8',
+        categoria_nombre: 'Licores',
+        nombre: 'Shot de Tequila',
+        precio: 3000,
+        disponible: true,
+      },
+      {
+        id: 'B16',
+        id_empresa: '1',
+        id_categoria: 'C8',
+        categoria_nombre: 'Licores',
+        nombre: 'Chupito Jägermeister',
+        precio: 2500,
+        disponible: true,
+      },
+      {
+        id: 'B17',
+        id_empresa: '1',
+        id_categoria: 'C8',
+        categoria_nombre: 'Licores',
+        nombre: 'Ron Añejo',
+        precio: 4500,
+        disponible: true,
+      },
+      {
+        id: 'B18',
+        id_empresa: '1',
+        id_categoria: 'C8',
+        categoria_nombre: 'Licores',
+        nombre: 'Whisky Johnnie Walker',
+        precio: 5500,
+        disponible: false,
+      },
     ];
 
     setBebidas(mockBebidas);
@@ -198,16 +440,16 @@ export default function DashboardBartenderScreen() {
 
   const handlePedidoUpdate = (updatedPedido: Pedido) => {
     // Remove from old column and add to new column
-    setPedidos(prev => {
+    setPedidos((prev) => {
       const newState = { ...prev };
-      
+
       // Remove from all columns
-      Object.keys(newState).forEach(key => {
-        newState[key as keyof PedidosByEstado] = newState[key as keyof PedidosByEstado].filter(
-          p => p.id !== updatedPedido.id
-        );
+      Object.keys(newState).forEach((key) => {
+        newState[key as keyof PedidosByEstado] = newState[
+          key as keyof PedidosByEstado
+        ].filter((p) => p.id !== updatedPedido.id);
       });
-      
+
       // Add to appropriate column
       if (updatedPedido.estado === 'TOMADO') {
         newState.tomados.push(updatedPedido);
@@ -218,13 +460,15 @@ export default function DashboardBartenderScreen() {
       } else if (updatedPedido.estado === 'ENTREGADO') {
         newState.entregados.push(updatedPedido);
       }
-      
+
       return newState;
     });
   };
 
   const handleBebidaUpdate = (updatedBebida: Producto) => {
-    setBebidas(prev => prev.map(b => b.id === updatedBebida.id ? updatedBebida : b));
+    setBebidas((prev) =>
+      prev.map((b) => (b.id === updatedBebida.id ? updatedBebida : b))
+    );
   };
 
   // Load initial data
@@ -237,12 +481,15 @@ export default function DashboardBartenderScreen() {
   return (
     <div className="flex min-h-screen bg-[#F1F5F9]">
       {/* Sidebar */}
-      <SidebarBartender activeItem={activeSection} onNavigate={setActiveSection} />
+      <SidebarBartender
+        activeItem={activeSection}
+        onNavigate={setActiveSection}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Navigation */}
-        <TopNavBartender empresa={empresa} />
+        <TopNavBartender user={user} />
 
         {/* Content Area */}
         <main className="flex-1 p-6 overflow-y-auto">
