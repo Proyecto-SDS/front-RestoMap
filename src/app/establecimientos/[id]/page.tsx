@@ -1,5 +1,6 @@
 'use client';
 
+import { useRedirectEmpleado } from '@/hooks/useRedirectEmpleado';
 import dynamic from 'next/dynamic';
 
 const EstablishmentDetail = dynamic(
@@ -8,5 +9,8 @@ const EstablishmentDetail = dynamic(
 );
 
 export default function EstablishmentPage() {
+  // Redirigir empleados a su dashboard
+  useRedirectEmpleado();
+
   return <EstablishmentDetail />;
 }

@@ -10,6 +10,9 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  rol?: string; // Rol del empleado (admin, mesero, chef, etc.) - null para personas
+  id_local?: number; // ID del local para empleados - null para personas
+  nombre_local?: string; // Nombre del local para empleados - null para personas
 }
 
 export interface Establishment {
@@ -169,7 +172,12 @@ export interface TabItem {
 
 // Employee and Company Types
 
-export type EmpleadoRol = 'admin' | 'cocinero' | 'mesero' | 'bartender' | 'reservas';
+export type EmpleadoRol =
+  | 'admin'
+  | 'cocinero'
+  | 'mesero'
+  | 'bartender'
+  | 'reservas';
 
 export interface Empresa {
   id: string;

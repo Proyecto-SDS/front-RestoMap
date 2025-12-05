@@ -22,7 +22,13 @@ import { useAuth } from '../../context/AuthContext';
 export default function LoginScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoggedIn } = useAuth();
+  const {
+    login,
+    isLoggedIn,
+    isLoading: isAuthLoading,
+    userType,
+    user,
+  } = useAuth();
   const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -33,16 +39,35 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'persona' | 'empresa'>('persona');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Get the page the user was trying to access
   const from = searchParams?.get('from') || '/';
 
   // Redirect if already logged in
   useEffect(() => {
+    // No redirigir mientras se carga el estado de autenticación
+    if (isAuthLoading) return;
+
     if (isLoggedIn) {
-      router.replace('/');
+      // Si es empleado, redirigir a su dashboard según rol
+      if (userType === 'empresa' && user?.id_local) {
+        const userRol = user.rol?.toLowerCase() || 'mesero';
+        const rolToDashboard: Record<string, string> = {
+          admin: '/dashboard-admin',
+          gerente: '/dashboard-admin',
+          mesero: '/dashboard-mesero',
+          chef: '/dashboard-cocinero',
+          cocinero: '/dashboard-cocinero',
+          bartender: '/dashboard-bartender',
+        };
+        const dashboardPath = rolToDashboard[userRol] || '/dashboard-mesero';
+        router.replace(dashboardPath);
+      } else {
+        router.replace('/');
+      }
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, isAuthLoading, userType, user, router]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,6 +96,9 @@ export default function LoginScreen() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Limpiar mensaje de error previo
+    setErrorMessage('');
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -79,11 +107,38 @@ export default function LoginScreen() {
 
     if (result.success) {
       showToast('success', `¡Bienvenido a RestoMap!`);
+
+      // Esperar un momento para que el estado se actualice
       setTimeout(() => {
-        router.replace(from);
-      }, 800);
+        // Obtener el usuario actualizado del localStorage
+        const storedUser = localStorage.getItem('auth_user');
+        const storedUserType = localStorage.getItem('auth_user_type');
+
+        // Si es empleado (empresa), redirigir DIRECTO a su dashboard según rol
+        if (storedUserType === 'empresa' && storedUser) {
+          const user = JSON.parse(storedUser);
+          const userRol = user.rol?.toLowerCase();
+
+          // Mapear rol a dashboard correspondiente
+          const rolToDashboard: Record<string, string> = {
+            admin: '/dashboard-admin',
+            gerente: '/dashboard-admin',
+            mesero: '/dashboard-mesero',
+            chef: '/dashboard-cocinero',
+            cocinero: '/dashboard-cocinero',
+            bartender: '/dashboard-bartender',
+          };
+
+          const dashboardPath = rolToDashboard[userRol] || '/dashboard-mesero';
+          router.replace(dashboardPath);
+        } else {
+          // Si es persona, ir a la página de origen
+          router.replace(from);
+        }
+      }, 100); // Timeout corto para asegurar que el estado se actualice
     } else {
-      showToast('error', result.error || 'Correo o contraseña incorrectos');
+      // Mostrar error en cuadro en lugar de toast
+      setErrorMessage(result.error || 'Correo o contraseña incorrectos');
     }
   };
 
@@ -91,6 +146,10 @@ export default function LoginScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+    // Limpiar mensaje de error cuando el usuario empieza a escribir
+    if (errorMessage) {
+      setErrorMessage('');
     }
   };
 
@@ -104,12 +163,14 @@ export default function LoginScreen() {
 
   const handleTabChange = (tab: 'persona' | 'empresa') => {
     setActiveTab(tab);
+    // Limpiar mensaje de error al cambiar de tab
+    setErrorMessage('');
   };
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left Column - Hero Section */}
-      <div className="relative bg-linear-to-br from-orange-100 via-rose-100 to-pink-100 p-8 lg:p-12 flex flex-col justify-between overflow-hidden">
+      <div className="hidden lg:flex relative bg-linear-to-br from-orange-100 via-rose-100 to-pink-100 p-8 lg:p-12 flex-col justify-between overflow-hidden">
         {/* Decorative blurred gradients */}
         <div className="absolute inset-0 opacity-40 pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-linear-to-b from-[#F97316] to-[#EF4444] rounded-full blur-3xl" />
@@ -396,18 +457,27 @@ export default function LoginScreen() {
             </PrimaryButton>
           </form>
 
-          {/* Register Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-[#64748B]">
-              ¿No tienes cuenta?{' '}
-              <button
-                onClick={handleNavigateToRegister}
-                className="text-[#F97316] hover:underline font-medium"
-              >
-                Regístrate aquí
-              </button>
-            </p>
-          </div>
+          {/* Error Message Box */}
+          {errorMessage && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600 text-center">{errorMessage}</p>
+            </div>
+          )}
+
+          {/* Register Link - Only for Persona */}
+          {activeTab === 'persona' && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-[#64748B]">
+                ¿No tienes cuenta?{' '}
+                <button
+                  onClick={handleNavigateToRegister}
+                  className="text-[#F97316] hover:underline font-medium"
+                >
+                  Regístrate aquí
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

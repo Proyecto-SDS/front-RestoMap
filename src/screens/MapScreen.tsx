@@ -20,8 +20,6 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 // Validar token de Mapbox
 if (!mapboxgl.accessToken) {
   console.error('⚠MAPBOX TOKEN NO CONFIGURADO');
-} else {
-  console.log('Mapbox token configurado correctamente');
 }
 
 // Map center: Santiago, Chile
@@ -815,24 +813,26 @@ export default function MapScreen() {
 
         // Transform API response to match Establishment interface
         // Transform API response to match Establishment interface
-        const transformedData: Establishment[] = data.map((item: Establishment) => ({
-          id: item.id,
-          name: item.name,
-          type: item.type,
-          address: item.address,
-          commune: item.commune,
-          phone: item.phone,
-          email: item.email,
-          description: item.description,
-          image:
-            item.image ||
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-          rating: item.rating,
-          reviewCount: item.reviewCount,
-          status: item.status,
-          closingTime: item.closingTime,
-          coordinates: item.coordinates,
-        }));
+        const transformedData: Establishment[] = data.map(
+          (item: Establishment) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            address: item.address,
+            commune: item.commune,
+            phone: item.phone,
+            email: item.email,
+            description: item.description,
+            image:
+              item.image ||
+              'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+            rating: item.rating,
+            reviewCount: item.reviewCount,
+            status: item.status,
+            closingTime: item.closingTime,
+            coordinates: item.coordinates,
+          })
+        );
 
         setEstablishments(transformedData);
       } catch (err) {
@@ -857,7 +857,9 @@ export default function MapScreen() {
 
       try {
         const response = await api.getFavorites();
-        const favoriteIds = response.favoritos.map((fav: { localId: string }) => fav.localId);
+        const favoriteIds = response.favoritos.map(
+          (fav: { localId: string }) => fav.localId
+        );
         setFavorites(favoriteIds);
       } catch (error) {
         console.error('Error loading favorites:', error);
@@ -957,9 +959,9 @@ export default function MapScreen() {
       } catch (error) {
         console.error('Error al agregar favorito:', error);
         if (error instanceof Error) {
-            alert(error.message || 'Error al agregar favorito');
+          alert(error.message || 'Error al agregar favorito');
         } else {
-            alert('Error al agregar favorito');
+          alert('Error al agregar favorito');
         }
       }
     }
@@ -976,9 +978,9 @@ export default function MapScreen() {
     } catch (error) {
       console.error('Error al eliminar favorito:', error);
       if (error instanceof Error) {
-          alert(error.message || 'Error al eliminar favorito');
+        alert(error.message || 'Error al eliminar favorito');
       } else {
-          alert('Error al eliminar favorito');
+        alert('Error al eliminar favorito');
       }
     }
   };

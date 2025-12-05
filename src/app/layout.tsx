@@ -16,8 +16,11 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // Hide header on auth pages
-  const hideHeader = pathname === '/login' || pathname === '/register';
+  // Hide header on auth pages and employee dashboards
+  const hideHeader =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname.startsWith('/dashboard-');
 
   return (
     <html lang="es" suppressHydrationWarning>
