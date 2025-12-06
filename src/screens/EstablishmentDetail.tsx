@@ -1666,12 +1666,15 @@ export default function EstablishmentDetail() {
           });
         } catch (err: unknown) {
           // Si devuelve 404, significa que el usuario no tiene opinión para este local (comportamiento esperado)
-          if (
+          const is404Error =
             err instanceof Error &&
-            (err.message?.includes('404') ||
-              err.message?.includes('No tienes opinión'))
-          ) {
-            // No hacer nada, es normal no tener opinión
+            ((err as { status?: number }).status === 404 ||
+              err.message?.includes('404') ||
+              err.message?.includes('No tienes opinión') ||
+              err.message?.includes('No tienes opinion'));
+
+          if (is404Error) {
+            // No hacer nada, es normal no tener opinión - ya se manejó silenciosamente en apiClient
             setCurrentUserOpinion(null);
           } else {
             // Solo mostrar error si es un error real (no 404)

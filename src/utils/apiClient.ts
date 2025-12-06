@@ -47,8 +47,10 @@ export async function apiCall(endpoint: string, options: ApiCallOptions = {}) {
     const is404 = (error as ApiError).status === 404;
     const isUserOpinionEndpoint =
       endpoint.includes('/opiniones/') && endpoint.includes('/user');
+    const isFavoriteNotFound = endpoint.includes('/api/favoritos/') && is404;
 
-    if (!(is404 && isUserOpinionEndpoint)) {
+    // No mostrar en consola errores esperados (404 en opinión de usuario, favoritos no encontrados)
+    if (!(is404 && (isUserOpinionEndpoint || isFavoriteNotFound))) {
       console.error('API call error:', error);
     }
 
@@ -253,16 +255,6 @@ export const api = {
 
     // Empleados
     getEmpleados: () => apiCall('/api/empresa/empleados/'),
-    createEmpleado: (data: {
-      nombre: string;
-      correo: string;
-      telefono?: string;
-      rol: string;
-    }) =>
-      apiCall('/api/empresa/empleados/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
     updateEmpleado: (
       id: number,
       data: { nombre?: string; telefono?: string; rol?: string }
@@ -271,13 +263,20 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    updateEmpleadoEstado: (id: number, estado: string) =>
-      apiCall(`/api/empresa/empleados/${id}/estado`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado }),
-      }),
     deleteEmpleado: (id: number) =>
       apiCall(`/api/empresa/empleados/${id}`, { method: 'DELETE' }),
+
+    // Invitaciones de empleados
+    createInvitation: (correo: string, rol: string) =>
+      apiCall('/api/empresa/empleados/invitaciones', {
+        method: 'POST',
+        body: JSON.stringify({ correo, rol }),
+      }),
+    getInvitations: () => apiCall('/api/empresa/empleados/invitaciones'),
+    cancelInvitation: (id: number) =>
+      apiCall(`/api/empresa/empleados/invitaciones/${id}`, {
+        method: 'DELETE',
+      }),
 
     // Productos
     getProductos: (categoria?: string, estado?: string) => {
@@ -331,5 +330,23 @@ export const api = {
 
     // Stats
     getStats: () => apiCall('/api/empresa/stats/dashboard'),
+  },
+
+  // ============================================
+  // INVITACIONES PÚBLICAS - /api/invitaciones/*
+  // ============================================
+  invitaciones: {
+    getInvitationDetails: (token: string) =>
+      apiCall(`/api/invitaciones/${token}`),
+    acceptInvitation: (token: string) =>
+      apiCall('/api/invitaciones/aceptar', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      }),
+    rejectInvitation: (token: string) =>
+      apiCall('/api/invitaciones/rechazar', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      }),
   },
 };
