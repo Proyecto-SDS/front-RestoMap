@@ -230,9 +230,7 @@ export default function DashboardMeseroScreen() {
               onRefresh={loadPedidos}
             />
           )}
-          {activeSection === 'reservas' && (
-            <ReservasManagement mesas={mesas} onMesaUpdate={handleMesaUpdate} />
-          )}
+          {activeSection === 'reservas' && <ReservasManagement mesas={mesas} />}
           {activeSection === 'qr' && (
             <ScanQRReserva mesas={mesas} onMesaUpdate={handleMesaUpdate} />
           )}

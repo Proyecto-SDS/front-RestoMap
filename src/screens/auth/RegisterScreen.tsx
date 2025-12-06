@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
+import { TermsModal } from '../../components/modals/TermsModal';
 import { Toast, useToast } from '../../components/notifications/Toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -24,6 +25,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -377,7 +379,14 @@ export default function RegisterScreen() {
                     className="mt-1 w-4 h-4 text-[#F97316] border-[#E2E8F0] rounded focus:ring-2 focus:ring-[#F97316]/20"
                   />
                   <span className="text-sm text-[#64748B]">
-                    Acepto los términos y condiciones
+                    Acepto los{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-[#F97316] hover:underline"
+                    >
+                      términos y condiciones
+                    </button>
                   </span>
                 </label>
                 {errors.aceptaTerminos && (
@@ -409,6 +418,19 @@ export default function RegisterScreen() {
                 </button>
               </p>
             </div>
+
+            {/* Business registration link */}
+            <div className="mt-4 text-center">
+              <p className="text-sm text-[#64748B]">
+                ¿Tienes un restaurante o bar?{' '}
+                <button
+                  onClick={() => router.push('/register-empresa')}
+                  className="text-[#F97316] hover:underline font-medium"
+                >
+                  Registra tu empresa
+                </button>
+              </p>
+            </div>
           </div>
 
           {/* Right: Branding/Hero (Desktop only) */}
@@ -436,6 +458,13 @@ export default function RegisterScreen() {
           onClose={hideToast}
         />
       )}
+
+      {/* Terms Modal */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        type="persona"
+      />
     </div>
   );
 }

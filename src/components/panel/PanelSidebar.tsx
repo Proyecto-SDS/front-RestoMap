@@ -24,31 +24,23 @@ interface PanelSidebarProps {
   onCloseMobileMenu?: () => void;
 }
 
-export function PanelSidebar({
+// Componente de contenido del sidebar extraido fuera del render
+function SidebarContentInner({
   title,
   subtitle,
-  icon: IconComponent,
+  IconComponent,
   menuItems,
   activeItem,
-  onNavigate,
-  useRouterNavigation = false,
-  isMobileMenuOpen = false,
-  onCloseMobileMenu,
-}: PanelSidebarProps) {
-  const router = useRouter();
-
-  const handleNavigation = (item: MenuItem) => {
-    if (useRouterNavigation && item.path) {
-      router.push(item.path);
-    } else if (onNavigate) {
-      onNavigate(item.id);
-    }
-    if (onCloseMobileMenu) {
-      onCloseMobileMenu();
-    }
-  };
-
-  const SidebarContent = () => (
+  handleNavigation,
+}: {
+  title: string;
+  subtitle: string;
+  IconComponent: LucideIcon;
+  menuItems: MenuItem[];
+  activeItem: string;
+  handleNavigation: (item: MenuItem) => void;
+}) {
+  return (
     <>
       {/* Logo/Brand */}
       <div className="border-b border-[#E2E8F0] flex-shrink-0">
@@ -98,6 +90,40 @@ export function PanelSidebar({
       </div>
     </>
   );
+}
+
+export function PanelSidebar({
+  title,
+  subtitle,
+  icon: IconComponent,
+  menuItems,
+  activeItem,
+  onNavigate,
+  useRouterNavigation = false,
+  isMobileMenuOpen = false,
+  onCloseMobileMenu,
+}: PanelSidebarProps) {
+  const router = useRouter();
+
+  const handleNavigation = (item: MenuItem) => {
+    if (useRouterNavigation && item.path) {
+      router.push(item.path);
+    } else if (onNavigate) {
+      onNavigate(item.id);
+    }
+    if (onCloseMobileMenu) {
+      onCloseMobileMenu();
+    }
+  };
+
+  const sidebarProps = {
+    title,
+    subtitle,
+    IconComponent,
+    menuItems,
+    activeItem,
+    handleNavigation,
+  };
 
   return (
     <>
@@ -115,7 +141,7 @@ export function PanelSidebar({
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Bot\u00f3n cerrar en m\u00f3vil */}
+        {/* Boton cerrar en movil */}
         <div className="flex justify-end p-4 border-b border-[#E2E8F0]">
           <button
             onClick={onCloseMobileMenu}
@@ -124,12 +150,12 @@ export function PanelSidebar({
             <X size={24} className="text-[#334155]" />
           </button>
         </div>
-        <SidebarContent />
+        <SidebarContentInner {...sidebarProps} />
       </aside>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-[#E2E8F0] flex-shrink-0">
-        <SidebarContent />
+        <SidebarContentInner {...sidebarProps} />
       </aside>
     </>
   );

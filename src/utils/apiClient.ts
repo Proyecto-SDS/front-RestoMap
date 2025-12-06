@@ -78,11 +78,43 @@ export const api = {
     nombre: string,
     correo: string,
     telefono: string,
-    contrasena: string
+    contrasena: string,
+    acepta_terminos: boolean = true
   ) =>
     apiCall('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ nombre, correo, telefono, contrasena }),
+      body: JSON.stringify({
+        nombre,
+        correo,
+        telefono,
+        contrasena,
+        acepta_terminos,
+      }),
+    }),
+
+  validarRut: (rut: string) =>
+    apiCall(`/api/auth/validar-rut/${encodeURIComponent(rut)}`),
+
+  registerEmpresa: (data: {
+    rut_empresa: string;
+    razon_social: string;
+    nombre_local: string;
+    telefono_local: string;
+    correo_local: string;
+    descripcion?: string;
+    id_tipo_local: number;
+    calle: string;
+    numero: number;
+    id_comuna: number;
+    nombre_gerente: string;
+    correo_gerente: string;
+    telefono_gerente: string;
+    contrasena: string;
+    acepta_terminos: boolean;
+  }) =>
+    apiCall('/api/auth/register-empresa', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 
   logout: () =>
