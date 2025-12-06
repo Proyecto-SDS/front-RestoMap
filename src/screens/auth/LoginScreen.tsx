@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  Building2,
   CheckCircle2,
   Eye,
   EyeOff,
@@ -10,7 +9,6 @@ import {
   Mail,
   MapPin,
   Star,
-  User,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -38,7 +36,6 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'persona' | 'empresa'>('persona');
   const [errorMessage, setErrorMessage] = useState('');
 
   // Get the page the user was trying to access
@@ -46,11 +43,11 @@ export default function LoginScreen() {
 
   // Redirect if already logged in
   useEffect(() => {
-    // No redirigir mientras se carga el estado de autenticación
+    // No redirigir mientras se carga el estado de autenticacion
     if (isAuthLoading) return;
 
     if (isLoggedIn) {
-      // Si es empleado, redirigir a su dashboard según rol
+      // Si es empleado, redirigir a su dashboard segun rol
       if (userType === 'empresa' && user?.id_local) {
         const userRol = user.rol?.toLowerCase() || 'mesero';
         const rolToDashboard: Record<string, string> = {
@@ -79,13 +76,13 @@ export default function LoginScreen() {
     if (!formData.correo) {
       newErrors.correo = 'El correo es requerido';
     } else if (!validateEmail(formData.correo)) {
-      newErrors.correo = 'Correo inválido';
+      newErrors.correo = 'Correo invalido';
     }
 
     if (!formData.contrasena) {
-      newErrors.contrasena = 'La contraseña es requerida';
+      newErrors.contrasena = 'La contrasena es requerida';
     } else if (formData.contrasena.length < 6) {
-      newErrors.contrasena = 'Mínimo 6 caracteres';
+      newErrors.contrasena = 'Minimo 6 caracteres';
     }
 
     setErrors(newErrors);
@@ -101,42 +98,45 @@ export default function LoginScreen() {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    const result = await login(formData.correo, formData.contrasena, activeTab);
+    const result = await login(formData.correo, formData.contrasena);
     setIsLoading(false);
 
     if (result.success) {
-      showToast('success', `¡Bienvenido a RestoMap!`);
+      showToast('success', `Bienvenido a RestoMap!`);
 
       // Esperar un momento para que el estado se actualice
       setTimeout(() => {
         // Obtener el usuario actualizado del localStorage
         const storedUser = localStorage.getItem('auth_user');
-        const storedUserType = localStorage.getItem('auth_user_type');
 
-        // Si es empleado (empresa), redirigir DIRECTO a su dashboard según rol
-        if (storedUserType === 'empresa' && storedUser) {
-          const user = JSON.parse(storedUser);
-          const userRol = user.rol?.toLowerCase();
+        // Detectar tipo de usuario y redirigir
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
 
-          // Mapear rol a dashboard correspondiente
-          const rolToDashboard: Record<string, string> = {
-            admin: '/dashboard-gerente',
-            gerente: '/dashboard-gerente',
-            mesero: '/dashboard-mesero',
-            cocinero: '/dashboard-cocinero',
-            bartender: '/dashboard-bartender',
-          };
-
-          const dashboardPath = rolToDashboard[userRol] || '/dashboard-mesero';
-          router.replace(dashboardPath);
+          // Si tiene id_local es empleado, redirigir a dashboard
+          if (userData.id_local) {
+            const userRol = userData.rol?.toLowerCase();
+            const rolToDashboard: Record<string, string> = {
+              admin: '/dashboard-gerente',
+              gerente: '/dashboard-gerente',
+              mesero: '/dashboard-mesero',
+              cocinero: '/dashboard-cocinero',
+              bartender: '/dashboard-bartender',
+            };
+            const dashboardPath =
+              rolToDashboard[userRol] || '/dashboard-mesero';
+            router.replace(dashboardPath);
+          } else {
+            // Usuario normal, ir a la pagina de origen
+            router.replace(from);
+          }
         } else {
-          // Si es persona, ir a la página de origen
           router.replace(from);
         }
-      }, 100); // Timeout corto para asegurar que el estado se actualice
+      }, 100);
     } else {
       // Mostrar error en cuadro en lugar de toast
-      setErrorMessage(result.error || 'Correo o contraseña incorrectos');
+      setErrorMessage(result.error || 'Correo o contrasena incorrectos');
     }
   };
 
@@ -157,12 +157,6 @@ export default function LoginScreen() {
 
   const handleBackToHome = () => {
     router.push('/');
-  };
-
-  const handleTabChange = (tab: 'persona' | 'empresa') => {
-    setActiveTab(tab);
-    // Limpiar mensaje de error al cambiar de tab
-    setErrorMessage('');
   };
 
   return (
@@ -200,12 +194,12 @@ export default function LoginScreen() {
           {/* Main Heading */}
           <div className="mb-8">
             <h1 className="text-3xl lg:text-4xl font-semibold text-[#334155] mb-4 leading-tight">
-              Tu mesa perfecta te está esperando
+              Tu mesa perfecta te esta esperando
             </h1>
             <p className="text-base text-[#64748B] leading-relaxed">
               Conecta con los mejores restaurantes, restobares y bares de
               Santiago. Reserva en segundos y disfruta experiencias
-              gastronómicas inolvidables.
+              gastronomicas inolvidables.
             </p>
           </div>
 
@@ -217,7 +211,7 @@ export default function LoginScreen() {
               </div>
               <div>
                 <h3 className="font-medium text-[#334155] mb-1">
-                  Reservas instantáneas
+                  Reservas instantaneas
                 </h3>
                 <p className="text-sm text-[#64748B]">
                   Confirma tu mesa en tiempo real sin esperas
@@ -231,7 +225,7 @@ export default function LoginScreen() {
               </div>
               <div>
                 <h3 className="font-medium text-[#334155] mb-1">
-                  Descubre lugares únicos
+                  Descubre lugares unicos
                 </h3>
                 <p className="text-sm text-[#64748B]">
                   Explora opciones cerca de ti con mapas interactivos
@@ -248,7 +242,7 @@ export default function LoginScreen() {
                   Opiniones verificadas
                 </h3>
                 <p className="text-sm text-[#64748B]">
-                  Lee reseñas reales de otros comensales
+                  Lee resenas reales de otros comensales
                 </p>
               </div>
             </div>
@@ -293,41 +287,10 @@ export default function LoginScreen() {
         </div>
 
         <div className="w-full max-w-md">
-          {/* Tab Selection Header */}
-          <div className="text-center mb-6">
-            <p className="text-sm text-[#64748B] mb-4">
-              Selecciona cómo quieres iniciar sesión
-            </p>
-            <div className="flex gap-3 p-1 bg-gray-100 rounded-xl">
-              <button
-                onClick={() => handleTabChange('persona')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all ${
-                  activeTab === 'persona'
-                    ? 'bg-white shadow-sm text-[#F97316] font-medium'
-                    : 'text-[#64748B] hover:text-[#334155]'
-                }`}
-              >
-                <User size={18} />
-                <span>Persona</span>
-              </button>
-              <button
-                onClick={() => handleTabChange('empresa')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all ${
-                  activeTab === 'empresa'
-                    ? 'bg-white shadow-sm text-[#F97316] font-medium'
-                    : 'text-[#64748B] hover:text-[#334155]'
-                }`}
-              >
-                <Building2 size={18} />
-                <span>Empresa</span>
-              </button>
-            </div>
-          </div>
-
           {/* Form Title */}
           <div className="mb-6">
             <h1 className="text-3xl font-semibold text-[#334155] mb-2">
-              Inicia sesión
+              Inicia sesion
             </h1>
             <p className="text-[#64748B]">
               Accede a tu cuenta para reservar y dejar opiniones
@@ -336,38 +299,18 @@ export default function LoginScreen() {
 
           {/* Demo Credentials Banner */}
           <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            {activeTab === 'persona' && (
-              <>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Persona (Juan Pérez):</strong> juan@test.cl /
-                  test123
-                </p>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Persona (Maria Gonzalez):</strong> maria@test.cl
-                  / test123
-                </p>
-              </>
-            )}
-            {activeTab === 'empresa' && (
-              <>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Empresa (Mesero):</strong> mesero@test.cl /
-                  test123
-                </p>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Empresa (Chef):</strong> cocinero@test.cl /
-                  test123
-                </p>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Empresa (Bartender):</strong> bartender@test.cl /
-                  test123
-                </p>
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Empresa (Gerente):</strong> gerente@test.cl /
-                  test123
-                </p>
-              </>
-            )}
+            <p className="text-sm text-blue-800 font-medium mb-1">
+              Cuentas demo:
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Cliente:</strong> juan@test.cl / test123
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Gerente:</strong> gerente@test.cl / test123
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Mesero:</strong> mesero@test.cl / test123
+            </p>
           </div>
 
           {/* Login Form */}
@@ -377,7 +320,7 @@ export default function LoginScreen() {
                 htmlFor="correo"
                 className="block mb-2 text-sm font-medium text-[#334155]"
               >
-                Correo electrónico
+                Correo electronico
               </label>
               <div className="relative">
                 <Mail
@@ -412,7 +355,7 @@ export default function LoginScreen() {
                 htmlFor="contrasena"
                 className="block mb-2 text-sm font-medium text-[#334155]"
               >
-                Contraseña
+                Contrasena
               </label>
               <div className="relative">
                 <Lock
@@ -424,7 +367,7 @@ export default function LoginScreen() {
                   id="contrasena"
                   value={formData.contrasena}
                   onChange={(e) => handleChange('contrasena', e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="********"
                   className={`
                     w-full pl-11 pr-11 py-3 border rounded-xl
                     transition-all duration-200
@@ -441,7 +384,7 @@ export default function LoginScreen() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
                   aria-label={
-                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                    showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'
                   }
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -460,7 +403,7 @@ export default function LoginScreen() {
               isLoading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Iniciando sesión...' : 'Inicia sesión'}
+              {isLoading ? 'Iniciando sesion...' : 'Inicia sesion'}
             </PrimaryButton>
           </form>
 
@@ -471,20 +414,18 @@ export default function LoginScreen() {
             </div>
           )}
 
-          {/* Register Link - Only for Persona */}
-          {activeTab === 'persona' && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-[#64748B]">
-                ¿No tienes cuenta?{' '}
-                <button
-                  onClick={handleNavigateToRegister}
-                  className="text-[#F97316] hover:underline font-medium"
-                >
-                  Regístrate aquí
-                </button>
-              </p>
-            </div>
-          )}
+          {/* Register Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-[#64748B]">
+              No tienes cuenta?{' '}
+              <button
+                onClick={handleNavigateToRegister}
+                className="text-[#F97316] hover:underline font-medium"
+              >
+                Registrate aqui
+              </button>
+            </p>
+          </div>
         </div>
       </div>
 

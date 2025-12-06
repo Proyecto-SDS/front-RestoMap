@@ -64,14 +64,10 @@ export const api = {
   getEstablishment: (id: string) => apiCall(`/api/locales/${id}`),
 
   // Auth endpoints - /api/auth/
-  login: (
-    correo: string,
-    contrasena: string,
-    tipo_login: 'persona' | 'empresa' = 'persona'
-  ) =>
+  login: (correo: string, contrasena: string) =>
     apiCall('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ correo, contrasena, tipo_login }),
+      body: JSON.stringify({ correo, contrasena }),
     }),
 
   register: (

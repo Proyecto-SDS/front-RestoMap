@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, Building2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Toast, useToast } from '../../components/notifications/Toast';
@@ -35,13 +35,8 @@ export default function ProfileScreen() {
   >('reservas');
 
   // Load data using custom hook
-  const {
-    reservations,
-    opinions,
-    favorites,
-    setReservations,
-    setFavorites,
-  } = useProfileData(user?.id, (error) => showToast('error', error));
+  const { reservations, opinions, favorites, setReservations, setFavorites } =
+    useProfileData(user?.id, (error) => showToast('error', error));
 
   // Pagination state
   const [reservationPage, setReservationPage] = useState(1);
@@ -279,13 +274,35 @@ export default function ProfileScreen() {
             </button>
             <h1 className="text-[#334155]">Mi Perfil</h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors"
-          >
-            <LogOut size={18} />
-            <span className="hidden sm:inline">Cerrar sesión</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Boton Panel de Gestion - solo para empleados */}
+            {user?.id_local && (
+              <button
+                onClick={() => {
+                  const rol = user.rol?.toLowerCase() || 'mesero';
+                  const dashboards: Record<string, string> = {
+                    admin: '/dashboard-gerente',
+                    gerente: '/dashboard-gerente',
+                    mesero: '/dashboard-mesero',
+                    cocinero: '/dashboard-cocinero',
+                    bartender: '/dashboard-bartender',
+                  };
+                  router.push(dashboards[rol] || '/dashboard-mesero');
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white rounded-lg hover:opacity-90 transition-opacity"
+              >
+                <Building2 size={18} />
+                <span className="hidden sm:inline">Panel de Gestion</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline">Cerrar sesion</span>
+            </button>
+          </div>
         </div>
       </div>
 

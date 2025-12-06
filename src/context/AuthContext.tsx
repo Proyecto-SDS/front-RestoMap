@@ -73,12 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (
     correo: string,
-    contrasena: string,
-    tipo_login: 'persona' | 'empresa' = 'persona'
+    contrasena: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Llamar al endpoint de login con el tipo seleccionado
-      const response = await api.login(correo, contrasena, tipo_login);
+      // Login unificado - tipo de usuario detectado automaticamente
+      const response = await api.login(correo, contrasena);
 
       if (response.token && response.user) {
         const userData: User = {
@@ -86,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: response.user.nombre,
           email: response.user.correo,
           phone: response.user.telefono,
-          rol: response.user.rol || 'cliente', // Default a 'cliente' para personas
+          rol: response.user.rol || null, // null para usuarios sin rol de empleado
           id_local: response.user.id_local,
           nombre_local: response.user.nombre_local,
         };
