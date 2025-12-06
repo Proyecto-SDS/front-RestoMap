@@ -1,18 +1,22 @@
 'use client';
 
-import { LogOut, Menu, User, X } from 'lucide-react';
+import { Building2, ChevronDown, LogOut, Menu, User, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
   const router = useRouter();
-  // const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // User is an employee if they have id_local
+  const isEmployee = !!user?.id_local;
 
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -26,10 +30,26 @@ export function NavHeader() {
     return () => mainElement.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleLogout = () => {
     logout();
     router.push('/login');
     setIsMobileMenuOpen(false);
+    setShowDropdown(false);
   };
 
   const handleLoginClick = () => {
@@ -39,6 +59,22 @@ export function NavHeader() {
 
   const handleProfileClick = () => {
     router.push('/profile');
+    setIsMobileMenuOpen(false);
+    setShowDropdown(false);
+  };
+
+  const handleGoToDashboard = () => {
+    if (!user) return;
+    const rol = user.rol?.toLowerCase() || 'mesero';
+    const dashboards: Record<string, string> = {
+      admin: '/dashboard-gerente',
+      gerente: '/dashboard-gerente',
+      mesero: '/dashboard-mesero',
+      cocinero: '/dashboard-cocinero',
+      bartender: '/dashboard-bartender',
+    };
+    router.push(dashboards[rol] || '/dashboard-mesero');
+    setShowDropdown(false);
     setIsMobileMenuOpen(false);
   };
 
@@ -51,19 +87,19 @@ export function NavHeader() {
         ${isScrolled ? 'shadow-md' : ''}
       `}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+      <div className="w-full px-2 sm:px-4">
+        <div className="flex items-center justify-between h-16 gap-2">
           {/* Logo */}
           <Link
             href="/"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center p-1">
+            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
               <Image
                 src="/logo.png"
                 alt="RestoMap Logo"
-                width={64}
-                height={64}
+                width={48}
+                height={48}
                 className="w-full h-full object-contain"
               />
             </div>
@@ -75,11 +111,11 @@ export function NavHeader() {
           <div className="flex-1" />
 
           {/* Right - User Menu (Desktop) */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             {isLoggedIn && user ? (
-              <>
+              <div className="relative" ref={dropdownRef}>
                 <button
-                  onClick={handleProfileClick}
+                  onClick={() => setShowDropdown(!showDropdown)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center">
@@ -90,15 +126,56 @@ export function NavHeader() {
                   <span className="text-sm text-[#334155] font-medium">
                     {user.name}
                   </span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-[#94A3B8] transition-transform ${
+                      showDropdown ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-[#E2E8F0] hover:bg-[#F1F5F9] transition-colors text-[#334155]"
-                >
-                  <LogOut size={18} />
-                  <span>Salir</span>
-                </button>
-              </>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E2E8F0] py-2 z-[55]">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-[#E2E8F0]">
+                      <p className="text-sm text-[#334155] font-medium">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-[#94A3B8]">{user.email}</p>
+                    </div>
+
+                    {/* Mi Perfil */}
+                    <button
+                      onClick={handleProfileClick}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#334155] hover:bg-[#F1F5F9] transition-colors"
+                    >
+                      <User size={16} />
+                      Mi Perfil
+                    </button>
+
+                    {/* Panel de Gestion - solo para empleados */}
+                    {isEmployee && (
+                      <button
+                        onClick={handleGoToDashboard}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                      >
+                        <Building2 size={16} />
+                        Panel de Gestion
+                      </button>
+                    )}
+
+                    {/* Cerrar sesion */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      Cerrar sesion
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={handleLoginClick}
@@ -121,43 +198,76 @@ export function NavHeader() {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-[#E2E8F0] space-y-4">
-            {/* User Menu */}
+        <div
+          className={`
+            md:hidden overflow-hidden transition-all duration-300 ease-in-out
+            ${
+              isMobileMenuOpen
+                ? 'max-h-80 opacity-100'
+                : 'max-h-0 opacity-0 pointer-events-none'
+            }
+          `}
+        >
+          <div className="py-4 border-t border-[#E2E8F0] space-y-2 bg-[#F8FAFC]">
             {isLoggedIn && user ? (
               <>
+                {/* User Info */}
+                <div className="px-4 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#F97316] to-[#EF4444] flex items-center justify-center">
+                      <span className="text-white font-medium">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[#334155]">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-[#64748B]">{user.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mi Perfil */}
                 <button
                   onClick={handleProfileClick}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#334155] hover:bg-white transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-sm text-[#334155] font-medium">
-                    {user.name}
-                  </span>
+                  <User size={18} />
+                  Mi Perfil
                 </button>
+
+                {/* Panel de Gestion - solo para empleados */}
+                {isEmployee && (
+                  <button
+                    onClick={handleGoToDashboard}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                  >
+                    <Building2 size={18} />
+                    Panel de Gestion
+                  </button>
+                )}
+
+                {/* Cerrar sesion */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 border-[#E2E8F0] hover:bg-[#F1F5F9] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={18} />
-                  <span>Cerrar sesión</span>
+                  Cerrar sesion
                 </button>
               </>
             ) : (
               <button
                 onClick={handleLoginClick}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 border-[#E2E8F0] hover:bg-[#F1F5F9] transition-colors"
+                className="w-full flex items-center justify-center gap-2 mx-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
               >
                 <User size={18} />
                 <span>Ingresar</span>
               </button>
             )}
           </div>
-        )}
+        </div>
       </div>
     </header>
   );

@@ -187,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: response.user.nombre,
           email: response.user.correo,
           phone: response.user.telefono,
-          rol: response.user.rol || user?.rol || 'cliente',
+          rol: response.user.rol || user?.rol || null,
         };
 
         if (typeof window !== 'undefined') {

@@ -132,6 +132,18 @@ export function PanelTopNav({
                 Mi Perfil
               </button>
 
+              {/* Navegar como Cliente */}
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                  router.push('/');
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#3B82F6] hover:bg-[#EFF6FF] transition-colors"
+              >
+                <UserIcon size={16} />
+                Navegar como Cliente
+              </button>
+
               {/* Cerrar sesión */}
               <button
                 onClick={handleLogout}

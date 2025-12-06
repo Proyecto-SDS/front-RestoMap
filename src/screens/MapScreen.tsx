@@ -989,7 +989,7 @@ export default function MapScreen() {
     <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
       {/* Filter Chips */}
       <div className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0] shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="w-full px-2 sm:px-4 py-3">
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             <FilterChip
               label="Todos"
