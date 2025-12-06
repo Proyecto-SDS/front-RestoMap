@@ -1,4 +1,4 @@
-import { Filter, Pencil, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Filter, Pencil, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
@@ -10,7 +10,6 @@ interface Empleado {
   correo: string;
   telefono?: string;
   rol: string;
-  estado: 'activo' | 'inactivo';
   creado_el: string;
 }
 
@@ -19,7 +18,6 @@ interface EmployeeManagementProps {
   onInvite: () => void;
   onEdit: (empleado: Empleado) => void;
   onDelete: (id: string) => void;
-  onToggleStatus: (id: string) => void;
 }
 
 export function EmployeeManagement({
@@ -27,9 +25,9 @@ export function EmployeeManagement({
   onInvite,
   onEdit,
   onDelete,
-  onToggleStatus,
 }: EmployeeManagementProps) {
   const [filterRole, setFilterRole] = useState<string>('todos');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'empleados' | 'invitaciones'>(
     'empleados'
@@ -45,9 +43,13 @@ export function EmployeeManagement({
     'reservas',
   ];
 
-  const filteredEmpleados = empleados.filter(
-    (emp) => filterRole === 'todos' || emp.rol === filterRole
-  );
+  const filteredEmpleados = empleados.filter((emp) => {
+    const matchesRole = filterRole === 'todos' || emp.rol === filterRole;
+    const matchesSearch =
+      emp.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.correo.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesRole && matchesSearch;
+  });
 
   const totalPages = Math.ceil(filteredEmpleados.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -109,19 +111,33 @@ export function EmployeeManagement({
         <InvitationsList />
       ) : (
         <>
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-xl text-[#334155] mb-1">
-                Gestión de Empleados
-              </h2>
-              <p className="text-sm text-[#94A3B8]">
-                {filteredEmpleados.length} empleado
-                {filteredEmpleados.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+          {/* Header - Solo filtros */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <p className="text-sm text-[#94A3B8]">
+              {filteredEmpleados.length} empleado
+              {filteredEmpleados.length !== 1 ? 's' : ''} registrados
+            </p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Filtros y buscador */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Buscador */}
+              <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Buscar empleado..."
+                  className="w-full pl-10 pr-4 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] bg-white focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
+                />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+                />
+              </div>
+
               {/* Role filter */}
               <div className="relative">
                 <select
@@ -145,7 +161,7 @@ export function EmployeeManagement({
               </div>
 
               <PrimaryButton onClick={onInvite} size="sm">
-                + Invitar Nuevo Empleado
+                + Invitar Empleado
               </PrimaryButton>
             </div>
           </div>
@@ -169,9 +185,6 @@ export function EmployeeManagement({
                       </th>
                       <th className="text-left py-3 px-4 text-sm text-[#64748B] bg-[#F1F5F9]">
                         Rol
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm text-[#64748B] bg-[#F1F5F9]">
-                        Estado
                       </th>
                       <th className="text-right py-3 px-4 text-sm text-[#64748B] bg-[#F1F5F9]">
                         Acciones
@@ -212,24 +225,6 @@ export function EmployeeManagement({
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
-                              empleado.estado === 'activo'
-                                ? 'bg-green-100 text-[#22C55E]'
-                                : 'bg-gray-100 text-[#94A3B8]'
-                            }`}
-                          >
-                            {empleado.estado === 'activo' ? (
-                              <UserCheck size={12} />
-                            ) : (
-                              <UserX size={12} />
-                            )}
-                            {empleado.estado === 'activo'
-                              ? 'Activo'
-                              : 'Inactivo'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => onEdit(empleado)}
@@ -237,25 +232,6 @@ export function EmployeeManagement({
                               title="Editar"
                             >
                               <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => onToggleStatus(empleado.id)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                empleado.estado === 'activo'
-                                  ? 'text-[#64748B] hover:text-orange-600 hover:bg-orange-50'
-                                  : 'text-[#64748B] hover:text-green-600 hover:bg-green-50'
-                              }`}
-                              title={
-                                empleado.estado === 'activo'
-                                  ? 'Desactivar'
-                                  : 'Activar'
-                              }
-                            >
-                              {empleado.estado === 'activo' ? (
-                                <UserX size={16} />
-                              ) : (
-                                <UserCheck size={16} />
-                              )}
                             </button>
                             <button
                               onClick={() => onDelete(empleado.id)}

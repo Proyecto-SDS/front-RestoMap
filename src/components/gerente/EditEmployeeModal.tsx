@@ -9,7 +9,6 @@ interface Empleado {
   correo: string;
   telefono?: string;
   rol: string;
-  estado: 'activo' | 'inactivo';
 }
 
 interface EditEmployeeModalProps {
@@ -27,7 +26,6 @@ export function EditEmployeeModal({
     nombre: empleado.nombre,
     telefono: empleado.telefono || '',
     rol: empleado.rol,
-    estado: empleado.estado,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -182,39 +180,6 @@ export function EditEmployeeModal({
               placeholder="+56 9 1234 5678"
               className="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:border-[#F97316] focus:ring-[#F97316]/20 transition-all"
             />
-          </div>
-
-          {/* Estado */}
-          <div>
-            <label className="block text-sm text-[#334155] mb-2">Estado</label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="activo"
-                  checked={formData.estado === 'activo'}
-                  onChange={() =>
-                    setFormData({ ...formData, estado: 'activo' })
-                  }
-                  className="w-4 h-4 text-[#F97316] focus:ring-[#F97316]"
-                />
-                <span className="text-sm text-[#334155]">Activo</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="inactivo"
-                  checked={formData.estado === 'inactivo'}
-                  onChange={() =>
-                    setFormData({ ...formData, estado: 'inactivo' })
-                  }
-                  className="w-4 h-4 text-[#F97316] focus:ring-[#F97316]"
-                />
-                <span className="text-sm text-[#334155]">Inactivo</span>
-              </label>
-            </div>
           </div>
 
           {/* Reset password */}

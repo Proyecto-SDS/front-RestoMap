@@ -336,7 +336,7 @@ export default function RegisterEmpresaScreen() {
           >
             <ArrowLeft size={20} className="sm:w-6 sm:h-6 text-[#64748B]" />
           </button>
-          <h1 className="text-base sm:text-xl font-semibold text-[#334155]">
+          <h1 className="text-sm sm:text-lg font-semibold text-[#334155]">
             Registro de Empresa
           </h1>
         </div>

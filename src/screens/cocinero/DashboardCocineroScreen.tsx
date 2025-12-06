@@ -189,11 +189,14 @@ export default function DashboardCocineroScreen() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: '#1a1f2e' }}
+    >
       {/* Sidebar */}
       <PanelSidebar
-        title="Panel Cocina"
-        subtitle="Cocinero"
+        title="RestoMap"
+        subtitle="Panel Cocina"
         icon={ChefHat}
         menuItems={menuItems}
         activeItem={activeSection}
@@ -204,11 +207,12 @@ export default function DashboardCocineroScreen() {
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
         <PanelTopNav
           panelName="Panel de Cocina"
+          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
           pageTitle={
             activeSection === 'pedidos' ? 'Pedidos' : 'Inventario de Cocina'
           }
@@ -219,11 +223,10 @@ export default function DashboardCocineroScreen() {
           }
           user={user}
           onOpenProfile={() => setShowProfile(true)}
-          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
-        {/* Content Area */}
-        <CustomScrollbar className="flex-1 p-6">
+        {/* Content Area - Area clara con esquina redondeada */}
+        <CustomScrollbar className="flex-1 p-6 bg-[#F8FAFC] rounded-tl-2xl">
           {activeSection === 'pedidos' && (
             <KanbanBoard
               pedidos={pedidos}

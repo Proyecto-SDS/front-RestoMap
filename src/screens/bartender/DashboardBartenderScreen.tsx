@@ -163,6 +163,7 @@ export default function DashboardBartenderScreen() {
   }, []);
 
   const [showProfile, setShowProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { id: 'pedidos' as const, label: 'Pedidos', icon: Wine },
@@ -170,24 +171,30 @@ export default function DashboardBartenderScreen() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: '#1a1f2e' }}
+    >
       {/* Sidebar */}
       <PanelSidebar
-        title="Panel Bar"
-        subtitle="Bartender"
+        title="RestoMap"
+        subtitle="Panel Barra"
         icon={Wine}
         menuItems={menuItems}
         activeItem={activeSection}
         onNavigate={(id: string) =>
           setActiveSection(id as 'pedidos' | 'inventario')
         }
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
         <PanelTopNav
           panelName="Panel de Barra"
+          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
           pageTitle={
             activeSection === 'pedidos' ? 'Pedidos' : 'Inventario de Barra'
           }
@@ -200,8 +207,8 @@ export default function DashboardBartenderScreen() {
           onOpenProfile={() => setShowProfile(true)}
         />
 
-        {/* Content Area */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        {/* Content Area - Area clara con esquina redondeada */}
+        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC] rounded-tl-2xl">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">

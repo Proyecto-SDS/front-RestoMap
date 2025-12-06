@@ -162,6 +162,7 @@ export default function DashboardMeseroScreen() {
   };
 
   const [showProfile, setShowProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { id: 'mesas' as const, label: 'Mesas', icon: LayoutGrid },
@@ -171,24 +172,30 @@ export default function DashboardMeseroScreen() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F1F5F9] overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: '#1a1f2e' }}
+    >
       {/* Sidebar */}
       <PanelSidebar
-        title="Panel Mesero"
-        subtitle="Mesero"
+        title="RestoMap"
+        subtitle="Panel Mesero"
         icon={UtensilsCrossed}
         menuItems={menuItems}
         activeItem={activeSection}
         onNavigate={(id: string) =>
           setActiveSection(id as 'mesas' | 'pedidos' | 'reservas' | 'qr')
         }
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
         <PanelTopNav
           panelName="Panel de Mesero"
+          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
           pageTitle={
             activeSection === 'mesas'
               ? 'Mesas'
@@ -211,8 +218,8 @@ export default function DashboardMeseroScreen() {
           onOpenProfile={() => setShowProfile(true)}
         />
 
-        {/* Content Area */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        {/* Content Area - Area clara con esquina redondeada */}
+        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC] rounded-tl-2xl">
           {activeSection === 'mesas' && (
             <TablasMapa
               mesas={mesas}
