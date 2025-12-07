@@ -236,8 +236,11 @@ export const api = {
       }),
     deleteMesa: (id: number) =>
       apiCall(`/api/empresa/mesas/${id}`, { method: 'DELETE' }),
-    generarQRMesa: (id: number) =>
-      apiCall(`/api/empresa/mesas/${id}/qr`, { method: 'POST' }),
+    generarQRMesa: (id: number, numPersonas: number) =>
+      apiCall(`/api/empresa/mesas/${id}/qr`, {
+        method: 'POST',
+        body: JSON.stringify({ num_personas: numPersonas }),
+      }),
     getMesaDetalle: (id: number) => apiCall(`/api/empresa/mesas/${id}`),
     getPedidoActivoMesa: (id: number) =>
       apiCall(`/api/empresa/mesas/${id}/pedido-activo`),
@@ -341,6 +344,10 @@ export const api = {
       const query = params.toString();
       return apiCall(`/api/empresa/reservas/${query ? `?${query}` : ''}`);
     },
+    verificarQRReserva: (codigo: string) =>
+      apiCall(`/api/empresa/reservas/verificar-qr/${codigo}`),
+    confirmarReserva: (id: number) =>
+      apiCall(`/api/empresa/reservas/${id}/confirmar`, { method: 'POST' }),
     cancelarReserva: (id: number) =>
       apiCall(`/api/empresa/reservas/${id}/cancelar`, { method: 'PATCH' }),
 

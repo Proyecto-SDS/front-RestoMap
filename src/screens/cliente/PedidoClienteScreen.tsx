@@ -209,6 +209,19 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
         setPedidoInfo((prev) =>
           prev ? { ...prev, estado: data.estado } : prev
         );
+
+        // Si el pedido fue cancelado, notificar y redirigir
+        if (data.estado === 'CANCELADO') {
+          // Limpiar QR activo del localStorage
+          localStorage.removeItem('restomap_active_qr');
+          window.dispatchEvent(new Event('qr-updated'));
+
+          // Mostrar notificación
+          alert('El pedido ha sido cancelado por el mesero.');
+
+          // Redirigir al home
+          router.push('/');
+        }
       }
     };
 

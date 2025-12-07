@@ -1,8 +1,8 @@
-import { Check, Copy, Download, RefreshCw, X } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
+import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
-import { SecondaryButton } from '../buttons/SecondaryButton';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 
 // Props alternativas para uso sin objeto Mesa
@@ -36,25 +36,40 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
   const isOpen = isAltProps(props) ? props.isOpen : true;
 
   const [qrCode, setQrCode] = useState(() => initialQrUrl || '');
-  const [qrExpiration, setQrExpiration] = useState(30); // minutes
+  const [qrCodeShort, setQrCodeShort] = useState(''); // Solo el código, sin URL
+  const [qrExpiration, setQrExpiration] = useState(0); // Inicia en 0, se setea cuando se genera
   const [copied, setCopied] = useState(false);
+  const [numPersonas, setNumPersonas] = useState(1);
+  const [showQR, setShowQR] = useState(false);
   const hasGenerated = useRef(false);
 
   const generateQRCode = useCallback(async () => {
     if (initialQrUrl) {
       setQrCode(initialQrUrl);
+      setShowQR(true);
       return;
     }
-    // Mock API call - POST /api/qr-dinamico/generar-mesa
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const code = `QR-MESA-${mesaId}-${Date.now()}`;
-    setQrCode(code);
-    setQrExpiration(30);
-  }, [mesaId, initialQrUrl]);
+    if (!mesaId) return;
 
-  // Generar QR solo si no hay uno inicial - se ejecuta una vez al montar
+    try {
+      // Llamar a la API para generar el QR con num_personas
+      const data = await api.empresa.generarQRMesa(mesaId, numPersonas);
+      // Construir URL completa para el escaneo (frontend URL + ruta)
+      const baseUrl = window.location.origin;
+      const qrUrl = `${baseUrl}/pedido?qr=${data.qr.codigo}`;
+      setQrCode(qrUrl);
+      setQrCodeShort(data.qr.codigo); // Guardar solo el código
+      setQrExpiration(5 * 60); // 5 minutos iniciales (se extiende a 2h al escanear)
+      setShowQR(true);
+    } catch (error) {
+      console.error('Error generating QR:', error);
+      alert('Error al generar código QR');
+    }
+  }, [mesaId, initialQrUrl, numPersonas]);
+
+  // Generar QR solo si hay uno inicial (modo preview)
   useEffect(() => {
-    if (isOpen && !initialQrUrl && !hasGenerated.current) {
+    if (isOpen && initialQrUrl && !hasGenerated.current) {
       hasGenerated.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       void generateQRCode();
@@ -66,25 +81,16 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
     if (qrExpiration > 0 && isOpen) {
       const timer = setInterval(() => {
         setQrExpiration((prev) => Math.max(0, prev - 1));
-      }, 60000); // Update every minute
+      }, 1000); // Update every second
 
       return () => clearInterval(timer);
     }
   }, [qrExpiration, isOpen]);
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(qrCode);
+    navigator.clipboard.writeText(qrCodeShort);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownloadQR = () => {
-    // Mock download - in production, generate actual QR image
-    alert('Descargando codigo QR como PNG...');
-  };
-
-  const handleRegenerateQR = async () => {
-    await generateQRCode();
   };
 
   if (!isOpen) return null;
@@ -96,12 +102,20 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
   )}`;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
+        <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0] flex-shrink-0">
           <div>
-            <h2 className="text-xl text-[#334155]">Codigo QR Generado</h2>
+            <h2 className="text-xl text-[#334155]">
+              {showQR ? 'Código QR Generado' : 'Generar Código QR'}
+            </h2>
             <p className="text-sm text-[#94A3B8]">{mesaNombre}</p>
           </div>
           <button
@@ -112,86 +126,116 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
           </button>
         </div>
 
-        {/* QR Code Display */}
-        <div className="p-6 space-y-6">
-          {/* QR Image */}
-          <div className="flex justify-center">
-            <div className="p-4 bg-white rounded-xl border-2 border-[#E2E8F0]">
-              {qrCode ? (
-                <ImageWithFallback
-                  src={qrImageUrl}
-                  alt={`QR Code for ${mesaNombre}`}
-                  className="w-72 h-72"
+        {/* Content - Scrollable */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 [&::-webkit-scrollbar-button]:hidden">
+          {!showQR ? (
+            <>
+              {/* Input de número de personas */}
+              <div>
+                <label className="block mb-2 text-sm font-medium text-[#334155]">
+                  ¿Cuántas personas hay en la mesa?
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={isAltProps(props) ? 99 : props.mesa.capacidad}
+                  value={numPersonas}
+                  onChange={(e) =>
+                    setNumPersonas(Math.max(1, parseInt(e.target.value) || 1))
+                  }
+                  className="w-full px-4 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366F1] text-center text-lg"
                 />
-              ) : (
-                <div className="w-72 h-72 bg-[#F1F5F9] animate-pulse rounded-lg"></div>
-              )}
-            </div>
-          </div>
+                <p className="mt-1 text-xs text-[#94A3B8]">
+                  Capacidad máxima:{' '}
+                  {isAltProps(props) ? 'N/A' : props.mesa.capacidad} personas
+                </p>
+              </div>
 
-          {/* Expiration Timer */}
-          <div className="text-center">
-            <p className="text-sm text-[#64748B] mb-1">Expira en:</p>
-            <p className="text-2xl text-[#F97316]">{qrExpiration} minutos</p>
-            {qrExpiration === 0 && (
-              <p className="text-xs text-[#EF4444] mt-1">
-                Codigo expirado - Genera uno nuevo
-              </p>
-            )}
-          </div>
+              {/* Botón generar */}
+              <PrimaryButton onClick={generateQRCode} className="w-full">
+                Generar QR
+              </PrimaryButton>
+            </>
+          ) : (
+            <>
+              {/* QR Image */}
+              <div className="flex justify-center">
+                <div className="p-4 bg-white rounded-xl border-2 border-[#E2E8F0]">
+                  {qrCode ? (
+                    <ImageWithFallback
+                      src={qrImageUrl}
+                      alt={`QR Code for ${mesaNombre}`}
+                      className="w-72 h-72"
+                    />
+                  ) : (
+                    <div className="w-72 h-72 bg-[#F1F5F9] animate-pulse rounded-lg"></div>
+                  )}
+                </div>
+              </div>
 
-          {/* Instructions */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              Muestrale este codigo al cliente para que lo escanee con su
-              telefono. El cliente podra acceder al menu y hacer su pedido
-              directamente.
-            </p>
-          </div>
+              {/* Info de personas */}
+              <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">{numPersonas}</span>{' '}
+                  {numPersonas === 1 ? 'persona' : 'personas'} en la mesa
+                </p>
+              </div>
 
-          {/* Code Text */}
-          <div>
-            <label className="block mb-1.5 text-sm text-[#64748B]">
-              Codigo:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={qrCode}
-                readOnly
-                className="flex-1 px-3 py-2 border border-[#E2E8F0] rounded-lg bg-[#F8FAFC] text-sm text-[#334155]"
-              />
-              <button
-                onClick={handleCopyCode}
-                className="px-4 py-2 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors"
-                title="Copiar codigo"
-              >
-                {copied ? (
-                  <Check size={20} className="text-[#22C55E]" />
-                ) : (
-                  <Copy size={20} className="text-[#64748B]" />
+              {/* Expiration Timer */}
+              <div className="text-center">
+                <p className="text-sm text-[#64748B] mb-1">Expira en:</p>
+                <p className="text-2xl text-[#F97316]">
+                  {Math.floor(qrExpiration / 60)}:
+                  {String(qrExpiration % 60).padStart(2, '0')}
+                </p>
+                {qrExpiration === 0 && (
+                  <p className="text-xs text-[#EF4444] mt-1">Código expirado</p>
                 )}
-              </button>
-            </div>
-          </div>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <SecondaryButton onClick={handleDownloadQR} className="flex-1">
-              <Download size={16} />
-              Descargar QR
-            </SecondaryButton>
-            <SecondaryButton onClick={handleRegenerateQR} className="flex-1">
-              <RefreshCw size={16} />
-              Generar Nuevo
-            </SecondaryButton>
-          </div>
+              {/* Instructions */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Muéstrale este código al cliente para que lo escanee con su
+                  teléfono. El cliente podrá acceder al menú y hacer su pedido
+                  directamente.
+                </p>
+              </div>
 
-          {/* Close Button */}
-          <PrimaryButton onClick={onClose} className="w-full">
-            Cerrar
-          </PrimaryButton>
+              {/* Code Text */}
+              <div>
+                <label className="block mb-1.5 text-sm text-[#64748B]">
+                  Código:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={qrCodeShort}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-[#E2E8F0] rounded-lg bg-[#F8FAFC] text-sm text-[#334155]"
+                  />
+                  <button
+                    onClick={handleCopyCode}
+                    className="px-4 py-2 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors"
+                    title="Copiar código"
+                  >
+                    {copied ? (
+                      <Check size={20} className="text-[#22C55E]" />
+                    ) : (
+                      <Copy size={20} className="text-[#64748B]" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <PrimaryButton onClick={onClose} className="w-full">
+                Cerrar
+              </PrimaryButton>
+            </>
+          )}
         </div>
+        {/* End Content */}
       </div>
     </div>
   );

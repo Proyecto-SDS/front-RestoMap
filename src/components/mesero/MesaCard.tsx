@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ShoppingBag, Users } from 'lucide-react';
+import { GripVertical, Users } from 'lucide-react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 
 interface MesaCardProps {
@@ -104,11 +104,11 @@ export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
           ></div>
         </div>
 
-        {/* Mesa Name */}
+        {/* Mesa Name / Capacidad */}
         <h3
           className={`text-xl text-[#334155] mb-2 ${isEditMode ? 'pl-8' : ''}`}
         >
-          {mesa.nombre}
+          {mesa.nombre} / {mesa.capacidad} personas
         </h3>
 
         {/* Descripcion */}
@@ -118,30 +118,23 @@ export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
           </p>
         )}
 
-        {/* Info Grid */}
-        <div className="space-y-2">
-          {/* Capacity */}
-          <div className="flex items-center gap-2 text-[#64748B]">
+        {/* Personas en la mesa - Solo si NO es disponible */}
+        {mesa.estado !== 'DISPONIBLE' && mesa.num_personas && (
+          <div className="flex items-center gap-2 text-[#64748B] mb-3">
             <Users size={16} />
-            <span className="text-sm">{mesa.capacidad} personas</span>
-          </div>
-
-          {/* Orders Count */}
-          <div className="flex items-center gap-2 text-[#64748B]">
-            <ShoppingBag size={16} />
             <span className="text-sm">
-              {mesa.pedidos_count ?? 0}{' '}
-              {mesa.pedidos_count === 1 ? 'producto' : 'productos'}
+              {mesa.num_personas}{' '}
+              {mesa.num_personas === 1 ? 'persona' : 'personas'} en la mesa
             </span>
           </div>
+        )}
 
-          {/* Status Badge */}
-          <div
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${config.bgColor}`}
-            style={{ color: config.color }}
-          >
-            {config.label}
-          </div>
+        {/* Status Badge */}
+        <div
+          className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${config.bgColor}`}
+          style={{ color: config.color }}
+        >
+          {config.label}
         </div>
       </button>
     </div>

@@ -121,17 +121,8 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
   }, [loadMesaDetail]);
 
   const handleGenerarQR = async () => {
-    try {
-      const data = await api.empresa.generarQRMesa(Number(mesaId));
-      setQrData({
-        url: data.qr.url,
-        mesa_nombre: mesa?.nombre || '',
-      });
-      setShowQRModal(true);
-    } catch (err) {
-      console.error('Error generating QR:', err);
-      alert('Error al generar código QR');
-    }
+    // Abrir el modal - el modal se encargará de llamar a la API
+    setShowQRModal(true);
   };
 
   const handleCancelarMesa = async () => {
@@ -393,13 +384,8 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
       </main>
 
       {/* QR Modal */}
-      {showQRModal && qrData && (
-        <QRGenerateModal
-          isOpen={showQRModal}
-          onClose={() => setShowQRModal(false)}
-          qrUrl={qrData.url}
-          mesaNombre={qrData.mesa_nombre}
-        />
+      {showQRModal && mesa && (
+        <QRGenerateModal mesa={mesa} onClose={() => setShowQRModal(false)} />
       )}
 
       {/* Cancelar Modal */}

@@ -42,6 +42,7 @@ export interface Mesa {
   pedidos_count?: number;
   posicion_x?: number;
   posicion_y?: number;
+  num_personas?: number;
 }
 
 export interface Pedido {

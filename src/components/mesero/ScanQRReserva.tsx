@@ -1,8 +1,17 @@
 'use client';
 
-import { AlertCircle, Camera, CheckCircle, Upload } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import {
+  AlertCircle,
+  Camera,
+  CheckCircle,
+  Keyboard,
+  Upload,
+  XCircle,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
+import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { Toast, useToast } from '../notifications/Toast';
@@ -13,37 +22,57 @@ interface ScanQRReservaProps {
 }
 
 interface Reserva {
-  id: string;
-  id_usuario: string;
+  id: number;
+  usuario_id: number;
   usuario_nombre: string;
+  usuario_telefono?: string;
   fecha_reserva: string;
   hora_reserva: string;
   num_personas: number;
-  mesa_asignada?: string;
+  estado: string;
+  mesas: string[];
   codigo_qr: string;
+  puede_confirmar: boolean;
+  ventana_estado: 'temprano' | 'activa' | 'tarde';
+  minutos_hasta_reserva: number;
 }
 
 export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedReserva, setScannedReserva] = useState<Reserva | null>(null);
-  const [selectedMesaId, setSelectedMesaId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualCode, setManualCode] = useState('');
   const streamRef = useRef<MediaStream | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  // Start camera
+  // Start camera with QR scanning
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCodeRef.current = html5QrCode;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-      }
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        async (decodedText) => {
+          // QR detectado exitosamente
+          await html5QrCode.stop();
+          html5QrCodeRef.current = null;
+          setIsScanning(false);
+          await handleValidateQR(decodedText);
+        },
+        () => {
+          // Error de lectura, ignorar
+        }
+      );
 
       setIsScanning(true);
       setError('');
@@ -54,7 +83,15 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
   };
 
   // Stop camera
-  const stopCamera = () => {
+  const stopCamera = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+      } catch {
+        // Ignorar errores al detener
+      }
+      html5QrCodeRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -65,120 +102,217 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
+      void stopCamera();
     };
   }, []);
 
-  // Mock QR scan - in production use a QR library like jsQR or react-qr-reader
-  const handleMockScan = async () => {
+  // Handle QR code validation
+  const handleValidateQR = async (codigo: string) => {
     setIsLoading(true);
+    setError('');
 
     try {
-      // Mock API call - GET /api/reservas/qr?codigo=XXX
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await api.empresa.verificarQRReserva(codigo);
 
-      // Mock reserva data
-      const mockReserva: Reserva = {
-        id: 'RES-' + Math.random().toString(36).substr(2, 9),
-        id_usuario: 'U' + Math.floor(Math.random() * 100),
-        usuario_nombre: 'Juan Pérez',
-        fecha_reserva: new Date().toISOString().split('T')[0],
-        hora_reserva: '20:00',
-        num_personas: 4,
-        codigo_qr: 'QR-' + Math.random().toString(36).substr(2, 9),
-      };
-
-      setScannedReserva(mockReserva);
-      stopCamera();
-      showToast('success', '¡Reserva verificada correctamente!');
-    } catch {
-      showToast('error', 'Error al verificar la reserva');
+      if (response.success) {
+        setScannedReserva(response.reserva);
+        stopCamera();
+        showToast('success', '¡Reserva verificada correctamente!');
+      } else {
+        setError(response.error || 'Código QR inválido');
+      }
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : 'Error al verificar el código QR';
+      setError(errorMsg);
+      showToast('error', errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle file upload
+  // Mock QR scan - removed, now uses real scanning
+
+  // Handle file upload with QR detection
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
+    setError('');
 
     try {
-      // In production: decode QR from image using jsQR
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock success
-      const mockReserva: Reserva = {
-        id: 'RES-' + Math.random().toString(36).substr(2, 9),
-        id_usuario: 'U' + Math.floor(Math.random() * 100),
-        usuario_nombre: 'María González',
-        fecha_reserva: new Date().toISOString().split('T')[0],
-        hora_reserva: '21:30',
-        num_personas: 2,
-        codigo_qr: 'QR-' + Math.random().toString(36).substr(2, 9),
-      };
-
-      setScannedReserva(mockReserva);
-      showToast('success', '¡QR procesado correctamente!');
+      const html5QrCode = new Html5Qrcode('qr-reader-file');
+      const decodedText = await html5QrCode.scanFile(file, true);
+      await handleValidateQR(decodedText);
     } catch {
-      setError('Error al procesar el código QR');
-      setIsScanning(false);
+      setError('No se pudo leer el código QR de la imagen');
+      showToast('error', 'No se pudo leer el código QR de la imagen');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Assign mesa to reserva
-  const handleAssignMesa = async () => {
-    if (!selectedMesaId || !scannedReserva) return;
+  // Handle manual code input
+  const handleManualSubmit = async () => {
+    if (!manualCode.trim()) {
+      setError('Por favor ingresa un código');
+      return;
+    }
+    await handleValidateQR(manualCode.trim());
+    setManualCode('');
+    setShowManualInput(false);
+  };
 
-    setIsLoading(true);
+  // Confirm reservation
+  const handleConfirmarReserva = async () => {
+    if (!scannedReserva) return;
+
+    setIsConfirming(true);
 
     try {
-      // Mock API call - PATCH /api/reservas/{id}/asignar-mesa
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await api.empresa.confirmarReserva(scannedReserva.id);
 
-      const mesa = mesas.find((m) => m.id === selectedMesaId);
-      if (mesa) {
-        onMesaUpdate({
-          ...mesa,
-          estado: 'OCUPADA',
-          pedidos_count: 0,
-        });
+      if (response.success) {
+        showToast(
+          'success',
+          '¡Reserva confirmada! Pedido creado automáticamente.'
+        );
+
+        // Update mesa estado if needed
+        const mesaNombre = response.pedido?.mesa_nombre;
+        const mesaActualizada = mesas.find((m) => m.nombre === mesaNombre);
+        if (mesaActualizada) {
+          onMesaUpdate({
+            ...mesaActualizada,
+            estado: 'OCUPADA',
+            pedidos_count: 1,
+          });
+        }
+
+        // Reset after delay
+        setTimeout(() => {
+          setScannedReserva(null);
+          setError('');
+        }, 2000);
+      } else {
+        setError(response.error || 'Error al confirmar la reserva');
       }
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : 'Error al confirmar la reserva';
+      setError(errorMsg);
+      showToast('error', errorMsg);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
 
-      showToast('success', `Reserva asignada a ${mesa?.nombre}`);
+  // Cancel reservation
+  const handleCancelarReserva = async () => {
+    if (!scannedReserva) return;
 
-      // Reset
+    if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
+      return;
+    }
+
+    setIsCanceling(true);
+
+    try {
+      await api.empresa.cancelarReserva(scannedReserva.id);
+
+      showToast('success', 'Reserva cancelada exitosamente');
+
+      // Reset after delay
       setTimeout(() => {
         setScannedReserva(null);
-        setSelectedMesaId('');
-      }, 2000);
-    } catch {
-      showToast('error', 'Error al asignar la mesa');
+        setError('');
+      }, 1500);
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : 'Error al cancelar la reserva';
+      setError(errorMsg);
+      showToast('error', errorMsg);
     } finally {
-      setIsLoading(false);
+      setIsCanceling(false);
     }
   };
 
   // Cancel scan
   const handleCancel = () => {
     setScannedReserva(null);
-    setSelectedMesaId('');
     setError('');
     stopCamera();
   };
 
-  // Get available mesas (matching capacity)
-  const availableMesas = scannedReserva
-    ? mesas.filter(
-        (m) =>
-          m.estado === 'DISPONIBLE' &&
-          m.capacidad >= scannedReserva.num_personas
-      )
-    : [];
+  // Format time remaining
+  const formatTimeRemaining = (minutes: number) => {
+    const absMinutes = Math.abs(minutes);
+
+    if (absMinutes < 1) {
+      const seconds = Math.round(absMinutes * 60);
+      return `${seconds} segundo${seconds !== 1 ? 's' : ''}`;
+    }
+
+    if (absMinutes < 60) {
+      return `${Math.floor(absMinutes)} minuto${
+        Math.floor(absMinutes) !== 1 ? 's' : ''
+      }`;
+    }
+
+    const hours = Math.floor(absMinutes / 60);
+    const remainingMinutes = Math.floor(absMinutes % 60);
+
+    if (absMinutes < 1440) {
+      // menos de 24 horas
+      if (remainingMinutes === 0) {
+        return `${hours} hora${hours !== 1 ? 's' : ''}`;
+      }
+      return `${hours} hora${
+        hours !== 1 ? 's' : ''
+      } y ${remainingMinutes} minuto${remainingMinutes !== 1 ? 's' : ''}`;
+    }
+
+    const days = Math.floor(absMinutes / 1440);
+    const remainingHours = Math.floor((absMinutes % 1440) / 60);
+
+    if (remainingHours === 0) {
+      return `${days} día${days !== 1 ? 's' : ''}`;
+    }
+    return `${days} día${days !== 1 ? 's' : ''} y ${remainingHours} hora${
+      remainingHours !== 1 ? 's' : ''
+    }`;
+  };
+
+  // Get status message based on ventana_estado
+  const getVentanaMessage = () => {
+    if (!scannedReserva) return null;
+
+    const { ventana_estado, minutos_hasta_reserva } = scannedReserva;
+
+    if (ventana_estado === 'temprano') {
+      return {
+        type: 'warning' as const,
+        message: `Faltan ${formatTimeRemaining(
+          minutos_hasta_reserva
+        )} para la hora de reserva. Podrás confirmar 15 minutos antes.`,
+      };
+    } else if (ventana_estado === 'tarde') {
+      return {
+        type: 'error' as const,
+        message: `Han pasado ${formatTimeRemaining(
+          minutos_hasta_reserva
+        )} desde la hora de reserva. Ya no se puede confirmar.`,
+      };
+    } else {
+      return {
+        type: 'success' as const,
+        message: 'La reserva está en el horario válido para confirmar.',
+      };
+    }
+  };
+
+  const ventanaMessage = getVentanaMessage();
 
   return (
     <div className="space-y-6">
@@ -188,37 +322,57 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
           {/* Camera view */}
           {isScanning ? (
             <div className="space-y-4">
-              <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
+              {/* QR Reader container */}
+              <div id="qr-reader" className="w-full"></div>
 
-                {/* QR overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-64 h-64 border-4 border-[#F97316] rounded-lg relative">
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
-                  </div>
-                </div>
+              <SecondaryButton onClick={stopCamera} className="w-full">
+                Detener cámara
+              </SecondaryButton>
+            </div>
+          ) : showManualInput ? (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 bg-[#FFF7ED] rounded-full flex items-center justify-center mx-auto mb-6">
+                <Keyboard size={48} className="text-[#F97316]" />
               </div>
 
-              <div className="flex gap-3">
-                <SecondaryButton onClick={stopCamera} className="flex-1">
-                  Detener cámara
-                </SecondaryButton>
-                <PrimaryButton
-                  onClick={handleMockScan}
-                  isLoading={isLoading}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  Simular escaneo (demo)
-                </PrimaryButton>
+              <h3 className="text-lg text-[#334155] mb-2">
+                Ingresar código manualmente
+              </h3>
+              <p className="text-sm text-[#64748B] mb-6 max-w-md mx-auto">
+                Escribe el código QR de la reserva
+              </p>
+
+              <div className="max-w-md mx-auto space-y-4">
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleManualSubmit();
+                  }}
+                  placeholder="Ej: QR-F98091454A73533B"
+                  className="w-full px-4 py-3 border-2 border-[#E2E8F0] rounded-xl focus:border-[#F97316] focus:outline-none text-center uppercase"
+                />
+
+                <div className="flex gap-3">
+                  <SecondaryButton
+                    onClick={() => {
+                      setShowManualInput(false);
+                      setManualCode('');
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={handleManualSubmit}
+                    isLoading={isLoading}
+                    disabled={isLoading || !manualCode.trim()}
+                    className="flex-1"
+                  >
+                    Verificar
+                  </PrimaryButton>
+                </div>
               </div>
             </div>
           ) : (
@@ -231,17 +385,16 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
                 Escanear código QR
               </h3>
               <p className="text-sm text-[#64748B] mb-6 max-w-md mx-auto">
-                Activa la cámara para escanear el código QR de la reserva del
-                cliente
+                Selecciona cómo deseas verificar la reserva
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-                <PrimaryButton onClick={startCamera} className="flex-1">
+              <div className="flex flex-col gap-3 justify-center max-w-md mx-auto">
+                <PrimaryButton onClick={startCamera} className="w-full">
                   <Camera size={16} />
-                  Activar cámara
+                  Escanear con cámara
                 </PrimaryButton>
 
-                <label className="flex-1">
+                <label className="w-full">
                   <input
                     type="file"
                     accept="image/*"
@@ -263,10 +416,21 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
                   "
                   >
                     <Upload size={16} />
-                    Subir imagen
+                    Subir imagen de QR
                   </span>
                 </label>
+
+                <SecondaryButton
+                  onClick={() => setShowManualInput(true)}
+                  className="w-full"
+                >
+                  <Keyboard size={16} />
+                  Ingresar código manualmente
+                </SecondaryButton>
               </div>
+
+              {/* Hidden div for file scanning */}
+              <div id="qr-reader-file" className="hidden"></div>
 
               {error && (
                 <div className="mt-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 max-w-md mx-auto">
@@ -293,116 +457,142 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
                   ✓ Reserva verificada
                 </h3>
                 <p className="text-sm text-[#64748B]">
-                  La reserva es válida y está lista para ser procesada
+                  Información de la reserva
                 </p>
               </div>
             </div>
 
             {/* Reserva details */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-[#F8FAFC] rounded-lg">
-              <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Cliente</p>
-                <p className="text-sm text-[#334155]">
-                  {scannedReserva.usuario_nombre}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Fecha</p>
-                <p className="text-sm text-[#334155]">
-                  {new Date(scannedReserva.fecha_reserva).toLocaleDateString(
-                    'es-CL'
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Hora</p>
-                <p className="text-sm text-[#334155]">
-                  {scannedReserva.hora_reserva}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Personas</p>
-                <p className="text-sm text-[#334155]">
-                  {scannedReserva.num_personas}
-                </p>
+            <div className="p-4 bg-[#F8FAFC] rounded-lg mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+                <div className="flex items-start gap-2">
+                  <p className="text-sm font-medium text-[#334155] min-w-[75px]">
+                    Nombre:
+                  </p>
+                  <p className="text-sm text-[#64748B]">
+                    {scannedReserva.usuario_nombre}
+                  </p>
+                </div>
+
+                {scannedReserva.usuario_telefono && (
+                  <div className="flex items-start gap-2">
+                    <p className="text-sm font-medium text-[#334155] min-w-[75px]">
+                      Teléfono:
+                    </p>
+                    <p className="text-sm text-[#64748B]">
+                      {scannedReserva.usuario_telefono}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-2">
+                  <p className="text-sm font-medium text-[#334155] min-w-[75px]">
+                    Fecha:
+                  </p>
+                  <p className="text-sm text-[#64748B]">
+                    {scannedReserva.fecha_reserva} {scannedReserva.hora_reserva}
+                  </p>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <p className="text-sm font-medium text-[#334155] min-w-[75px]">
+                    Personas:
+                  </p>
+                  <p className="text-sm text-[#64748B]">
+                    {scannedReserva.num_personas}
+                  </p>
+                </div>
+
+                {scannedReserva.mesas.length > 0 && (
+                  <div className="flex items-start gap-2 sm:col-span-2">
+                    <p className="text-sm font-medium text-[#334155] min-w-[75px]">
+                      Mesa{scannedReserva.mesas.length > 1 ? 's' : ''}:
+                    </p>
+                    <p className="text-sm text-[#64748B]">
+                      {scannedReserva.mesas.join(', ')}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Mesa assignment */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-            <h3 className="text-[#334155] mb-4">Asignar mesa</h3>
-
-            {availableMesas.length > 0 ? (
-              <>
-                <p className="text-sm text-[#64748B] mb-4">
-                  Selecciona una mesa disponible para{' '}
-                  {scannedReserva.num_personas} personas:
+            {/* Ventana de confirmación status */}
+            {ventanaMessage && (
+              <div
+                className={`p-3 border rounded-lg mb-6 ${
+                  ventanaMessage.type === 'success'
+                    ? 'bg-green-50 border-green-200'
+                    : ventanaMessage.type === 'warning'
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    ventanaMessage.type === 'success'
+                      ? 'text-green-800'
+                      : ventanaMessage.type === 'warning'
+                      ? 'text-yellow-800'
+                      : 'text-red-800'
+                  }`}
+                >
+                  {ventanaMessage.message}
                 </p>
+              </div>
+            )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                  {availableMesas.map((mesa) => (
-                    <label
-                      key={mesa.id}
-                      className={`
-                        flex flex-col items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-all
-                        ${
-                          selectedMesaId === mesa.id
-                            ? 'border-[#F97316] bg-[#FFF7ED]'
-                            : 'border-[#E2E8F0] hover:border-[#F97316]/30'
-                        }
-                      `}
-                    >
-                      <input
-                        type="radio"
-                        name="mesa"
-                        value={mesa.id}
-                        checked={selectedMesaId === mesa.id}
-                        onChange={(e) => setSelectedMesaId(e.target.value)}
-                        className="sr-only"
-                      />
-                      <span
-                        className={`text-sm ${
-                          selectedMesaId === mesa.id
-                            ? 'text-[#F97316]'
-                            : 'text-[#334155]'
-                        }`}
-                      >
-                        {mesa.nombre}
-                      </span>
-                      <span className="text-xs text-[#64748B]">
-                        {mesa.capacidad} personas
-                      </span>
-                    </label>
-                  ))}
-                </div>
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Mobile order: Confirmar, Rechazar, Volver */}
+              <PrimaryButton
+                onClick={handleConfirmarReserva}
+                disabled={
+                  !scannedReserva.puede_confirmar || isConfirming || isCanceling
+                }
+                isLoading={isConfirming}
+                className="flex-1 w-full sm:order-3"
+              >
+                {isConfirming ? 'Confirmando...' : 'Confirmar'}
+              </PrimaryButton>
+              <button
+                onClick={handleCancelarReserva}
+                disabled={isCanceling || isConfirming}
+                className="flex-1 w-full px-4 py-2.5 border-2 border-red-500 text-red-600 rounded-xl hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed sm:order-2"
+              >
+                {isCanceling ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                    Cancelando...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <XCircle size={16} />
+                    Rechazar
+                  </span>
+                )}
+              </button>
+              <SecondaryButton
+                onClick={handleCancel}
+                className="flex-1 w-full sm:order-1"
+              >
+                Volver
+              </SecondaryButton>
+            </div>
 
-                <div className="flex gap-3">
-                  <SecondaryButton onClick={handleCancel} className="flex-1">
-                    Cancelar
-                  </SecondaryButton>
-                  <PrimaryButton
-                    onClick={handleAssignMesa}
-                    isLoading={isLoading}
-                    disabled={isLoading || !selectedMesaId}
-                    className="flex-1"
-                  >
-                    Asignar mesa
-                  </PrimaryButton>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
+            {!scannedReserva.puede_confirmar && (
+              <p className="text-xs text-[#94A3B8] text-center mt-3">
+                El botón Confirmar se habilitará 15 minutos antes de la hora
+                reservada
+              </p>
+            )}
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle
-                  size={48}
-                  className="text-[#F97316] mx-auto mb-4"
+                  size={16}
+                  className="text-red-600 shrink-0 mt-0.5"
                 />
-                <p className="text-[#334155] mb-2">No hay mesas disponibles</p>
-                <p className="text-sm text-[#64748B] mb-4">
-                  No hay mesas disponibles con capacidad para{' '}
-                  {scannedReserva.num_personas} personas
-                </p>
-                <SecondaryButton onClick={handleCancel}>Volver</SecondaryButton>
+                <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
           </div>

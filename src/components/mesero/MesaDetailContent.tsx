@@ -115,10 +115,6 @@ export function MesaDetailContent({
   const [error, setError] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
-  const [qrData, setQrData] = useState<{
-    url: string;
-    mesa_nombre: string;
-  } | null>(null);
 
   const loadMesaDetail = useCallback(async () => {
     try {
@@ -155,30 +151,22 @@ export function MesaDetailContent({
     socket.on('estado_encomienda', handleActualizar);
     socket.on('estado_pedido', handleActualizar);
     socket.on('nuevo_pedido', handleActualizar);
+    socket.on('qr_escaneado', handleActualizar); // Cuando cliente escanea QR
+    socket.on('mesa_actualizada', handleActualizar); // Cuando mesa cambia de estado
 
     return () => {
       socket.off('nueva_encomienda', handleActualizar);
       socket.off('estado_encomienda', handleActualizar);
       socket.off('estado_pedido', handleActualizar);
       socket.off('nuevo_pedido', handleActualizar);
+      socket.off('qr_escaneado', handleActualizar);
+      socket.off('mesa_actualizada', handleActualizar);
     };
   }, [socket, mesa, mesaId, loadMesaDetail]);
 
   const handleGenerarQR = async () => {
-    try {
-      const data = await api.empresa.generarQRMesa(Number(mesaId));
-      // Construir URL completa para el escaneo (frontend URL + ruta)
-      const baseUrl = window.location.origin;
-      const qrUrl = `${baseUrl}/pedido?qr=${data.qr.codigo}`;
-      setQrData({
-        url: qrUrl,
-        mesa_nombre: mesa?.nombre || '',
-      });
-      setShowQRModal(true);
-    } catch (err) {
-      console.error('Error generating QR:', err);
-      alert('Error al generar código QR');
-    }
+    // Abrir el modal - el modal se encargará de llamar a la API
+    setShowQRModal(true);
   };
 
   const handleCancelarMesa = async () => {
@@ -264,16 +252,6 @@ export function MesaDetailContent({
               </div>
             </div>
           </div>
-
-          {/* Action Buttons - Solo si no es readOnly */}
-          {!readOnly && isOcupada && (
-            <div className="flex gap-3">
-              <DangerButton onClick={() => setShowCancelarModal(true)}>
-                <XCircle size={16} />
-                Cancelar Mesa
-              </DangerButton>
-            </div>
-          )}
         </div>
       </div>
 
@@ -452,11 +430,11 @@ export function MesaDetailContent({
           {/* Acciones - Solo si no es readOnly */}
           {!readOnly && (
             <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-              <h3 className="text-sm text-[#64748B] mb-4">Acciones de Mesa</h3>
+              <h3 className="text-sm text-[#64748B] mb-4">Acciones</h3>
               <div className="flex gap-3">
                 <DangerButton onClick={() => setShowCancelarModal(true)}>
                   <XCircle size={16} />
-                  Cancelar Mesa y Pedido
+                  Cancelar Pedido
                 </DangerButton>
               </div>
             </div>
@@ -471,16 +449,10 @@ export function MesaDetailContent({
             <Clock size={40} className="text-[#F97316]" />
           </div>
           <h2 className="text-xl text-[#334155] mb-2">Esperando Pedido</h2>
-          <p className="text-[#64748B] mb-6">
+          <p className="text-[#64748B]">
             El cliente ha escaneado el QR pero aún no ha realizado ningún
             pedido.
           </p>
-          {!readOnly && (
-            <DangerButton onClick={() => setShowCancelarModal(true)}>
-              <XCircle size={16} />
-              Cancelar Mesa
-            </DangerButton>
-          )}
         </div>
       )}
 
@@ -511,12 +483,22 @@ export function MesaDetailContent({
       )}
 
       {/* QR Modal */}
-      {showQRModal && qrData && (
+      {showQRModal && mesa && (
         <QRGenerateModal
-          isOpen={showQRModal}
+          mesa={{
+            id: mesa.id.toString(),
+            id_empresa: '1',
+            nombre: mesa.nombre,
+            capacidad: mesa.capacidad,
+            descripcion: '',
+            estado: mesa.estado.toUpperCase() as
+              | 'DISPONIBLE'
+              | 'OCUPADA'
+              | 'RESERVADA'
+              | 'FUERA_DE_SERVICIO',
+            orden: 0,
+          }}
           onClose={() => setShowQRModal(false)}
-          qrUrl={qrData.url}
-          mesaNombre={qrData.mesa_nombre}
         />
       )}
 

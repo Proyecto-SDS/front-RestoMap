@@ -15,11 +15,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
+  const { socket } = useSocket();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -82,6 +84,28 @@ export function NavHeader() {
       window.removeEventListener('storage', checkQr);
     };
   }, [isMounted]);
+
+  // Escuchar cambios de estado del pedido via WebSocket
+  useEffect(() => {
+    if (!socket || !isLoggedIn) return;
+
+    const handleEstadoPedido = (data: {
+      pedido_id: number;
+      estado: string;
+    }) => {
+      // Si el pedido fue cancelado o completado, actualizar el estado del QR
+      if (data.estado === 'CANCELADO' || data.estado === 'COMPLETADO') {
+        // Verificar pedido activo para actualizar el botón
+        checkPedidoActivo();
+      }
+    };
+
+    socket.on('estado_pedido', handleEstadoPedido);
+
+    return () => {
+      socket.off('estado_pedido', handleEstadoPedido);
+    };
+  }, [socket, isLoggedIn, checkPedidoActivo]);
 
   // User is an employee if they have id_local
   const isEmployee = !!user?.id_local;
