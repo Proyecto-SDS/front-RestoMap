@@ -107,6 +107,11 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vista, setVista] = useState<'menu' | 'seguimiento'>('menu');
 
+  // Verificar si el pedido está finalizado (cancelado o completado)
+  const pedidoFinalizado =
+    pedidoInfo?.estado?.toLowerCase() === 'cancelado' ||
+    pedidoInfo?.estado?.toLowerCase() === 'completado';
+
   // Cargar estado del pedido
   const cargarEstado = useCallback(async () => {
     try {
@@ -250,6 +255,13 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
 
   // Funciones del carrito
   const agregarAlCarrito = (producto: Producto) => {
+    // Bloquear si pedido finalizado
+    if (pedidoFinalizado) {
+      alert(
+        'Este pedido ya ha sido finalizado. No puedes agregar más productos.'
+      );
+      return;
+    }
     setCarrito((prev) => {
       const existente = prev.find((item) => item.producto.id === producto.id);
       if (existente) {
@@ -307,6 +319,14 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   // Enviar pedido
   const enviarPedido = async () => {
     if (carrito.length === 0) return;
+
+    // Bloquear si pedido finalizado
+    if (pedidoFinalizado) {
+      alert(
+        'Este pedido ya ha sido finalizado. No puedes enviar más productos.'
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -443,6 +463,118 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
 
   const estadoInfo = getEstadoInfo(pedidoInfo?.estado || 'iniciado');
   const tienePedidosPrevios = encomiendas.length > 0;
+
+  // Vista para pedido cancelado
+  if (pedidoInfo?.estado?.toLowerCase() === 'cancelado') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="px-4 py-4">
+            <h1 className="text-xl font-bold text-[#334155]">
+              {localInfo?.nombre}
+            </h1>
+            <p className="text-sm text-[#64748B]">{mesaInfo?.nombre}</p>
+          </div>
+        </header>
+
+        {/* Contenido centrado */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-md">
+            <div className="text-6xl mb-6">❌</div>
+            <h2 className="text-2xl font-bold text-[#EF4444] mb-4">
+              Pedido Cancelado
+            </h2>
+            <p className="text-[#64748B] mb-8">
+              Tu pedido ha sido cancelado por el personal del restaurante. Si
+              tienes alguna duda, por favor consulta con el mesero.
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="px-6 py-3 bg-[#F97316] text-white rounded-lg font-medium hover:bg-[#EA580C] transition-colors"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista para pedido completado
+  if (pedidoInfo?.estado?.toLowerCase() === 'completado') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="px-4 py-4">
+            <h1 className="text-xl font-bold text-[#334155]">
+              {localInfo?.nombre}
+            </h1>
+            <p className="text-sm text-[#64748B]">{mesaInfo?.nombre}</p>
+          </div>
+        </header>
+
+        {/* Contenido */}
+        <div className="flex-1 p-4 sm:p-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Mensaje de completado */}
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">✅</div>
+              <h2 className="text-2xl font-bold text-[#22C55E] mb-2">
+                ¡Pedido Completado!
+              </h2>
+              <p className="text-[#64748B]">
+                Gracias por tu visita. Esperamos verte pronto.
+              </p>
+            </div>
+
+            {/* Resumen del pedido */}
+            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+              <h3 className="text-lg font-bold text-[#334155] mb-4">
+                Resumen del pedido
+              </h3>
+              {encomiendas.map((encomienda, index) => (
+                <div key={encomienda.id} className="mb-4 last:mb-0">
+                  <p className="text-sm text-[#64748B] mb-2">
+                    Pedido #{index + 1}
+                  </p>
+                  {encomienda.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between py-2 border-b border-gray-100 last:border-0"
+                    >
+                      <span className="text-[#334155]">
+                        {item.cantidad}x {item.producto}
+                      </span>
+                      <span className="text-[#64748B]">
+                        {formatCurrency(item.precio_unitario * item.cantidad)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <div className="flex justify-between text-lg font-bold">
+                  <span className="text-[#334155]">Total</span>
+                  <span className="text-[#F97316]">
+                    {formatCurrency(pedidoInfo?.total || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push('/')}
+              className="w-full px-6 py-3 bg-[#F97316] text-white rounded-lg font-medium hover:bg-[#EA580C] transition-colors"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

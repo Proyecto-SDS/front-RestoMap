@@ -61,12 +61,12 @@ export function NavHeader() {
     setIsMounted(true);
   }, []);
 
-  // Consultar backend cuando el usuario está logueado
+  // Consultar backend cuando el usuario está logueado o cuando cambia la ruta
   useEffect(() => {
     if (!isMounted || !isLoggedIn) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- El callback actualiza estado basado en respuesta async
     void checkPedidoActivo();
-  }, [isMounted, isLoggedIn, checkPedidoActivo]);
+  }, [isMounted, isLoggedIn, pathname, checkPedidoActivo]);
 
   // Unirse a la sala del pedido para recibir eventos WebSocket
   useEffect(() => {
