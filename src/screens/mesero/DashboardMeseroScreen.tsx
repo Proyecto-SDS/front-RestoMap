@@ -20,6 +20,7 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 
 // Estados del backend
@@ -74,6 +75,7 @@ export interface LineaPedido {
 export default function DashboardMeseroScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
+  const { socket, isConnected, joinLocal } = useSocket();
   const [activeSection, setActiveSection] = useState<
     'mesas' | 'pedidos' | 'reservas' | 'qr'
   >('mesas');
@@ -134,11 +136,66 @@ export default function DashboardMeseroScreen() {
     }
   }, []);
 
+  // Join local room on load
+  useEffect(() => {
+    if (user?.id_local && isConnected) {
+      joinLocal(Number(user.id_local));
+      console.log('Mesero unido a sala local:', user.id_local);
+    }
+  }, [user?.id_local, isConnected, joinLocal]);
+
+  // Listen for WebSocket events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMesaActualizada = (data: {
+      mesa_id: number;
+      estado: string;
+    }) => {
+      console.log('WS: Mesa actualizada', data);
+      setMesas((prev) =>
+        prev.map((mesa) =>
+          mesa.id === String(data.mesa_id)
+            ? { ...mesa, estado: data.estado.toUpperCase() as MesaEstado }
+            : mesa
+        )
+      );
+    };
+
+    const handleQREscaneado = (data: { mesa_id: number }) => {
+      console.log('WS: QR Escaneado', data);
+      setMesas((prev) =>
+        prev.map((mesa) =>
+          mesa.id === String(data.mesa_id)
+            ? { ...mesa, estado: 'OCUPADA' }
+            : mesa
+        )
+      );
+    };
+
+    // Actualizar pedidos al recibir cambios (nuevo o cambio estado)
+    const handleActualizarPedidos = () => {
+      loadPedidos();
+    };
+
+    socket.on('mesa_actualizada', handleMesaActualizada);
+    socket.on('qr_escaneado', handleQREscaneado);
+    socket.on('nuevo_pedido', handleActualizarPedidos);
+    socket.on('estado_pedido', handleActualizarPedidos);
+    socket.on('estado_encomienda', handleActualizarPedidos);
+
+    return () => {
+      socket.off('mesa_actualizada', handleMesaActualizada);
+      socket.off('qr_escaneado', handleQREscaneado);
+      socket.off('nuevo_pedido', handleActualizarPedidos);
+      socket.off('estado_pedido', handleActualizarPedidos);
+      socket.off('estado_encomienda', handleActualizarPedidos);
+    };
+  }, [socket, loadPedidos]);
+
   // Load initial data
   useEffect(() => {
-    // eslint-disable-next-line
     loadMesas();
-
     loadPedidos();
   }, [loadMesas, loadPedidos]);
 

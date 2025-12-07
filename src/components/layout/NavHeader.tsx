@@ -7,6 +7,7 @@ import {
   Menu,
   QrCode,
   User,
+  UtensilsCrossed,
   X,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -25,6 +26,29 @@ export function NavHeader() {
   const [showQRModal, setShowQRModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [activeQr, setActiveQr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkQr = () => {
+      if (typeof window !== 'undefined') {
+        const qr = localStorage.getItem('restomap_active_qr');
+
+        setActiveQr(qr);
+      }
+    };
+
+    // Chequear al montar y cuando cambia la ruta
+    checkQr();
+
+    // Escuchar evento personalizado (mismo tab) y storage (otros tabs)
+    window.addEventListener('qr-updated', checkQr);
+    window.addEventListener('storage', checkQr);
+
+    return () => {
+      window.removeEventListener('qr-updated', checkQr);
+      window.removeEventListener('storage', checkQr);
+    };
+  }, [pathname]);
 
   // User is an employee if they have id_local
   const isEmployee = !!user?.id_local;
@@ -127,15 +151,27 @@ export function NavHeader() {
             {/* Right - User Menu (Desktop) */}
             <div className="hidden md:flex items-center gap-2">
               {/* Boton Escanear QR - solo para usuarios logueados no empleados, no en pagina pedido */}
-              {isLoggedIn && user && !isEmployee && !isOnPedidoPage && (
-                <button
-                  onClick={() => setShowQRModal(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] transition-colors"
-                >
-                  <QrCode size={18} />
-                  <span className="text-sm font-medium">Escanear QR</span>
-                </button>
-              )}
+              {/* Boton Escanear QR o Ir al Pedido */}
+              {isLoggedIn &&
+                !isEmployee &&
+                !isOnPedidoPage &&
+                (activeQr ? (
+                  <Link
+                    href={`/pedido?qr=${activeQr}`}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#22C55E] text-white hover:bg-[#16A34A] transition-colors"
+                  >
+                    <UtensilsCrossed size={18} />
+                    <span className="text-sm font-medium">Ir al Pedido</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setShowQRModal(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] transition-colors"
+                  >
+                    <QrCode size={18} />
+                    <span className="text-sm font-medium">Escanear QR</span>
+                  </button>
+                ))}
               {isLoggedIn && user ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -262,18 +298,30 @@ export function NavHeader() {
                   </button>
 
                   {/* Escanear QR - solo para clientes no empleados, no en pagina pedido */}
-                  {!isEmployee && !isOnPedidoPage && (
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setShowQRModal(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-[#F97316] hover:bg-[#EA580C] transition-colors"
-                    >
-                      <QrCode size={18} />
-                      Escanear QR
-                    </button>
-                  )}
+                  {/* Escanear QR o Ir al Pedido - movil */}
+                  {!isEmployee &&
+                    !isOnPedidoPage &&
+                    (activeQr ? (
+                      <Link
+                        href={`/pedido?qr=${activeQr}`}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-[#22C55E] hover:bg-[#16A34A] transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <UtensilsCrossed size={18} />
+                        Ir al Pedido
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setShowQRModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-[#F97316] hover:bg-[#EA580C] transition-colors"
+                      >
+                        <QrCode size={18} />
+                        Escanear QR
+                      </button>
+                    ))}
 
                   {/* Panel de Gestion - solo para empleados */}
                   {isEmployee && (

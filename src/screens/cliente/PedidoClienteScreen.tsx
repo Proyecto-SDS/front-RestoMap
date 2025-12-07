@@ -18,6 +18,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 
 interface Producto {
@@ -67,6 +68,7 @@ interface PedidoClienteScreenProps {
 export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   const router = useRouter();
   const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
+  const { socket, isConnected, joinPedido } = useSocket();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,13 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
         if (response.pedido.estado !== 'iniciado') {
           await cargarEstado();
         }
+
+        // Guardar QR en localStorage para recuperar sesión
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('restomap_active_qr', qrCodigo);
+          // Disparar evento para actualizar Header inmediatamente
+          window.dispatchEvent(new Event('qr-updated'));
+        }
       } else {
         setError(response.error || 'QR invalido');
       }
@@ -167,16 +176,61 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
     validarQR();
   }, [isLoggedIn, isAuthLoading, router, qrCodigo, validarQR]);
 
-  // Polling para actualizar estado
+  // WebSocket: unirse a sala del pedido y escuchar eventos
+  useEffect(() => {
+    if (!socket || !pedidoInfo?.id) return;
+
+    // Unirse a la sala del pedido para recibir actualizaciones
+    joinPedido(pedidoInfo.id);
+    console.log('[Socket] Unido a pedido:', pedidoInfo.id);
+
+    // Escuchar cambios de estado de encomiendas
+    const handleEstadoEncomienda = (data: {
+      encomienda_id: number;
+      estado: string;
+    }) => {
+      console.log('[Socket] Estado encomienda actualizado:', data);
+      setEncomiendas((prev) =>
+        prev.map((enc) =>
+          enc.id === data.encomienda_id ? { ...enc, estado: data.estado } : enc
+        )
+      );
+    };
+
+    // Escuchar cambios de estado del pedido
+    const handleEstadoPedido = (data: {
+      pedido_id: number;
+      estado: string;
+    }) => {
+      console.log('[Socket] Estado pedido actualizado:', data);
+      if (data.pedido_id === pedidoInfo.id) {
+        setPedidoInfo((prev) =>
+          prev ? { ...prev, estado: data.estado } : prev
+        );
+      }
+    };
+
+    socket.on('estado_encomienda', handleEstadoEncomienda);
+    socket.on('estado_pedido', handleEstadoPedido);
+
+    return () => {
+      socket.off('estado_encomienda', handleEstadoEncomienda);
+      socket.off('estado_pedido', handleEstadoPedido);
+    };
+  }, [socket, pedidoInfo?.id, joinPedido]);
+
+  // Polling como fallback (solo si no hay WebSocket conectado)
   useEffect(() => {
     if (!sesionActiva || encomiendas.length === 0) return;
+    // Si WebSocket está conectado, usar intervalo más largo como fallback
+    const interval = isConnected ? 30000 : 10000;
 
-    const interval = setInterval(() => {
+    const pollInterval = setInterval(() => {
       cargarEstado();
-    }, 10000);
+    }, interval);
 
-    return () => clearInterval(interval);
-  }, [sesionActiva, encomiendas.length, cargarEstado]);
+    return () => clearInterval(pollInterval);
+  }, [sesionActiva, encomiendas.length, cargarEstado, isConnected]);
 
   // Funciones del carrito
   const agregarAlCarrito = (producto: Producto) => {

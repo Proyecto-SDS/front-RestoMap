@@ -33,6 +33,11 @@ interface PedidoActivo {
   total: number;
   creado_el: string;
   lineas: LineaPedido[];
+  cliente?: {
+    id: number;
+    nombre: string;
+    email: string;
+  };
 }
 
 interface LineaPedido {
@@ -257,7 +262,7 @@ export function MesaDetailContent({
         <>
           {/* Info del Pedido */}
           <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <h2 className="text-lg text-[#334155] flex items-center gap-2">
                 <ShoppingBag size={20} className="text-[#F97316]" />
                 Pedido Activo #{mesa.pedido_activo.id}
@@ -267,8 +272,27 @@ export function MesaDetailContent({
                 {formatDate(mesa.pedido_activo.creado_el)}
               </span>
             </div>
+          </div>
 
-            <div className="flex items-center gap-2 mb-4">
+          {/* Info Cliente */}
+          {mesa.pedido_activo.cliente && (
+            <div className="px-6 py-4 bg-blue-50 border-b border-blue-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                {mesa.pedido_activo.cliente.nombre.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-medium text-[#1E293B]">
+                  {mesa.pedido_activo.cliente.nombre}
+                </p>
+                <p className="text-sm text-[#64748B]">
+                  {mesa.pedido_activo.cliente.email}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 pt-0">
+            <div className="flex items-center gap-2 mb-4 mt-6">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-50 text-[#F97316]">
                 {mesa.pedido_activo.estado.replace('_', ' ').toUpperCase()}
               </span>

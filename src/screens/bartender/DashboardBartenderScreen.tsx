@@ -2,7 +2,7 @@
 
 import { Package, Wine } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { InventarioBartender } from '../../components/bartender/InventarioBartender';
 import { KanbanBoard } from '../../components/cocinero/KanbanBoard';
 import {
@@ -11,6 +11,7 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 import type { Pedido, Producto } from '../cocinero/DashboardCocineroScreen';
 
@@ -24,6 +25,7 @@ interface PedidosByEstado {
 export default function DashboardBartenderScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
+  const { socket, isConnected, joinLocal } = useSocket();
   const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>(
     'pedidos'
   );
@@ -43,29 +45,8 @@ export default function DashboardBartenderScreen() {
     }
   }, [isLoggedIn, userType, router]);
 
-  const loadPedidos = async () => {
+  const loadPedidos = useCallback(async () => {
     setIsLoading(true);
-    try {
-      await fetchPedidosBebidas();
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadBebidas = async () => {
-    setIsLoading(true);
-    try {
-      await fetchBebidasAlcoholicas();
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchPedidosBebidas = async () => {
     try {
       const data = await api.empresa.getPedidosBarra();
       const pedidosList = data.map((p: Record<string, unknown>) => ({
@@ -97,8 +78,21 @@ export default function DashboardBartenderScreen() {
       });
     } catch (error) {
       console.error('Error loading pedidos barra:', error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
+
+  const loadBebidas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await fetchBebidasAlcoholicas();
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const fetchBebidasAlcoholicas = async () => {
     try {
@@ -118,6 +112,32 @@ export default function DashboardBartenderScreen() {
       console.error('Error loading bebidas:', error);
     }
   };
+
+  // Join WebSocket
+  useEffect(() => {
+    if (user?.id_local && isConnected) {
+      joinLocal(Number(user.id_local));
+      console.log('Bartender unido a sala local:', user.id_local);
+    }
+  }, [user?.id_local, isConnected, joinLocal]);
+
+  // Listen for WebSocket events -> Recargar kanban
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      console.log('WS: Actualización recibida');
+      loadPedidos();
+    };
+
+    socket.on('nueva_encomienda', handleUpdate);
+    socket.on('estado_encomienda', handleUpdate);
+
+    return () => {
+      socket.off('nueva_encomienda', handleUpdate);
+      socket.off('estado_encomienda', handleUpdate);
+    };
+  }, [socket, loadPedidos]);
 
   const handlePedidoUpdate = (updatedPedido: Pedido) => {
     // Remove from old column and add to new column
@@ -222,7 +242,7 @@ export default function DashboardBartenderScreen() {
                 <KanbanBoard
                   pedidos={pedidos}
                   onPedidoUpdate={handlePedidoUpdate}
-                  onRefresh={fetchPedidosBebidas}
+                  onRefresh={loadPedidos}
                 />
               )}
               {activeSection === 'inventario' && (

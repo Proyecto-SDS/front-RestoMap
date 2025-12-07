@@ -2,7 +2,7 @@
 
 import { ChefHat, Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { InventarioCocinero } from '../../components/cocinero/InventarioCocinero';
 import { KanbanBoard } from '../../components/cocinero/KanbanBoard';
 import { CustomScrollbar } from '../../components/layout/CustomScrollbar';
@@ -12,6 +12,7 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 
 export type PedidoEstado =
@@ -65,6 +66,7 @@ interface PedidosByEstado {
 export default function DashboardCocineroScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
+  const { socket, isConnected, joinLocal } = useSocket();
   const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>(
     'pedidos'
   );
@@ -83,7 +85,7 @@ export default function DashboardCocineroScreen() {
     }
   }, [isLoggedIn, userType, router]);
 
-  const loadPedidos = async () => {
+  const loadPedidos = useCallback(async () => {
     try {
       const data = await api.empresa.getPedidosCocina();
       const pedidosList = data.map((p: Record<string, unknown>) => ({
@@ -116,9 +118,34 @@ export default function DashboardCocineroScreen() {
     } catch (error) {
       console.error('Error loading pedidos:', error);
     }
-  };
+  }, []);
 
-  const loadProductos = async () => {
+  // WebSocket Integration
+  useEffect(() => {
+    if (user?.id_local && isConnected) {
+      joinLocal(Number(user.id_local));
+      console.log('Cocinero unido a sala local:', user.id_local);
+    }
+  }, [user?.id_local, isConnected, joinLocal]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      console.log('WS: Actualización recibida');
+      loadPedidos(); // Recargar kanban
+    };
+
+    socket.on('nueva_encomienda', handleUpdate);
+    socket.on('estado_encomienda', handleUpdate);
+
+    return () => {
+      socket.off('nueva_encomienda', handleUpdate);
+      socket.off('estado_encomienda', handleUpdate);
+    };
+  }, [socket, loadPedidos]);
+
+  const loadProductos = useCallback(async () => {
     try {
       const data = await api.empresa.getProductos();
       const productosList = data.map((p: Record<string, unknown>) => ({
@@ -134,7 +161,7 @@ export default function DashboardCocineroScreen() {
     } catch (error) {
       console.error('Error loading productos:', error);
     }
-  };
+  }, []);
 
   const handlePedidoUpdate = (updatedPedido: Pedido) => {
     // Remove from old column and add to new column
@@ -172,13 +199,14 @@ export default function DashboardCocineroScreen() {
     );
   };
 
+  // ... (otros handlers)
+
   // Load initial data
   useEffect(() => {
     // eslint-disable-next-line
     loadPedidos();
-
     loadProductos();
-  }, []);
+  }, [loadPedidos, loadProductos]);
 
   const [showProfile, setShowProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
