@@ -32,8 +32,9 @@ function getOrCreateSocket(): Socket {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // Reconexión infinita para apps en tiempo real
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000, // Máximo 5 segundos entre intentos
     });
   }
   return globalSocket!;

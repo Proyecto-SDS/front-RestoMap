@@ -110,6 +110,7 @@ export default function DashboardMeseroScreen() {
           orden: (m.orden as number) ?? 0,
           estado: (m.estado as string).toUpperCase() as MesaEstado,
           pedidos_count: m.pedidos_count as number,
+          num_personas: (m.num_personas as number) || undefined,
         }))
         .sort((a: Mesa, b: Mesa) => a.orden - b.orden);
       setMesas(mesasData);
@@ -146,13 +147,8 @@ export default function DashboardMeseroScreen() {
 
     const handleQREscaneado = (data: { mesa_id: number }) => {
       console.log('WS: QR Escaneado', data);
-      setMesas((prev) =>
-        prev.map((mesa) =>
-          mesa.id === String(data.mesa_id)
-            ? { ...mesa, estado: 'OCUPADA' }
-            : mesa
-        )
-      );
+      // Recargar todas las mesas para obtener datos actualizados (incluyendo num_personas)
+      void loadMesas();
     };
 
     socket.on('mesa_actualizada', handleMesaActualizada);
@@ -162,34 +158,17 @@ export default function DashboardMeseroScreen() {
       socket.off('mesa_actualizada', handleMesaActualizada);
       socket.off('qr_escaneado', handleQREscaneado);
     };
-  }, [socket]);
+  }, [socket, loadMesas]);
 
   // Load initial data on mount
   const hasMountedRef = useRef(false);
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
-      void (async () => {
-        try {
-          const data = await api.empresa.getMesas();
-          const mesasData: Mesa[] = data
-            .map((m: Record<string, unknown>) => ({
-              id: String(m.id),
-              nombre: m.nombre as string,
-              descripcion: (m.descripcion as string) || '',
-              estado: (m.estado as string).toUpperCase() as MesaEstado,
-              capacidad: m.capacidad as number,
-              orden: (m.orden as number) ?? 0,
-              pedidos_count: m.pedidos_count as number,
-            }))
-            .sort((a: Mesa, b: Mesa) => a.orden - b.orden);
-          setMesas(mesasData);
-        } catch (error) {
-          console.error('Error loading mesas:', error);
-        }
-      })();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Carga inicial necesaria
+      void loadMesas();
     }
-  }, []);
+  }, [loadMesas]);
 
   const handleMesaUpdate = (updatedMesa: Mesa) => {
     setMesas((prev) =>

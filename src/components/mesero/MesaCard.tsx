@@ -118,8 +118,8 @@ export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
           </p>
         )}
 
-        {/* Personas en la mesa - Solo si NO es disponible */}
-        {mesa.estado !== 'DISPONIBLE' && mesa.num_personas && (
+        {/* Personas en la mesa - Solo si NO es disponible y tiene num_personas */}
+        {mesa.estado.toUpperCase() !== 'DISPONIBLE' && mesa.num_personas && (
           <div className="flex items-center gap-2 text-[#64748B] mb-3">
             <Users size={16} />
             <span className="text-sm">
