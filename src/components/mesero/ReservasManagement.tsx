@@ -32,17 +32,56 @@ export function ReservasManagement({
   const [showCancelar, setShowCancelar] = useState<Reserva | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [filterEstado, setFilterEstado] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  // Estados separados para mes y año
+  const currentDate = new Date();
+  const [selectedYear, setSelectedYear] = useState<number>(
+    currentDate.getFullYear()
   );
+  const [selectedMonthNum, setSelectedMonthNum] = useState<number>(
+    currentDate.getMonth() + 1
+  );
+
+  // Nombres de los meses
+  const monthNames = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  // Generar años (desde 2020 hasta año actual + 1)
+  const years = Array.from(
+    { length: currentDate.getFullYear() - 2020 + 2 },
+    (_, i) => 2020 + i
+  );
+
+  // Calcular fecha inicio y fin del mes
+  const getMonthRange = (year: number, month: number) => {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    return {
+      inicio: firstDay.toISOString().split('T')[0],
+      fin: lastDay.toISOString().split('T')[0],
+    };
+  };
 
   const loadReservas = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.empresa.getReservas(
-        selectedDate,
-        filterEstado || undefined
-      );
+      const { inicio, fin } = getMonthRange(selectedYear, selectedMonthNum);
+      const data = await api.empresa.getReservas({
+        fecha_inicio: inicio,
+        fecha_fin: fin,
+        estado: filterEstado || undefined,
+      });
       setReservas(data || []);
     } catch (error) {
       console.error('Error loading reservas:', error);
@@ -50,7 +89,7 @@ export function ReservasManagement({
     } finally {
       setLoading(false);
     }
-  }, [filterEstado, selectedDate]);
+  }, [filterEstado, selectedYear, selectedMonthNum]);
 
   useEffect(() => {
     loadReservas();
@@ -114,18 +153,34 @@ export function ReservasManagement({
           <div>
             <h2 className="text-xl text-[#334155] mb-1">Reservas</h2>
             <p className="text-sm text-[#94A3B8]">
-              {reservas.length} reservas para la fecha seleccionada
+              {reservas.length} reservas para el mes seleccionado
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <Calendar size={20} className="text-[#F97316]" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+              <select
+                value={selectedMonthNum}
+                onChange={(e) => setSelectedMonthNum(Number(e.target.value))}
                 className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
-              />
+              >
+                {monthNames.map((name, index) => (
+                  <option key={index} value={index + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
             </div>
             <select
               value={filterEstado}
@@ -146,79 +201,98 @@ export function ReservasManagement({
       {reservas.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-12 text-center">
           <Calendar size={48} className="text-[#94A3B8] mx-auto mb-4" />
-          <h3 className="text-[#334155] mb-2">No hay reservas para hoy</h3>
+          <h3 className="text-[#334155] mb-2">No hay reservas este mes</h3>
           <p className="text-sm text-[#64748B]">
-            Las reservas del dia apareceran aqui
+            Las reservas del mes seleccionado apareceran aqui
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {reservas.map((reserva) => {
-            const estadoStyle = getEstadoColor(reserva.estado);
+          {[...reservas]
+            .sort((a, b) => {
+              const now = new Date();
+              const dateA = new Date(`${a.fecha}T${a.hora}`);
+              const dateB = new Date(`${b.fecha}T${b.hora}`);
+              const diffA = Math.abs(dateA.getTime() - now.getTime());
+              const diffB = Math.abs(dateB.getTime() - now.getTime());
+              return diffA - diffB;
+            })
+            .map((reserva) => {
+              const estadoStyle = getEstadoColor(reserva.estado);
 
-            return (
-              <div
-                key={reserva.id}
-                className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg text-[#334155]">
-                        {reserva.usuario_nombre}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${estadoStyle.bg} ${estadoStyle.text}`}
-                      >
-                        {estadoStyle.label}
-                      </span>
-                    </div>
+              return (
+                <div
+                  key={reserva.id}
+                  className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg text-[#334155]">
+                          {reserva.usuario_nombre}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${estadoStyle.bg} ${estadoStyle.text}`}
+                        >
+                          {estadoStyle.label}
+                        </span>
+                      </div>
 
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-[#64748B]">
-                      <span className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {reserva.hora}
-                      </span>
-                      {reserva.usuario_telefono && (
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-[#64748B]">
                         <span className="flex items-center gap-1">
-                          <Phone size={14} />
-                          {reserva.usuario_telefono}
+                          <Calendar size={14} />
+                          {new Date(
+                            reserva.fecha + 'T00:00:00'
+                          ).toLocaleDateString('es-CL', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                          })}
                         </span>
-                      )}
-                      {reserva.mesas.length > 0 && (
-                        <span className="flex items-center gap-1 text-[#22C55E]">
-                          <Users size={14} />
-                          {reserva.mesas.join(', ')}
+                        <span className="flex items-center gap-1">
+                          <Clock size={14} />
+                          {reserva.hora}
                         </span>
-                      )}
+                        {reserva.usuario_telefono && (
+                          <span className="flex items-center gap-1">
+                            <Phone size={14} />
+                            {reserva.usuario_telefono}
+                          </span>
+                        )}
+                        {reserva.mesas.length > 0 && (
+                          <span className="flex items-center gap-1 text-[#22C55E]">
+                            <Users size={14} />
+                            {reserva.mesas.join(', ')}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Codigo QR */}
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-xs text-[#94A3B8]">Codigo:</span>
+                        <code className="px-2 py-1 bg-[#F1F5F9] rounded text-xs text-[#334155] font-mono">
+                          {reserva.codigo_qr}
+                        </code>
+                      </div>
                     </div>
 
-                    {/* Codigo QR */}
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-[#94A3B8]">Codigo:</span>
-                      <code className="px-2 py-1 bg-[#F1F5F9] rounded text-xs text-[#334155] font-mono">
-                        {reserva.codigo_qr}
-                      </code>
-                    </div>
+                    {/* Acciones */}
+                    {!readOnly &&
+                      reserva.estado !== 'rechazada' &&
+                      reserva.estado !== 'expirada' && (
+                        <DangerButton
+                          onClick={() => setShowCancelar(reserva)}
+                          size="sm"
+                        >
+                          <XCircle size={16} />
+                          Cancelar
+                        </DangerButton>
+                      )}
                   </div>
-
-                  {/* Acciones */}
-                  {!readOnly &&
-                    reserva.estado !== 'rechazada' &&
-                    reserva.estado !== 'expirada' && (
-                      <DangerButton
-                        onClick={() => setShowCancelar(reserva)}
-                        size="sm"
-                      >
-                        <XCircle size={16} />
-                        Cancelar
-                      </DangerButton>
-                    )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       )}
 

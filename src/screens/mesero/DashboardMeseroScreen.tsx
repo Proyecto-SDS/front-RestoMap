@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  Calendar,
-  ClipboardList,
-  LayoutGrid,
-  QrCode,
-  UtensilsCrossed,
-} from 'lucide-react';
+import { Calendar, LayoutGrid, QrCode, UtensilsCrossed } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
-import { PedidosManagement } from '../../components/mesero/PedidosManagement';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { ScanQRReserva } from '../../components/mesero/ScanQRReserva';
 import { TablasMapa } from '../../components/mesero/TablasMapa';
@@ -77,10 +70,9 @@ export default function DashboardMeseroScreen() {
   const { user, userType, isLoggedIn } = useAuth();
   const { socket, isConnected, joinLocal } = useSocket();
   const [activeSection, setActiveSection] = useState<
-    'mesas' | 'pedidos' | 'reservas' | 'qr'
+    'mesas' | 'reservas' | 'qr'
   >('mesas');
   const [mesas, setMesas] = useState<Mesa[]>([]);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
   // Check authentication and role
   useEffect(() => {
@@ -104,35 +96,6 @@ export default function DashboardMeseroScreen() {
       setMesas(mesasData);
     } catch (error) {
       console.error('Error loading mesas:', error);
-    }
-  }, []);
-
-  const loadPedidos = useCallback(async () => {
-    try {
-      const data = await api.empresa.getPedidos();
-      // Mapear respuesta del backend a interface Pedido
-      const pedidosData: Pedido[] = data.map((p: Record<string, unknown>) => ({
-        id: String(p.id),
-        id_mesa: String(p.id_mesa),
-        fecha_pedido: p.creado_el as string,
-        total: p.total as number,
-        estado: (
-          (p.estado as string) || 'INICIADO'
-        ).toUpperCase() as PedidoEstado,
-        creado_el: p.creado_el as string,
-        mesa_nombre: p.mesa_nombre as string,
-        lineas: (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
-          id: String(l.id),
-          id_pedido: String(p.id),
-          id_producto: String(l.producto_id),
-          producto_nombre: l.producto_nombre as string,
-          cantidad: l.cantidad as number,
-          precio_unitario: l.precio_unitario as number,
-        })),
-      }));
-      setPedidos(pedidosData);
-    } catch (error) {
-      console.error('Error loading pedidos:', error);
     }
   }, []);
 
@@ -173,31 +136,37 @@ export default function DashboardMeseroScreen() {
       );
     };
 
-    // Actualizar pedidos al recibir cambios (nuevo o cambio estado)
-    const handleActualizarPedidos = () => {
-      loadPedidos();
-    };
-
     socket.on('mesa_actualizada', handleMesaActualizada);
     socket.on('qr_escaneado', handleQREscaneado);
-    socket.on('nuevo_pedido', handleActualizarPedidos);
-    socket.on('estado_pedido', handleActualizarPedidos);
-    socket.on('estado_encomienda', handleActualizarPedidos);
 
     return () => {
       socket.off('mesa_actualizada', handleMesaActualizada);
       socket.off('qr_escaneado', handleQREscaneado);
-      socket.off('nuevo_pedido', handleActualizarPedidos);
-      socket.off('estado_pedido', handleActualizarPedidos);
-      socket.off('estado_encomienda', handleActualizarPedidos);
     };
-  }, [socket, loadPedidos]);
+  }, [socket]);
 
-  // Load initial data
+  // Load initial data on mount
+  const hasMountedRef = useRef(false);
   useEffect(() => {
-    loadMesas();
-    loadPedidos();
-  }, [loadMesas, loadPedidos]);
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      void (async () => {
+        try {
+          const data = await api.empresa.getMesas();
+          const mesasData: Mesa[] = data.map((m: Record<string, unknown>) => ({
+            id: String(m.id),
+            nombre: m.nombre as string,
+            estado: (m.estado as string).toUpperCase() as MesaEstado,
+            capacidad: m.capacidad as number,
+            pedidos_count: m.pedidos_count as number,
+          }));
+          setMesas(mesasData);
+        } catch (error) {
+          console.error('Error loading mesas:', error);
+        }
+      })();
+    }
+  }, []);
 
   const handleMesaUpdate = (updatedMesa: Mesa) => {
     setMesas((prev) =>
@@ -211,12 +180,6 @@ export default function DashboardMeseroScreen() {
 
   const handleMesaDelete = (mesaId: string) => {
     setMesas((prev) => prev.filter((m) => m.id !== mesaId));
-  };
-
-  const handlePedidoUpdate = (updatedPedido: Pedido) => {
-    setPedidos((prev) =>
-      prev.map((p) => (p.id === updatedPedido.id ? updatedPedido : p))
-    );
   };
 
   const [showProfile, setShowProfile] = useState(false);
@@ -233,7 +196,6 @@ export default function DashboardMeseroScreen() {
 
   const menuItems = [
     { id: 'mesas' as const, label: 'Mesas', icon: LayoutGrid },
-    { id: 'pedidos' as const, label: 'Pedidos', icon: ClipboardList },
     { id: 'reservas' as const, label: 'Reservas', icon: Calendar },
     { id: 'qr' as const, label: 'Escanear QR', icon: QrCode },
   ];
@@ -251,7 +213,7 @@ export default function DashboardMeseroScreen() {
         menuItems={menuItems}
         activeItem={activeSection}
         onNavigate={(id: string) => {
-          setActiveSection(id as 'mesas' | 'pedidos' | 'reservas' | 'qr');
+          setActiveSection(id as 'mesas' | 'reservas' | 'qr');
           setSelectedMesaId(null);
         }}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -267,8 +229,6 @@ export default function DashboardMeseroScreen() {
           pageTitle={
             activeSection === 'mesas'
               ? 'Mesas'
-              : activeSection === 'pedidos'
-              ? 'Pedidos'
               : activeSection === 'reservas'
               ? 'Reservas'
               : 'Escanear QR'
@@ -276,8 +236,6 @@ export default function DashboardMeseroScreen() {
           pageDescription={
             activeSection === 'mesas'
               ? 'Gestiona las mesas del restaurante'
-              : activeSection === 'pedidos'
-              ? 'Gestiona los pedidos de las mesas'
               : activeSection === 'reservas'
               ? 'Gestiona las reservas del dia'
               : 'Escanea codigo QR de reservas'
@@ -304,14 +262,6 @@ export default function DashboardMeseroScreen() {
                 onRefresh={loadMesas}
               />
             ))}
-          {activeSection === 'pedidos' && (
-            <PedidosManagement
-              pedidos={pedidos}
-              mesas={mesas}
-              onPedidoUpdate={handlePedidoUpdate}
-              onRefresh={loadPedidos}
-            />
-          )}
           {activeSection === 'reservas' && <ReservasManagement mesas={mesas} />}
           {activeSection === 'qr' && (
             <ScanQRReserva mesas={mesas} onMesaUpdate={handleMesaUpdate} />

@@ -11,6 +11,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 import { DangerButton } from '../buttons/DangerButton';
 import { PrimaryButton } from '../buttons/PrimaryButton';
@@ -38,6 +39,23 @@ interface PedidoActivo {
     nombre: string;
     email: string;
   };
+  encomiendas?: EncomiendaMesero[];
+}
+
+interface EncomiendaMesero {
+  id: number;
+  estado: string;
+  nombre: string;
+  items: EncomiendaItem[];
+  creado_el: string;
+}
+
+interface EncomiendaItem {
+  id: number;
+  producto: string;
+  cantidad: number;
+  precio_unitario: number;
+  observaciones?: string;
 }
 
 interface LineaPedido {
@@ -119,6 +137,32 @@ export function MesaDetailContent({
   useEffect(() => {
     loadMesaDetail();
   }, [loadMesaDetail]);
+
+  // Suscribirse a eventos WebSocket para actualizar automáticamente
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket || !mesa) return;
+
+    const handleActualizar = (data?: { mesa_id?: number }) => {
+      // Si el evento es para esta mesa en particular, o si es general, recargar
+      if (!data || !data.mesa_id || data.mesa_id === Number(mesaId)) {
+        console.log('[WS MesaDetail] Actualizando detalle...', data);
+        loadMesaDetail();
+      }
+    };
+
+    socket.on('nueva_encomienda', handleActualizar);
+    socket.on('estado_encomienda', handleActualizar);
+    socket.on('estado_pedido', handleActualizar);
+    socket.on('nuevo_pedido', handleActualizar);
+
+    return () => {
+      socket.off('nueva_encomienda', handleActualizar);
+      socket.off('estado_encomienda', handleActualizar);
+      socket.off('estado_pedido', handleActualizar);
+      socket.off('nuevo_pedido', handleActualizar);
+    };
+  }, [socket, mesa, mesaId, loadMesaDetail]);
 
   const handleGenerarQR = async () => {
     try {
@@ -298,36 +342,99 @@ export function MesaDetailContent({
               </span>
             </div>
 
-            {/* Líneas del Pedido */}
-            <div className="border-t border-[#E2E8F0] pt-4">
-              <h3 className="text-sm text-[#64748B] mb-3">
-                Productos del Pedido:
-              </h3>
-              <div className="space-y-3">
-                {mesa.pedido_activo.lineas.map((linea) => (
+            {/* Encomiendas del Pedido */}
+            <div className="border-t border-[#E2E8F0] pt-4 space-y-4">
+              {mesa.pedido_activo.encomiendas &&
+              mesa.pedido_activo.encomiendas.length > 0 ? (
+                mesa.pedido_activo.encomiendas.map((enc) => (
                   <div
-                    key={linea.id}
-                    className="flex items-center justify-between py-3 px-4 bg-[#F8FAFC] rounded-lg"
+                    key={enc.id}
+                    className="bg-[#F8FAFC] rounded-lg overflow-hidden"
                   >
-                    <div className="flex-1">
-                      <p className="text-[#334155]">{linea.producto_nombre}</p>
-                      {linea.observaciones && (
-                        <p className="text-xs text-[#94A3B8] mt-1">
-                          Nota: {linea.observaciones}
-                        </p>
-                      )}
+                    <div className="px-4 py-2 bg-[#F1F5F9] border-b border-[#E2E8F0] flex items-center justify-between">
+                      <span className="font-medium text-sm text-[#334155]">
+                        {enc.nombre}
+                      </span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor:
+                            enc.estado === 'listo'
+                              ? '#DCFCE7'
+                              : enc.estado === 'en_proceso'
+                              ? '#FEF3C7'
+                              : '#F1F5F9',
+                          color:
+                            enc.estado === 'listo'
+                              ? '#16A34A'
+                              : enc.estado === 'en_proceso'
+                              ? '#D97706'
+                              : '#64748B',
+                        }}
+                      >
+                        {enc.estado?.replace('_', ' ')}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-6">
-                      <span className="text-[#64748B] text-sm">
-                        x{linea.cantidad}
-                      </span>
-                      <span className="text-[#334155] w-24 text-right">
-                        {formatCurrency(linea.precio_unitario * linea.cantidad)}
-                      </span>
+                    <div className="p-3 space-y-2">
+                      {enc.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <div className="flex-1">
+                            <p className="text-[#334155]">{item.producto}</p>
+                            {item.observaciones && (
+                              <p className="text-xs text-[#94A3B8]">
+                                Nota: {item.observaciones}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-[#64748B]">
+                              x{item.cantidad}
+                            </span>
+                            <span className="text-[#334155] w-20 text-right">
+                              {formatCurrency(
+                                item.precio_unitario * item.cantidad
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="space-y-3">
+                  {mesa.pedido_activo.lineas.map((linea) => (
+                    <div
+                      key={linea.id}
+                      className="flex items-center justify-between py-3 px-4 bg-[#F8FAFC] rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="text-[#334155]">
+                          {linea.producto_nombre}
+                        </p>
+                        {linea.observaciones && (
+                          <p className="text-xs text-[#94A3B8] mt-1">
+                            Nota: {linea.observaciones}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <span className="text-[#64748B] text-sm">
+                          x{linea.cantidad}
+                        </span>
+                        <span className="text-[#334155] w-24 text-right">
+                          {formatCurrency(
+                            linea.precio_unitario * linea.cantidad
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Total */}
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E2E8F0]">

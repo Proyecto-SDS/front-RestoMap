@@ -318,10 +318,18 @@ export const api = {
       apiCall(`/api/empresa/productos/${id}`, { method: 'DELETE' }),
 
     // Reservas
-    getReservas: (fecha?: string, estado?: string) => {
+    getReservas: (options?: {
+      fecha?: string;
+      fecha_inicio?: string;
+      fecha_fin?: string;
+      estado?: string;
+    }) => {
       const params = new URLSearchParams();
-      if (fecha) params.append('fecha', fecha);
-      if (estado) params.append('estado', estado);
+      if (options?.fecha) params.append('fecha', options.fecha);
+      if (options?.fecha_inicio)
+        params.append('fecha_inicio', options.fecha_inicio);
+      if (options?.fecha_fin) params.append('fecha_fin', options.fecha_fin);
+      if (options?.estado) params.append('estado', options.estado);
       const query = params.toString();
       return apiCall(`/api/empresa/reservas/${query ? `?${query}` : ''}`);
     },
