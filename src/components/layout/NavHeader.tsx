@@ -13,8 +13,9 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/apiClient';
 import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
@@ -27,18 +28,50 @@ export function NavHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const [activeQr, setActiveQr] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Consultar pedido activo desde backend
+  const checkPedidoActivo = useCallback(async () => {
+    try {
+      const response = await api.cliente.getPedidoActivo();
+      if (response.tiene_pedido && response.qr_codigo) {
+        setActiveQr(response.qr_codigo);
+        // También guardar en localStorage para persistencia local
+        localStorage.setItem('restomap_active_qr', response.qr_codigo);
+      } else {
+        setActiveQr(null);
+        localStorage.removeItem('restomap_active_qr');
+      }
+    } catch {
+      // Si falla (401, etc), usar localStorage como fallback
+      const qr = localStorage.getItem('restomap_active_qr');
+      setActiveQr(qr);
+    }
+  }, []);
+
+  // Marcar componente como montado y consultar backend
+  useEffect(() => {
+    // eslint-disable-next-line
+    setIsMounted(true);
+    // Primero leer de localStorage (rápido)
+    const qr = localStorage.getItem('restomap_active_qr');
+    setActiveQr(qr);
+  }, []);
+
+  // Consultar backend cuando el usuario está logueado
+  useEffect(() => {
+    if (!isMounted || !isLoggedIn) return;
+    // eslint-disable-next-line
+    checkPedidoActivo();
+  }, [isMounted, isLoggedIn, checkPedidoActivo]);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     const checkQr = () => {
-      if (typeof window !== 'undefined') {
-        const qr = localStorage.getItem('restomap_active_qr');
-
-        setActiveQr(qr);
-      }
+      const qr = localStorage.getItem('restomap_active_qr');
+      setActiveQr(qr);
     };
-
-    // Chequear al montar y cuando cambia la ruta
-    checkQr();
 
     // Escuchar evento personalizado (mismo tab) y storage (otros tabs)
     window.addEventListener('qr-updated', checkQr);
@@ -48,12 +81,15 @@ export function NavHeader() {
       window.removeEventListener('qr-updated', checkQr);
       window.removeEventListener('storage', checkQr);
     };
-  }, [pathname]);
+  }, [isMounted]);
 
   // User is an employee if they have id_local
   const isEmployee = !!user?.id_local;
   // Ocultar boton QR si ya esta en pagina de pedido
   const isOnPedidoPage = pathname?.startsWith('/pedido');
+  // Solo mostrar botón QR después de montar (evita hidratación incorrecta)
+  const showQrButton =
+    isMounted && isLoggedIn && !isEmployee && !isOnPedidoPage;
 
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -152,9 +188,7 @@ export function NavHeader() {
             <div className="hidden md:flex items-center gap-2">
               {/* Boton Escanear QR - solo para usuarios logueados no empleados, no en pagina pedido */}
               {/* Boton Escanear QR o Ir al Pedido */}
-              {isLoggedIn &&
-                !isEmployee &&
-                !isOnPedidoPage &&
+              {showQrButton &&
                 (activeQr ? (
                   <Link
                     href={`/pedido?qr=${activeQr}`}
@@ -299,8 +333,7 @@ export function NavHeader() {
 
                   {/* Escanear QR - solo para clientes no empleados, no en pagina pedido */}
                   {/* Escanear QR o Ir al Pedido - movil */}
-                  {!isEmployee &&
-                    !isOnPedidoPage &&
+                  {showQrButton &&
                     (activeQr ? (
                       <Link
                         href={`/pedido?qr=${activeQr}`}

@@ -140,9 +140,11 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
         const menuResponse = await api.cliente.getMenu(qrCodigo);
         setCategorias(menuResponse.categorias || []);
 
-        // Si hay encomiendas previas, cargar estado
+        // Si hay encomiendas previas (estado diferente a iniciado), cargar estado y mostrar seguimiento
         if (response.pedido.estado !== 'iniciado') {
           await cargarEstado();
+          // Cambiar a vista de seguimiento automáticamente
+          setVista('seguimiento');
         }
 
         // Guardar QR en localStorage para recuperar sesión

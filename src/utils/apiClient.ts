@@ -375,5 +375,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ nota }),
       }),
+    // Obtener pedido activo del usuario (para cualquier dispositivo)
+    getPedidoActivo: () => apiCall('/api/cliente/pedido-activo'),
   },
 };
