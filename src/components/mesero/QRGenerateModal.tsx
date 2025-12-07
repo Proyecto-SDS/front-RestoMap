@@ -1,5 +1,6 @@
-import { Check, Copy, X } from 'lucide-react';
+import { Check, Copy, Minus, Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSocket } from '../../context/SocketContext';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
@@ -34,6 +35,7 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
   const mesaId = isAltProps(props) ? null : props.mesa.id;
   const initialQrUrl = isAltProps(props) ? props.qrUrl : null;
   const isOpen = isAltProps(props) ? props.isOpen : true;
+  const { socket } = useSocket();
 
   const [qrCode, setQrCode] = useState(() => initialQrUrl || '');
   const [qrCodeShort, setQrCodeShort] = useState(''); // Solo el código, sin URL
@@ -53,7 +55,7 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
 
     try {
       // Llamar a la API para generar el QR con num_personas
-      const data = await api.empresa.generarQRMesa(mesaId, numPersonas);
+      const data = await api.empresa.generarQRMesa(Number(mesaId), numPersonas);
       // Construir URL completa para el escaneo (frontend URL + ruta)
       const baseUrl = window.location.origin;
       const qrUrl = `${baseUrl}/pedido?qr=${data.qr.codigo}`;
@@ -86,6 +88,25 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
       return () => clearInterval(timer);
     }
   }, [qrExpiration, isOpen]);
+
+  // Escuchar evento de QR escaneado para cerrar el modal automáticamente
+  useEffect(() => {
+    if (!socket || !isOpen || !mesaId) return;
+
+    const handleQREscaneado = (data: { mesa_id: number }) => {
+      // Si el QR escaneado es de esta mesa, cerrar el modal
+      if (String(data.mesa_id) === mesaId) {
+        console.log('QR escaneado para esta mesa, cerrando modal');
+        onClose();
+      }
+    };
+
+    socket.on('qr_escaneado', handleQREscaneado);
+
+    return () => {
+      socket.off('qr_escaneado', handleQREscaneado);
+    };
+  }, [socket, isOpen, mesaId, onClose]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(qrCodeShort);
@@ -130,22 +151,59 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
         <div className="p-6 space-y-6 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 [&::-webkit-scrollbar-button]:hidden">
           {!showQR ? (
             <>
-              {/* Input de número de personas */}
+              {/* Input de número de personas con botones +/- */}
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#334155]">
+                <label className="block mb-3 text-sm font-medium text-[#334155]">
                   ¿Cuántas personas hay en la mesa?
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max={isAltProps(props) ? 99 : props.mesa.capacidad}
-                  value={numPersonas}
-                  onChange={(e) =>
-                    setNumPersonas(Math.max(1, parseInt(e.target.value) || 1))
-                  }
-                  className="w-full px-4 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6366F1] text-center text-lg"
-                />
-                <p className="mt-1 text-xs text-[#94A3B8]">
+                <div className="flex items-center gap-3">
+                  {/* Botón decrementar */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNumPersonas((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={numPersonas <= 1}
+                    className="w-12 h-12 flex items-center justify-center rounded-lg border-2 border-[#E2E8F0] text-[#64748B] hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#64748B] transition-colors"
+                  >
+                    <Minus size={20} />
+                  </button>
+
+                  {/* Input numérico editable */}
+                  <input
+                    type="number"
+                    min="1"
+                    max={isAltProps(props) ? 99 : props.mesa.capacidad}
+                    value={numPersonas}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const maxCapacity = isAltProps(props)
+                        ? 99
+                        : props.mesa.capacidad;
+                      setNumPersonas(Math.min(Math.max(1, value), maxCapacity));
+                    }}
+                    className="flex-1 px-4 py-3 border-2 border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316] focus:border-[#F97316] text-center text-2xl font-semibold text-[#334155] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+
+                  {/* Botón incrementar */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const maxCapacity = isAltProps(props)
+                        ? 99
+                        : props.mesa.capacidad;
+                      setNumPersonas((prev) => Math.min(prev + 1, maxCapacity));
+                    }}
+                    disabled={
+                      numPersonas >=
+                      (isAltProps(props) ? 99 : props.mesa.capacidad)
+                    }
+                    className="w-12 h-12 flex items-center justify-center rounded-lg border-2 border-[#E2E8F0] text-[#64748B] hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#64748B] transition-colors"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-[#94A3B8] text-center">
                   Capacidad máxima:{' '}
                   {isAltProps(props) ? 'N/A' : props.mesa.capacidad} personas
                 </p>

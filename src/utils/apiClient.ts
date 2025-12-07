@@ -353,6 +353,13 @@ export const api = {
 
     // Stats
     getStats: () => apiCall('/api/empresa/stats/dashboard'),
+
+    // Debug (desarrollo)
+    getDebugQRs: () => apiCall('/api/empresa/debug/qrs'),
+    getDebugQRsMesa: (mesaId: number) =>
+      apiCall(`/api/empresa/debug/qrs/${mesaId}`),
+    limpiarQRsHuerfanos: () =>
+      apiCall('/api/empresa/debug/qrs/limpiar', { method: 'POST' }),
   },
 
   // ============================================

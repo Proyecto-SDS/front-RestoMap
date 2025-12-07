@@ -146,13 +146,6 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           // Cambiar a vista de seguimiento automáticamente
           setVista('seguimiento');
         }
-
-        // Guardar QR en localStorage para recuperar sesión
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('restomap_active_qr', qrCodigo);
-          // Disparar evento para actualizar Header inmediatamente
-          window.dispatchEvent(new Event('qr-updated'));
-        }
       } else {
         setError(response.error || 'QR invalido');
       }
@@ -210,17 +203,25 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           prev ? { ...prev, estado: data.estado } : prev
         );
 
-        // Si el pedido fue cancelado, notificar y redirigir
+        // Si el pedido fue cancelado o completado, notificar y redirigir
         if (data.estado === 'CANCELADO') {
-          // Limpiar QR activo del localStorage
-          localStorage.removeItem('restomap_active_qr');
-          window.dispatchEvent(new Event('qr-updated'));
-
-          // Mostrar notificación
-          alert('El pedido ha sido cancelado por el mesero.');
-
-          // Redirigir al home
-          router.push('/');
+          // Mostrar notificación con mejor UX
+          setTimeout(() => {
+            alert(
+              '❌ Tu pedido ha sido cancelado por el personal del restaurante.\n\nSi tienes alguna duda, por favor consulta con el mesero.'
+            );
+            // Redirigir al home
+            router.push('/');
+          }, 500);
+        } else if (data.estado === 'COMPLETADO') {
+          // Mostrar notificación de pedido completado
+          setTimeout(() => {
+            alert(
+              '✅ ¡Tu pedido ha sido completado y pagado!\n\n¡Gracias por tu visita! Esperamos verte pronto.'
+            );
+            // Redirigir al home
+            router.push('/');
+          }, 500);
         }
       }
     };
@@ -232,7 +233,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
       socket.off('estado_encomienda', handleEstadoEncomienda);
       socket.off('estado_pedido', handleEstadoPedido);
     };
-  }, [socket, pedidoInfo?.id, joinPedido]);
+  }, [socket, pedidoInfo?.id, joinPedido, router]);
 
   // Polling como fallback (solo si no hay WebSocket conectado)
   useEffect(() => {

@@ -21,7 +21,7 @@ import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
-  const { socket } = useSocket();
+  const { socket, joinPedido } = useSocket();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -29,61 +29,50 @@ export function NavHeader() {
   const [showQRModal, setShowQRModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const [activeQr, setActiveQr] = useState<string | null>(null);
+  const [activeQr, setActiveQr] = useState<{
+    qr_codigo: string;
+    pedido_id: number;
+  } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Consultar pedido activo desde backend
+  // Consultar pedido activo desde backend (solo API, sin localStorage)
   const checkPedidoActivo = useCallback(async () => {
+    if (!isLoggedIn) {
+      setActiveQr(null);
+      return;
+    }
     try {
       const response = await api.cliente.getPedidoActivo();
-      if (response.tiene_pedido && response.qr_codigo) {
-        setActiveQr(response.qr_codigo);
-        // También guardar en localStorage para persistencia local
-        localStorage.setItem('restomap_active_qr', response.qr_codigo);
+      if (response.tiene_pedido && response.qr_codigo && response.pedido_id) {
+        setActiveQr({
+          qr_codigo: response.qr_codigo,
+          pedido_id: response.pedido_id,
+        });
       } else {
         setActiveQr(null);
-        localStorage.removeItem('restomap_active_qr');
       }
     } catch {
-      // Si falla (401, etc), usar localStorage como fallback
-      const qr = localStorage.getItem('restomap_active_qr');
-      setActiveQr(qr);
+      setActiveQr(null);
     }
-  }, []);
-
-  // Marcar componente como montado y consultar backend
+  }, [isLoggedIn]);
+  // Marcar componente como montado
   useEffect(() => {
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necesario para evitar problemas de hidratación
     setIsMounted(true);
-    // Primero leer de localStorage (rápido)
-    const qr = localStorage.getItem('restomap_active_qr');
-    setActiveQr(qr);
   }, []);
 
   // Consultar backend cuando el usuario está logueado
   useEffect(() => {
     if (!isMounted || !isLoggedIn) return;
-    // eslint-disable-next-line
-    checkPedidoActivo();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- El callback actualiza estado basado en respuesta async
+    void checkPedidoActivo();
   }, [isMounted, isLoggedIn, checkPedidoActivo]);
 
+  // Unirse a la sala del pedido para recibir eventos WebSocket
   useEffect(() => {
-    if (!isMounted) return;
-
-    const checkQr = () => {
-      const qr = localStorage.getItem('restomap_active_qr');
-      setActiveQr(qr);
-    };
-
-    // Escuchar evento personalizado (mismo tab) y storage (otros tabs)
-    window.addEventListener('qr-updated', checkQr);
-    window.addEventListener('storage', checkQr);
-
-    return () => {
-      window.removeEventListener('qr-updated', checkQr);
-      window.removeEventListener('storage', checkQr);
-    };
-  }, [isMounted]);
+    if (!socket || !activeQr?.pedido_id) return;
+    joinPedido(activeQr.pedido_id);
+  }, [socket, activeQr?.pedido_id, joinPedido]);
 
   // Escuchar cambios de estado del pedido via WebSocket
   useEffect(() => {
@@ -93,10 +82,15 @@ export function NavHeader() {
       pedido_id: number;
       estado: string;
     }) => {
-      // Si el pedido fue cancelado o completado, actualizar el estado del QR
+      // Si el pedido fue cancelado o completado, limpiar activeQr
       if (data.estado === 'CANCELADO' || data.estado === 'COMPLETADO') {
-        // Verificar pedido activo para actualizar el botón
-        checkPedidoActivo();
+        // Verificar si es el pedido activo actual
+        if (activeQr && data.pedido_id === activeQr.pedido_id) {
+          setActiveQr(null);
+        } else {
+          // Por si acaso, reconsultar el backend
+          checkPedidoActivo();
+        }
       }
     };
 
@@ -105,7 +99,7 @@ export function NavHeader() {
     return () => {
       socket.off('estado_pedido', handleEstadoPedido);
     };
-  }, [socket, isLoggedIn, checkPedidoActivo]);
+  }, [socket, isLoggedIn, activeQr, checkPedidoActivo]);
 
   // User is an employee if they have id_local
   const isEmployee = !!user?.id_local;
@@ -215,7 +209,7 @@ export function NavHeader() {
               {showQrButton &&
                 (activeQr ? (
                   <Link
-                    href={`/pedido?qr=${activeQr}`}
+                    href={`/pedido?qr=${activeQr.qr_codigo}`}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#22C55E] text-white hover:bg-[#16A34A] transition-colors"
                   >
                     <UtensilsCrossed size={18} />
@@ -360,7 +354,7 @@ export function NavHeader() {
                   {showQrButton &&
                     (activeQr ? (
                       <Link
-                        href={`/pedido?qr=${activeQr}`}
+                        href={`/pedido?qr=${activeQr.qr_codigo}`}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-[#22C55E] hover:bg-[#16A34A] transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >

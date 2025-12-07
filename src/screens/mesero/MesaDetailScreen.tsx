@@ -21,10 +21,12 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/apiClient';
 
 interface MesaDetail {
-  id: number;
+  id: string;
   nombre: string;
   capacidad: number;
   estado: string;
+  id_empresa?: string;
+  orden?: number;
   pedido_activo?: PedidoActivo | null;
   qr_activo?: QRActivo | null;
 }
@@ -90,10 +92,6 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
-  const [qrData, setQrData] = useState<{
-    url: string;
-    mesa_nombre: string;
-  } | null>(null);
 
   // Check authentication
   useEffect(() => {
@@ -385,7 +383,19 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
 
       {/* QR Modal */}
       {showQRModal && mesa && (
-        <QRGenerateModal mesa={mesa} onClose={() => setShowQRModal(false)} />
+        <QRGenerateModal
+          mesa={{
+            ...mesa,
+            id_empresa: mesa.id_empresa || '',
+            orden: mesa.orden || 0,
+            estado: mesa.estado as
+              | 'DISPONIBLE'
+              | 'RESERVADA'
+              | 'OCUPADA'
+              | 'FUERA_DE_SERVICIO',
+          }}
+          onClose={() => setShowQRModal(false)}
+        />
       )}
 
       {/* Cancelar Modal */}
