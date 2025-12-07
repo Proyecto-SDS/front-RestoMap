@@ -52,12 +52,32 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     () => socket?.connected ?? false
   );
 
+  // Guardar las salas activas para re-unirse al reconectar
+  const activeRoomsRef = React.useRef<
+    Set<{ type: 'local' | 'pedido'; id: number }>
+  >(new Set());
+
+  const rejoinRooms = useCallback(() => {
+    if (!socket) return;
+    activeRoomsRef.current.forEach((room) => {
+      if (room.type === 'local') {
+        console.log('[Socket] Re-uniendo a local:', room.id);
+        socket.emit('join_local', { local_id: room.id });
+      } else if (room.type === 'pedido') {
+        console.log('[Socket] Re-uniendo a pedido:', room.id);
+        socket.emit('join_pedido', { pedido_id: room.id });
+      }
+    });
+  }, [socket]);
+
   useEffect(() => {
     if (!socket) return;
 
     const onConnect = () => {
       console.log('[Socket] Conectado:', socket.id);
       setIsConnected(true);
+      // Re-unirse a todas las salas activas
+      rejoinRooms();
     };
 
     const onDisconnect = () => {
@@ -78,10 +98,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onError);
     };
-  }, [socket]);
+  }, [socket, rejoinRooms]);
 
   const joinLocal = useCallback(
     (localId: number) => {
+      // Guardar sala para re-join
+      activeRoomsRef.current.add({ type: 'local', id: localId });
       socket?.emit('join_local', { local_id: localId });
     },
     [socket]
@@ -89,6 +111,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const joinPedido = useCallback(
     (pedidoId: number) => {
+      // Guardar sala para re-join
+      activeRoomsRef.current.add({ type: 'pedido', id: pedidoId });
       socket?.emit('join_pedido', { pedido_id: pedidoId });
     },
     [socket]
@@ -96,6 +120,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const leaveRoom = useCallback(
     (room: string) => {
+      // Remover sala del tracking
+      activeRoomsRef.current.forEach((r) => {
+        if (`${r.type}_${r.id}` === room) {
+          activeRoomsRef.current.delete(r);
+        }
+      });
       socket?.emit('leave_room', { room });
     },
     [socket]
