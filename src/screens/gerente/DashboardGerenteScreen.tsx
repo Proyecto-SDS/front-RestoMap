@@ -20,6 +20,7 @@ import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModa
 import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
 import { ProductosManagement } from '../../components/gerente/ProductosManagement';
 import { StatsOverview } from '../../components/gerente/StatsOverview';
+import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
 import { PedidosManagement } from '../../components/mesero/PedidosManagement';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { TablasMapa } from '../../components/mesero/TablasMapa';
@@ -68,6 +69,7 @@ export default function DashboardGerenteScreen() {
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedMesaId, setSelectedMesaId] = useState<string | null>(null);
 
   // Cargar mesas y pedidos cuando se navega a paneles
   useEffect(() => {
@@ -238,7 +240,10 @@ export default function DashboardGerenteScreen() {
         icon={Home}
         menuItems={menuItems}
         activeItem={activeSection}
-        onNavigate={(id) => setActiveSection(id as typeof activeSection)}
+        onNavigate={(id) => {
+          setActiveSection(id as typeof activeSection);
+          setSelectedMesaId(null);
+        }}
         isMobileMenuOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
@@ -326,13 +331,22 @@ export default function DashboardGerenteScreen() {
                     del mesero en modo solo lectura.
                   </p>
                 </div>
-                <TablasMapa
-                  mesas={mesas}
-                  onMesaUpdate={() => {}}
-                  onMesaCreate={() => {}}
-                  onMesaDelete={() => {}}
-                  readOnly={true}
-                />
+                {selectedMesaId ? (
+                  <MesaDetailContent
+                    mesaId={selectedMesaId}
+                    onVolver={() => setSelectedMesaId(null)}
+                    readOnly={true}
+                  />
+                ) : (
+                  <TablasMapa
+                    mesas={mesas}
+                    onMesaUpdate={() => {}}
+                    onMesaCreate={() => {}}
+                    onMesaDelete={() => {}}
+                    onMesaSelect={(mesaId) => setSelectedMesaId(mesaId)}
+                    readOnly={true}
+                  />
+                )}
               </div>
             )}
 

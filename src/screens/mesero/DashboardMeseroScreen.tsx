@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
 import { PedidosManagement } from '../../components/mesero/PedidosManagement';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { ScanQRReserva } from '../../components/mesero/ScanQRReserva';
@@ -163,6 +164,15 @@ export default function DashboardMeseroScreen() {
 
   const [showProfile, setShowProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedMesaId, setSelectedMesaId] = useState<string | null>(null);
+
+  const handleMesaSelect = (mesaId: string) => {
+    setSelectedMesaId(mesaId);
+  };
+
+  const handleVolverMesas = () => {
+    setSelectedMesaId(null);
+  };
 
   const menuItems = [
     { id: 'mesas' as const, label: 'Mesas', icon: LayoutGrid },
@@ -183,9 +193,10 @@ export default function DashboardMeseroScreen() {
         icon={UtensilsCrossed}
         menuItems={menuItems}
         activeItem={activeSection}
-        onNavigate={(id: string) =>
-          setActiveSection(id as 'mesas' | 'pedidos' | 'reservas' | 'qr')
-        }
+        onNavigate={(id: string) => {
+          setActiveSection(id as 'mesas' | 'pedidos' | 'reservas' | 'qr');
+          setSelectedMesaId(null);
+        }}
         isMobileMenuOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
@@ -219,16 +230,23 @@ export default function DashboardMeseroScreen() {
         />
 
         {/* Content Area - Area clara con esquina redondeada */}
-        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC] rounded-tl-2xl">
-          {activeSection === 'mesas' && (
-            <TablasMapa
-              mesas={mesas}
-              onMesaUpdate={handleMesaUpdate}
-              onMesaCreate={handleMesaCreate}
-              onMesaDelete={handleMesaDelete}
-              onRefresh={loadMesas}
-            />
-          )}
+        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
+          {activeSection === 'mesas' &&
+            (selectedMesaId ? (
+              <MesaDetailContent
+                mesaId={selectedMesaId}
+                onVolver={handleVolverMesas}
+              />
+            ) : (
+              <TablasMapa
+                mesas={mesas}
+                onMesaUpdate={handleMesaUpdate}
+                onMesaCreate={handleMesaCreate}
+                onMesaDelete={handleMesaDelete}
+                onMesaSelect={handleMesaSelect}
+                onRefresh={loadMesas}
+              />
+            ))}
           {activeSection === 'pedidos' && (
             <PedidosManagement
               pedidos={pedidos}

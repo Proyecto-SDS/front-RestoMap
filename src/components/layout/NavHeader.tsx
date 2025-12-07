@@ -1,11 +1,20 @@
 'use client';
 
-import { Building2, ChevronDown, LogOut, Menu, User, X } from 'lucide-react';
+import {
+  Building2,
+  ChevronDown,
+  LogOut,
+  Menu,
+  QrCode,
+  User,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
@@ -13,10 +22,14 @@ export function NavHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   // User is an employee if they have id_local
   const isEmployee = !!user?.id_local;
+  // Ocultar boton QR si ya esta en pagina de pedido
+  const isOnPedidoPage = pathname?.startsWith('/pedido');
 
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -79,127 +92,138 @@ export function NavHeader() {
   };
 
   return (
-    <header
-      className={`
+    <>
+      <header
+        className={`
         fixed top-0 left-0 right-0 z-50
         bg-white
         transition-shadow duration-200
         ${isScrolled ? 'shadow-md' : ''}
       `}
-    >
-      <div className="w-full px-2 sm:px-4">
-        <div className="flex items-center justify-between h-16 gap-2">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
-              <Image
-                src="/logo.png"
-                alt="RestoMap Logo"
-                width={48}
-                height={48}
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <span className="hidden sm:block text-[#334155] font-semibold text-lg">
-              RestoMap
-            </span>
-          </Link>
-
-          <div className="flex-1" />
-
-          {/* Right - User Menu (Desktop) */}
-          <div className="hidden md:flex items-center gap-2">
-            {isLoggedIn && user ? (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-sm text-[#334155] font-medium">
-                    {user.name}
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={`text-[#94A3B8] transition-transform ${
-                      showDropdown ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E2E8F0] py-2 z-[55]">
-                    {/* User Info */}
-                    <div className="px-4 py-3 border-b border-[#E2E8F0]">
-                      <p className="text-sm text-[#334155] font-medium">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-[#94A3B8]">{user.email}</p>
-                    </div>
-
-                    {/* Mi Perfil */}
-                    <button
-                      onClick={handleProfileClick}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#334155] hover:bg-[#F1F5F9] transition-colors"
-                    >
-                      <User size={16} />
-                      Mi Perfil
-                    </button>
-
-                    {/* Panel de Gestion - solo para empleados */}
-                    {isEmployee && (
-                      <button
-                        onClick={handleGoToDashboard}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
-                      >
-                        <Building2 size={16} />
-                        Panel de Gestion
-                      </button>
-                    )}
-
-                    {/* Cerrar sesion */}
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Cerrar sesion
-                    </button>
-                  </div>
-                )}
+      >
+        <div className="w-full px-2 sm:px-4">
+          <div className="flex items-center justify-between h-16 gap-2">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+                <Image
+                  src="/logo.png"
+                  alt="RestoMap Logo"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-contain"
+                />
               </div>
-            ) : (
-              <button
-                onClick={handleLoginClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-[#E2E8F0] hover:bg-[#F1F5F9] transition-colors"
-              >
-                <User size={18} />
-                <span>Ingresar</span>
-              </button>
-            )}
+              <span className="hidden sm:block text-[#334155] font-semibold text-lg">
+                RestoMap
+              </span>
+            </Link>
+
+            <div className="flex-1" />
+
+            {/* Right - User Menu (Desktop) */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Boton Escanear QR - solo para usuarios logueados no empleados, no en pagina pedido */}
+              {isLoggedIn && user && !isEmployee && !isOnPedidoPage && (
+                <button
+                  onClick={() => setShowQRModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] transition-colors"
+                >
+                  <QrCode size={18} />
+                  <span className="text-sm font-medium">Escanear QR</span>
+                </button>
+              )}
+              {isLoggedIn && user ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center">
+                      <span className="text-white text-sm font-semibold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-sm text-[#334155] font-medium">
+                      {user.name}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`text-[#94A3B8] transition-transform ${
+                        showDropdown ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E2E8F0] py-2 z-[55]">
+                      {/* User Info */}
+                      <div className="px-4 py-3 border-b border-[#E2E8F0]">
+                        <p className="text-sm text-[#334155] font-medium">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-[#94A3B8]">{user.email}</p>
+                      </div>
+
+                      {/* Mi Perfil */}
+                      <button
+                        onClick={handleProfileClick}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#334155] hover:bg-[#F1F5F9] transition-colors"
+                      >
+                        <User size={16} />
+                        Mi Perfil
+                      </button>
+
+                      {/* Panel de Gestion - solo para empleados */}
+                      {isEmployee && (
+                        <button
+                          onClick={handleGoToDashboard}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                        >
+                          <Building2 size={16} />
+                          Panel de Gestion
+                        </button>
+                      )}
+
+                      {/* Cerrar sesion */}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        Cerrar sesion
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleLoginClick}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-[#E2E8F0] hover:bg-[#F1F5F9] transition-colors"
+                >
+                  <User size={18} />
+                  <span>Ingresar</span>
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        <div
-          className={`
+          {/* Mobile Menu */}
+          <div
+            className={`
             md:hidden overflow-hidden transition-all duration-300 ease-in-out
             ${
               isMobileMenuOpen
@@ -207,68 +231,89 @@ export function NavHeader() {
                 : 'max-h-0 opacity-0 pointer-events-none'
             }
           `}
-        >
-          <div className="py-4 border-t border-[#E2E8F0] space-y-2 bg-[#F8FAFC]">
-            {isLoggedIn && user ? (
-              <>
-                {/* User Info */}
-                <div className="px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#F97316] to-[#EF4444] flex items-center justify-center">
-                      <span className="text-white font-medium">
-                        {user.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#334155]">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-[#64748B]">{user.email}</p>
+          >
+            <div className="py-4 border-t border-[#E2E8F0] space-y-2 bg-[#F8FAFC]">
+              {isLoggedIn && user ? (
+                <>
+                  {/* User Info */}
+                  <div className="px-4 py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#F97316] to-[#EF4444] flex items-center justify-center">
+                        <span className="text-white font-medium">
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#334155]">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-[#64748B]">{user.email}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Mi Perfil */}
+                  {/* Mi Perfil */}
+                  <button
+                    onClick={handleProfileClick}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#334155] hover:bg-white transition-colors"
+                  >
+                    <User size={18} />
+                    Mi Perfil
+                  </button>
+
+                  {/* Escanear QR - solo para clientes no empleados, no en pagina pedido */}
+                  {!isEmployee && !isOnPedidoPage && (
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setShowQRModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-[#F97316] hover:bg-[#EA580C] transition-colors"
+                    >
+                      <QrCode size={18} />
+                      Escanear QR
+                    </button>
+                  )}
+
+                  {/* Panel de Gestion - solo para empleados */}
+                  {isEmployee && (
+                    <button
+                      onClick={handleGoToDashboard}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                    >
+                      <Building2 size={18} />
+                      Panel de Gestion
+                    </button>
+                  )}
+
+                  {/* Cerrar sesion */}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={18} />
+                    Cerrar sesion
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handleProfileClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#334155] hover:bg-white transition-colors"
+                  onClick={handleLoginClick}
+                  className="w-full flex items-center justify-center gap-2 mx-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
                 >
                   <User size={18} />
-                  Mi Perfil
+                  <span>Ingresar</span>
                 </button>
-
-                {/* Panel de Gestion - solo para empleados */}
-                {isEmployee && (
-                  <button
-                    onClick={handleGoToDashboard}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
-                  >
-                    <Building2 size={18} />
-                    Panel de Gestion
-                  </button>
-                )}
-
-                {/* Cerrar sesion */}
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#EF4444] hover:bg-red-50 transition-colors"
-                >
-                  <LogOut size={18} />
-                  Cerrar sesion
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleLoginClick}
-                className="w-full flex items-center justify-center gap-2 mx-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
-              >
-                <User size={18} />
-                <span>Ingresar</span>
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Modal Escanear QR */}
+      <ScanQRClienteModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+      />
+    </>
   );
 }

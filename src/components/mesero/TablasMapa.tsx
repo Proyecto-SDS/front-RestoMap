@@ -1,5 +1,4 @@
 import { Plus, Settings } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { PrimaryButton } from '../buttons/PrimaryButton';
@@ -12,6 +11,7 @@ interface TablasMapaProps {
   onMesaUpdate: (mesa: Mesa) => void;
   onMesaCreate: (mesa: Mesa) => void;
   onMesaDelete: (mesaId: string) => void;
+  onMesaSelect?: (mesaId: string) => void;
   onRefresh?: () => void | Promise<void>;
   readOnly?: boolean;
 }
@@ -19,14 +19,15 @@ interface TablasMapaProps {
 export function TablasMapa({
   mesas,
   onMesaCreate,
+  onMesaSelect,
   readOnly = false,
 }: TablasMapaProps) {
-  const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleMesaClick = (mesa: Mesa) => {
-    // Navegar a la pagina de detalle de mesa
-    router.push(`/dashboard-mesero/mesa/${mesa.id}`);
+    if (onMesaSelect) {
+      onMesaSelect(mesa.id);
+    }
   };
 
   // Count active tables - usando estados del backend

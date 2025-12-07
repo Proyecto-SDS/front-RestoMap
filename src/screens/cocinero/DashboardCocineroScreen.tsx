@@ -226,7 +226,7 @@ export default function DashboardCocineroScreen() {
         />
 
         {/* Content Area - Area clara con esquina redondeada */}
-        <CustomScrollbar className="flex-1 p-6 bg-[#F8FAFC] rounded-tl-2xl">
+        <CustomScrollbar className="flex-1 p-6 bg-[#F8FAFC]">
           {activeSection === 'pedidos' && (
             <KanbanBoard
               pedidos={pedidos}

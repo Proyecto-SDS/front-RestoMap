@@ -349,4 +349,31 @@ export const api = {
         body: JSON.stringify({ token }),
       }),
   },
+
+  // ============================================
+  // CLIENTE ENDPOINTS - /api/cliente/*
+  // ============================================
+  cliente: {
+    validarQR: (codigo: string) =>
+      apiCall('/api/cliente/qr/validar', {
+        method: 'POST',
+        body: JSON.stringify({ codigo }),
+      }),
+    getMenu: (codigo: string) => apiCall(`/api/cliente/pedido/${codigo}/menu`),
+    agregarProductos: (
+      codigo: string,
+      productos: Array<{ id: number; cantidad: number; nota?: string }>
+    ) =>
+      apiCall(`/api/cliente/pedido/${codigo}/agregar`, {
+        method: 'POST',
+        body: JSON.stringify({ productos }),
+      }),
+    getEstado: (codigo: string) =>
+      apiCall(`/api/cliente/pedido/${codigo}/estado`),
+    agregarNota: (codigo: string, cuentaId: number, nota: string) =>
+      apiCall(`/api/cliente/pedido/${codigo}/cuenta/${cuentaId}/nota`, {
+        method: 'PUT',
+        body: JSON.stringify({ nota }),
+      }),
+  },
 };

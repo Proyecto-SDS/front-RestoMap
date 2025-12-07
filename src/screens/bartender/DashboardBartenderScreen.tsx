@@ -208,7 +208,7 @@ export default function DashboardBartenderScreen() {
         />
 
         {/* Content Area - Area clara con esquina redondeada */}
-        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC] rounded-tl-2xl">
+        <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">

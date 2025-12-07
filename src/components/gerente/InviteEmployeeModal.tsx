@@ -50,10 +50,7 @@ export function InviteEmployeeModal({
     setErrors({});
 
     try {
-      const response = await api.empresa.createInvitation(
-        formData.correo,
-        formData.rol
-      );
+      await api.empresa.createInvitation(formData.correo, formData.rol);
 
       setSuccessMessage(`Invitación enviada exitosamente a ${formData.correo}`);
 
