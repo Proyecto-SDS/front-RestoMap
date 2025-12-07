@@ -20,6 +20,7 @@ export type PedidoEstado =
   | 'RECEPCION'
   | 'EN_PROCESO'
   | 'TERMINADO'
+  | 'SERVIDO'
   | 'COMPLETADO'
   | 'CANCELADO';
 

@@ -40,6 +40,7 @@ export function PedidosManagement({
       RECEPCION: { label: 'Recepción', color: '#8B5CF6', icon: ChefHat },
       EN_PROCESO: { label: 'En Proceso', color: '#F59E0B', icon: ChefHat },
       TERMINADO: { label: 'Terminado', color: '#22C55E', icon: CheckCircle },
+      SERVIDO: { label: 'Servido', color: '#14B8A6', icon: CheckCircle },
       COMPLETADO: { label: 'Completado', color: '#94A3B8', icon: DollarSign },
       CANCELADO: { label: 'Cancelado', color: '#EF4444', icon: X },
     };
@@ -106,6 +107,7 @@ export function PedidosManagement({
               <option value="RECEPCION">En Recepción</option>
               <option value="EN_PROCESO">En Proceso</option>
               <option value="TERMINADO">Terminados</option>
+              <option value="SERVIDO">Servidos</option>
               <option value="COMPLETADO">Completados</option>
               <option value="CANCELADO">Cancelados</option>
             </select>

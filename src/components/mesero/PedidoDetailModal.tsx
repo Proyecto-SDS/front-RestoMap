@@ -228,6 +228,7 @@ export function PedidoDetailModal({
                 <option value="RECEPCION">Recepción</option>
                 <option value="EN_PROCESO">En Proceso</option>
                 <option value="TERMINADO">Terminado</option>
+                <option value="SERVIDO">Servido</option>
                 <option value="COMPLETADO">Completado</option>
                 <option value="CANCELADO">Cancelado</option>
               </select>

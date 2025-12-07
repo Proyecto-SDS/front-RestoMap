@@ -91,11 +91,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   // Carrito
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [showCarrito, setShowCarrito] = useState(false);
-  const [notaModal, setNotaModal] = useState<{
-    item: CarritoItem;
-    index: number;
-  } | null>(null);
-  const [notaTemp, setNotaTemp] = useState('');
+  const [notaExpandida, setNotaExpandida] = useState<number | null>(null);
 
   // Pedido
   const [pedidoInfo, setPedidoInfo] = useState<PedidoInfo | null>(null);
@@ -308,17 +304,6 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
     );
   };
 
-  const guardarNota = () => {
-    if (!notaModal) return;
-    setCarrito((prev) =>
-      prev.map((item, i) =>
-        i === notaModal.index ? { ...item, nota: notaTemp } : item
-      )
-    );
-    setNotaModal(null);
-    setNotaTemp('');
-  };
-
   const totalCarrito = carrito.reduce(
     (total, item) => total + item.producto.precio * item.cantidad,
     0
@@ -459,6 +444,11 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
         texto: 'Listo',
         color: 'bg-green-100 text-green-700',
         icon: '🟢',
+      },
+      servido: {
+        texto: 'Servido',
+        color: 'bg-teal-100 text-teal-700',
+        icon: '🍽️',
       },
       completado: {
         texto: 'Completado',
@@ -683,7 +673,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           {/* Productos */}
           <div>
             {/* Productos agrupados por categoria */}
-            <main className="px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-24">
+            <main className="px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-32">
               {categorias
                 .filter(
                   (cat) =>
@@ -703,63 +693,143 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
                         return (
                           <div
                             key={producto.id}
-                            className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-3 sm:p-4 flex gap-3 sm:gap-4 hover:shadow-md transition-shadow active:scale-[0.99]"
+                            className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] overflow-hidden hover:shadow-md transition-all active:scale-[0.99] group"
                           >
-                            {producto.imagen && (
-                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-[#F1F5F9]">
-                                <Image
-                                  src={producto.imagen}
-                                  alt={producto.nombre}
-                                  width={80}
-                                  height={80}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-[#334155] text-sm sm:text-base leading-tight">
-                                {producto.nombre}
-                              </h3>
-                              {producto.descripcion && (
-                                <p className="text-xs sm:text-sm text-[#64748B] line-clamp-2 mt-0.5">
-                                  {producto.descripcion}
-                                </p>
-                              )}
-                              <p className="text-[#F97316] font-semibold mt-1 text-sm sm:text-base">
-                                {formatCurrency(producto.precio)}
-                              </p>
-                            </div>
-                            {enCarrito ? (
-                              <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1">
-                                <button
-                                  onClick={() => agregarAlCarrito(producto)}
-                                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#F97316] text-white rounded-full hover:bg-[#EA580C] transition-colors active:scale-95"
-                                >
-                                  <Plus size={14} className="sm:hidden" />
-                                  <Plus size={16} className="hidden sm:block" />
-                                </button>
-                                <span className="text-xs sm:text-sm font-medium text-[#334155]">
-                                  {enCarrito.cantidad}
-                                </span>
-                                <button
-                                  onClick={() => quitarDelCarrito(producto.id)}
-                                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#F1F5F9] text-[#64748B] rounded-full hover:bg-[#E2E8F0] transition-colors active:scale-95"
-                                >
-                                  <Minus size={14} className="sm:hidden" />
-                                  <Minus
-                                    size={16}
-                                    className="hidden sm:block"
+                            {/* Contenedor principal con imagen y contenido */}
+                            <div className="p-3 sm:p-4 flex gap-3 sm:gap-4">
+                              {producto.imagen && (
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-[#F1F5F9]">
+                                  <Image
+                                    src={producto.imagen}
+                                    alt={producto.nombre}
+                                    width={96}
+                                    height={96}
+                                    className="w-full h-full object-cover"
                                   />
-                                </button>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0 flex flex-col">
+                                <h3 className="font-semibold text-[#334155] text-sm sm:text-base leading-tight mb-1">
+                                  {producto.nombre}
+                                </h3>
+                                {producto.descripcion && (
+                                  <p className="text-xs sm:text-sm text-[#64748B] line-clamp-2 mb-2">
+                                    {producto.descripcion}
+                                  </p>
+                                )}
+                                <div className="mt-auto flex items-center justify-between">
+                                  <p className="text-[#F97316] font-bold text-base sm:text-lg">
+                                    {formatCurrency(producto.precio)}
+                                  </p>
+                                  {!enCarrito && (
+                                    <button
+                                      onClick={() => agregarAlCarrito(producto)}
+                                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#F97316] text-white rounded-lg hover:bg-[#EA580C] transition-colors font-medium text-xs sm:text-sm flex items-center gap-1.5 active:scale-95"
+                                    >
+                                      <Plus size={16} />
+                                      <span>Agregar</span>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            ) : (
-                              <button
-                                onClick={() => agregarAlCarrito(producto)}
-                                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-[#F97316] text-white rounded-full hover:bg-[#EA580C] transition-colors self-center active:scale-95"
-                              >
-                                <Plus size={18} className="sm:hidden" />
-                                <Plus size={20} className="hidden sm:block" />
-                              </button>
+                            </div>
+
+                            {/* Controles de cantidad y nota (solo si está en carrito) */}
+                            {enCarrito && (
+                              <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-3 sm:px-4 py-2.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() =>
+                                        quitarDelCarrito(producto.id)
+                                      }
+                                      className="w-8 h-8 flex items-center justify-center bg-white border border-[#E2E8F0] rounded-lg text-[#64748B] hover:bg-[#F1F5F9] hover:border-[#CBD5E1] transition-colors active:scale-95"
+                                    >
+                                      <Minus size={16} />
+                                    </button>
+                                    <span className="w-8 text-center font-semibold text-[#334155] text-sm">
+                                      {enCarrito.cantidad}
+                                    </span>
+                                    <button
+                                      onClick={() => agregarAlCarrito(producto)}
+                                      className="w-8 h-8 flex items-center justify-center bg-[#F97316] text-white rounded-lg hover:bg-[#EA580C] transition-colors active:scale-95"
+                                    >
+                                      <Plus size={16} />
+                                    </button>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setNotaExpandida(
+                                        notaExpandida === producto.id
+                                          ? null
+                                          : producto.id
+                                      );
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white border border-transparent hover:border-[#E2E8F0]"
+                                  >
+                                    <StickyNote
+                                      size={14}
+                                      className={
+                                        enCarrito.nota ||
+                                        notaExpandida === producto.id
+                                          ? 'text-[#F97316]'
+                                          : 'text-[#94A3B8]'
+                                      }
+                                    />
+                                    <span
+                                      className={
+                                        enCarrito.nota ||
+                                        notaExpandida === producto.id
+                                          ? 'text-[#F97316]'
+                                          : 'text-[#64748B]'
+                                      }
+                                    >
+                                      {notaExpandida === producto.id
+                                        ? 'Cerrar'
+                                        : enCarrito.nota
+                                        ? 'Editar nota'
+                                        : 'Agregar nota'}
+                                    </span>
+                                  </button>
+                                </div>
+
+                                {/* Input de nota expandible */}
+                                {notaExpandida === producto.id ? (
+                                  <div className="mt-2 pt-2 border-t border-[#E2E8F0] animate-fade-in">
+                                    <div className="flex items-start gap-2">
+                                      <StickyNote
+                                        size={14}
+                                        className="text-[#F97316] mt-2 flex-shrink-0"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={enCarrito.nota}
+                                        onChange={(e) => {
+                                          setCarrito((prev) =>
+                                            prev.map((item) =>
+                                              item.producto.id === producto.id
+                                                ? {
+                                                    ...item,
+                                                    nota: e.target.value,
+                                                  }
+                                                : item
+                                            )
+                                          );
+                                        }}
+                                        placeholder="Ej: sin cebolla, extra salsa..."
+                                        className="flex-1 text-xs px-2.5 py-1.5 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316] focus:border-[#F97316]"
+                                        autoFocus
+                                      />
+                                    </div>
+                                  </div>
+                                ) : enCarrito.nota ? (
+                                  <div className="mt-2 pt-2 border-t border-[#E2E8F0]">
+                                    <p className="text-xs text-[#64748B] italic line-clamp-1">
+                                      📝 {enCarrito.nota}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
                             )}
                           </div>
                         );
@@ -774,13 +844,26 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           {vista === 'menu' && carrito.length > 0 && (
             <button
               onClick={() => setShowCarrito(true)}
-              className="fixed bottom-6 right-6 w-16 h-16 bg-[#F97316] text-white rounded-full shadow-2xl hover:bg-[#EA580C] transition-all hover:scale-105 active:scale-95 z-40 flex items-center justify-center"
+              className="fixed bottom-6 right-6 w-14 h-14 sm:w-16 sm:h-16 bg-[#F97316] text-white rounded-full shadow-2xl hover:bg-[#EA580C] transition-all hover:scale-110 active:scale-95 z-40 flex items-center justify-center group"
             >
-              <ShoppingCart size={28} />
-              <span className="absolute -top-1 -right-1 w-6 h-6 bg-white text-[#F97316] rounded-full text-sm font-bold flex items-center justify-center shadow-lg">
+              <ShoppingCart
+                size={24}
+                className="sm:group-hover:scale-110 transition-transform"
+              />
+              <span className="absolute -top-2 -right-2 min-w-[24px] h-6 bg-white text-[#F97316] rounded-full text-xs sm:text-sm font-bold flex items-center justify-center shadow-lg px-1.5">
                 {cantidadTotal}
               </span>
             </button>
+          )}
+
+          {/* Información flotante del total (opcional - se muestra al hacer scroll) */}
+          {vista === 'menu' && carrito.length > 0 && (
+            <div className="fixed bottom-24 right-6 bg-white rounded-full shadow-lg px-4 py-2 z-30 hidden sm:block">
+              <p className="text-xs text-[#64748B] mb-0.5">Total</p>
+              <p className="text-sm font-bold text-[#F97316]">
+                {formatCurrency(totalCarrito)}
+              </p>
+            </div>
           )}
 
           {/* Drawer del carrito */}
@@ -1049,43 +1132,6 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
                 ) : (
                   'Confirmar'
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nota */}
-      {notaModal && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-[#334155] mb-3 sm:mb-4">
-              Nota para{' '}
-              <span className="text-[#F97316]">
-                {notaModal.item.producto.nombre}
-              </span>
-            </h3>
-            <textarea
-              value={notaTemp}
-              onChange={(e) => setNotaTemp(e.target.value)}
-              placeholder="Ej: sin cebolla, extra salsa..."
-              className="w-full p-2.5 sm:p-3 border border-[#E2E8F0] rounded-lg resize-none h-20 sm:h-24 focus:outline-none focus:ring-2 focus:ring-[#F97316] text-sm sm:text-base"
-            />
-            <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-4">
-              <button
-                onClick={() => {
-                  setNotaModal(null);
-                  setNotaTemp('');
-                }}
-                className="flex-1 py-2 sm:py-2.5 border border-[#E2E8F0] rounded-lg text-sm sm:text-base text-[#64748B] hover:bg-[#F1F5F9] active:bg-[#E2E8F0]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={guardarNota}
-                className="flex-1 py-2 sm:py-2.5 bg-[#F97316] text-white rounded-lg text-sm sm:text-base hover:bg-[#EA580C] active:bg-[#DC5211]"
-              >
-                Guardar
               </button>
             </div>
           </div>
