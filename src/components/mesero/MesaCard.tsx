@@ -1,12 +1,16 @@
-import { ShoppingBag, Users } from 'lucide-react';
+'use client';
+
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, ShoppingBag, Users } from 'lucide-react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 
 interface MesaCardProps {
   mesa: Mesa;
   onClick: () => void;
+  isEditMode?: boolean;
 }
 
-// Estados del backend: DISPONIBLE, RESERVADA, OCUPADA, FUERA_DE_SERVICIO
 const estadoConfig: Record<
   string,
   { color: string; bgColor: string; label: string; shape: string }
@@ -44,57 +48,102 @@ const defaultConfig = {
   shape: 'rounded-full',
 };
 
-export function MesaCard({ mesa, onClick }: MesaCardProps) {
+export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
   const config = estadoConfig[mesa.estado] || defaultConfig;
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: mesa.id,
+    disabled: !isEditMode,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    borderColor: config.color,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <button
-      onClick={onClick}
+    <div
+      ref={setNodeRef}
+      style={style}
       className={`
         relative w-full bg-white rounded-xl shadow-sm border-2 p-6
-        transition-all duration-200 hover:shadow-lg hover:-translate-y-1
-        text-left
+        transition-all duration-200
+        ${
+          isDragging ? 'shadow-xl z-10' : 'hover:shadow-lg hover:-translate-y-1'
+        }
+        ${isEditMode ? 'cursor-pointer' : ''}
       `}
-      style={{ borderColor: config.color }}
     >
-      {/* Status Indicator */}
-      <div className="absolute top-4 right-4">
+      {/* Drag Handle - Solo visible en modo edición */}
+      {isEditMode && (
         <div
-          className={`w-3 h-3 ${config.shape}`}
-          style={{ backgroundColor: config.color }}
-        ></div>
-      </div>
+          {...attributes}
+          {...listeners}
+          className="absolute top-2 left-2 p-1.5 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical size={16} className="text-[#64748B]" />
+        </div>
+      )}
 
-      {/* Mesa Name */}
-      <h3 className="text-xl text-[#334155] mb-4">{mesa.nombre}</h3>
-
-      {/* Info Grid */}
-      <div className="space-y-3">
-        {/* Capacity */}
-        <div className="flex items-center gap-2 text-[#64748B]">
-          <Users size={16} />
-          <span className="text-sm">{mesa.capacidad} personas</span>
+      {/* Clickable Area */}
+      <button onClick={onClick} className="w-full text-left" type="button">
+        {/* Status Indicator */}
+        <div className="absolute top-4 right-4">
+          <div
+            className={`w-3 h-3 ${config.shape}`}
+            style={{ backgroundColor: config.color }}
+          ></div>
         </div>
 
-        {/* Orders Count */}
-        {mesa.pedidos_count !== undefined && mesa.pedidos_count > 0 && (
+        {/* Mesa Name */}
+        <h3
+          className={`text-xl text-[#334155] mb-2 ${isEditMode ? 'pl-8' : ''}`}
+        >
+          {mesa.nombre}
+        </h3>
+
+        {/* Descripcion */}
+        {mesa.descripcion && (
+          <p className="text-sm text-[#94A3B8] mb-3 line-clamp-2">
+            {mesa.descripcion}
+          </p>
+        )}
+
+        {/* Info Grid */}
+        <div className="space-y-2">
+          {/* Capacity */}
+          <div className="flex items-center gap-2 text-[#64748B]">
+            <Users size={16} />
+            <span className="text-sm">{mesa.capacidad} personas</span>
+          </div>
+
+          {/* Orders Count */}
           <div className="flex items-center gap-2 text-[#64748B]">
             <ShoppingBag size={16} />
             <span className="text-sm">
-              {mesa.pedidos_count}{' '}
-              {mesa.pedidos_count === 1 ? 'pedido' : 'pedidos'}
+              {mesa.pedidos_count ?? 0}{' '}
+              {mesa.pedidos_count === 1 ? 'producto' : 'productos'}
             </span>
           </div>
-        )}
 
-        {/* Status Badge */}
-        <div
-          className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${config.bgColor}`}
-          style={{ color: config.color }}
-        >
-          {config.label}
+          {/* Status Badge */}
+          <div
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${config.bgColor}`}
+            style={{ color: config.color }}
+          >
+            {config.label}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }

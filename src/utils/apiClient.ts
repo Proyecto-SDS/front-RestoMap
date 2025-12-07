@@ -216,7 +216,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ nombre, capacidad }),
       }),
-    updateMesa: (id: number, data: { nombre?: string; capacidad?: number }) =>
+    updateMesa: (
+      id: number,
+      data: { nombre?: string; capacidad?: number; descripcion?: string }
+    ) =>
       apiCall(`/api/empresa/mesas/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -225,6 +228,11 @@ export const api = {
       apiCall(`/api/empresa/mesas/${id}/estado`, {
         method: 'PATCH',
         body: JSON.stringify({ estado }),
+      }),
+    updateMesasOrden: (mesas: Array<{ id: number; orden: number }>) =>
+      apiCall('/api/empresa/mesas/orden', {
+        method: 'PUT',
+        body: JSON.stringify({ mesas }),
       }),
     deleteMesa: (id: number) =>
       apiCall(`/api/empresa/mesas/${id}`, { method: 'DELETE' }),

@@ -50,7 +50,9 @@ export function CreateMesaModal({
         id: `M-${Date.now()}`,
         id_empresa: '1',
         nombre: formData.nombre,
+        descripcion: '',
         capacidad: formData.capacidad,
+        orden: 0,
         estado: 'DISPONIBLE',
         pedidos_count: 0,
       };

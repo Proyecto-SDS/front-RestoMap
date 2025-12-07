@@ -35,7 +35,9 @@ export interface Mesa {
   id: string;
   id_empresa: string;
   nombre: string;
+  descripcion?: string;
   capacidad: number;
+  orden: number;
   estado: MesaEstado;
   pedidos_count?: number;
   posicion_x?: number;
@@ -84,15 +86,18 @@ export default function DashboardMeseroScreen() {
   const loadMesas = useCallback(async () => {
     try {
       const data = await api.empresa.getMesas();
-      // Mapear respuesta del backend a interface Mesa
-      const mesasData: Mesa[] = data.map((m: Record<string, unknown>) => ({
-        id: String(m.id),
-        id_empresa: String(m.id_local),
-        nombre: m.nombre as string,
-        capacidad: m.capacidad as number,
-        estado: (m.estado as string).toUpperCase() as MesaEstado,
-        pedidos_count: m.pedidos_count as number,
-      }));
+      const mesasData: Mesa[] = data
+        .map((m: Record<string, unknown>) => ({
+          id: String(m.id),
+          id_empresa: String(m.id_local),
+          nombre: m.nombre as string,
+          descripcion: (m.descripcion as string) || '',
+          capacidad: m.capacidad as number,
+          orden: (m.orden as number) ?? 0,
+          estado: (m.estado as string).toUpperCase() as MesaEstado,
+          pedidos_count: m.pedidos_count as number,
+        }))
+        .sort((a: Mesa, b: Mesa) => a.orden - b.orden);
       setMesas(mesasData);
     } catch (error) {
       console.error('Error loading mesas:', error);
@@ -153,13 +158,17 @@ export default function DashboardMeseroScreen() {
       void (async () => {
         try {
           const data = await api.empresa.getMesas();
-          const mesasData: Mesa[] = data.map((m: Record<string, unknown>) => ({
-            id: String(m.id),
-            nombre: m.nombre as string,
-            estado: (m.estado as string).toUpperCase() as MesaEstado,
-            capacidad: m.capacidad as number,
-            pedidos_count: m.pedidos_count as number,
-          }));
+          const mesasData: Mesa[] = data
+            .map((m: Record<string, unknown>) => ({
+              id: String(m.id),
+              nombre: m.nombre as string,
+              descripcion: (m.descripcion as string) || '',
+              estado: (m.estado as string).toUpperCase() as MesaEstado,
+              capacidad: m.capacidad as number,
+              orden: (m.orden as number) ?? 0,
+              pedidos_count: m.pedidos_count as number,
+            }))
+            .sort((a: Mesa, b: Mesa) => a.orden - b.orden);
           setMesas(mesasData);
         } catch (error) {
           console.error('Error loading mesas:', error);
