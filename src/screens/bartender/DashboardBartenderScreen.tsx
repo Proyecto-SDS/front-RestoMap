@@ -19,7 +19,6 @@ interface PedidosByEstado {
   tomados: Pedido[];
   en_proceso: Pedido[];
   listos: Pedido[];
-  entregados: Pedido[];
 }
 
 export default function DashboardBartenderScreen() {
@@ -33,7 +32,6 @@ export default function DashboardBartenderScreen() {
     tomados: [],
     en_proceso: [],
     listos: [],
-    entregados: [],
   });
   const [bebidas, setBebidas] = useState<Producto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,12 +67,9 @@ export default function DashboardBartenderScreen() {
       })) as Pedido[];
 
       setPedidos({
-        tomados: pedidosList.filter((p) => p.estado === 'INICIADO'),
-        en_proceso: pedidosList.filter(
-          (p) => p.estado === 'RECEPCION' || p.estado === 'EN_PROCESO'
-        ),
+        tomados: pedidosList.filter((p) => p.estado === 'RECEPCION'),
+        en_proceso: pedidosList.filter((p) => p.estado === 'EN_PROCESO'),
         listos: pedidosList.filter((p) => p.estado === 'TERMINADO'),
-        entregados: pedidosList.filter((p) => p.estado === 'COMPLETADO'),
       });
     } catch (error) {
       console.error('Error loading pedidos barra:', error);
@@ -160,17 +155,12 @@ export default function DashboardBartenderScreen() {
       });
 
       // Add to appropriate column
-      if (updatedPedido.estado === 'INICIADO') {
+      if (updatedPedido.estado === 'RECEPCION') {
         newState.tomados.push(updatedPedido);
-      } else if (
-        updatedPedido.estado === 'RECEPCION' ||
-        updatedPedido.estado === 'EN_PROCESO'
-      ) {
+      } else if (updatedPedido.estado === 'EN_PROCESO') {
         newState.en_proceso.push(updatedPedido);
       } else if (updatedPedido.estado === 'TERMINADO') {
         newState.listos.push(updatedPedido);
-      } else if (updatedPedido.estado === 'COMPLETADO') {
-        newState.entregados.push(updatedPedido);
       }
 
       return newState;

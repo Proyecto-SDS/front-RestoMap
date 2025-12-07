@@ -1,11 +1,14 @@
-import { CheckCircle, ChefHat, Clock, Package } from 'lucide-react';
+'use client';
+
+import { CheckCircle, ChefHat, Clock } from 'lucide-react';
+import { useState } from 'react';
 import { Pedido } from '../../screens/cocinero/DashboardCocineroScreen';
 import { OrderCard } from './OrderCard';
+import { PedidoCarouselModal } from './PedidoCarouselModal';
 interface PedidosByEstado {
   tomados: Pedido[];
   en_proceso: Pedido[];
   listos: Pedido[];
-  entregados: Pedido[];
 }
 
 interface KanbanBoardProps {
@@ -14,11 +17,20 @@ interface KanbanBoardProps {
   onRefresh: () => void;
 }
 
-export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
+export function KanbanBoard({
+  pedidos,
+  onPedidoUpdate,
+  onRefresh,
+}: KanbanBoardProps) {
+  const [selectedPedido, setSelectedPedido] = useState<{
+    pedido: Pedido;
+    columnId: string;
+  } | null>(null);
+
   const columns = [
     {
       id: 'tomados',
-      title: 'Tomados',
+      title: 'Recepcion',
       pedidos: pedidos.tomados,
       color: '#3B82F6',
       bgColor: '#EFF6FF',
@@ -34,21 +46,69 @@ export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
     },
     {
       id: 'listos',
-      title: 'Listos',
+      title: 'Listo',
       pedidos: pedidos.listos,
       color: '#22C55E',
       bgColor: '#F0FDF4',
       icon: CheckCircle,
     },
-    {
-      id: 'entregados',
-      title: 'Entregados',
-      pedidos: pedidos.entregados,
-      color: '#94A3B8',
-      bgColor: '#F3F4F6',
-      icon: Package,
-    },
   ];
+
+  const handleCardClick = (pedido: Pedido, columnId: string) => {
+    setSelectedPedido({ pedido, columnId });
+  };
+
+  const handleCloseModal = () => {
+    setSelectedPedido(null);
+  };
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (!selectedPedido) return;
+
+    const column = columns.find((c) => c.id === selectedPedido.columnId);
+    if (!column) return;
+
+    const currentIndex = column.pedidos.findIndex(
+      (p) => p.id === selectedPedido.pedido.id
+    );
+    if (currentIndex === -1) return;
+
+    let newIndex: number;
+    if (direction === 'prev') {
+      newIndex =
+        currentIndex > 0 ? currentIndex - 1 : column.pedidos.length - 1;
+    } else {
+      newIndex =
+        currentIndex < column.pedidos.length - 1 ? currentIndex + 1 : 0;
+    }
+
+    setSelectedPedido({
+      pedido: column.pedidos[newIndex],
+      columnId: selectedPedido.columnId,
+    });
+  };
+
+  const getCurrentPosition = () => {
+    if (!selectedPedido) return { current: 0, total: 0 };
+
+    const column = columns.find((c) => c.id === selectedPedido.columnId);
+    if (!column) return { current: 0, total: 0 };
+
+    const currentIndex = column.pedidos.findIndex(
+      (p) => p.id === selectedPedido.pedido.id
+    );
+
+    return {
+      current: currentIndex + 1,
+      total: column.pedidos.length,
+    };
+  };
+
+  const getColumnTitle = () => {
+    if (!selectedPedido) return '';
+    const column = columns.find((c) => c.id === selectedPedido.columnId);
+    return column?.title || '';
+  };
 
   return (
     <div className="space-y-6">
@@ -69,8 +129,8 @@ export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
         </div>
       </div>
 
-      {/* Kanban Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Kanban Columns - 3 columnas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map((column) => {
           const Icon = column.icon;
 
@@ -83,7 +143,7 @@ export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
               >
                 <div className="flex items-center gap-2">
                   <Icon size={20} className="text-white" />
-                  <h3 className="text-white">{column.title}</h3>
+                  <h3 className="text-white font-medium">{column.title}</h3>
                 </div>
                 <div className="px-2 py-1 bg-white/20 rounded-lg">
                   <span className="text-xs text-white">
@@ -100,12 +160,17 @@ export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
                   </div>
                 ) : (
                   column.pedidos.map((pedido) => (
-                    <OrderCard
+                    <div
                       key={pedido.id}
-                      pedido={pedido}
-                      bgColor={column.bgColor}
-                      onUpdate={onPedidoUpdate}
-                    />
+                      onClick={() => handleCardClick(pedido, column.id)}
+                      className="cursor-pointer"
+                    >
+                      <OrderCard
+                        pedido={pedido}
+                        bgColor={column.bgColor}
+                        onUpdate={onPedidoUpdate}
+                      />
+                    </div>
                   ))
                 )}
               </div>
@@ -113,6 +178,22 @@ export function KanbanBoard({ pedidos, onPedidoUpdate }: KanbanBoardProps) {
           );
         })}
       </div>
+
+      {/* Modal Carrusel */}
+      {selectedPedido && (
+        <PedidoCarouselModal
+          pedido={selectedPedido.pedido}
+          columnTitle={getColumnTitle()}
+          position={getCurrentPosition()}
+          onClose={handleCloseModal}
+          onNavigate={handleNavigate}
+          onUpdate={(updatedPedido: Pedido) => {
+            onPedidoUpdate(updatedPedido);
+            onRefresh();
+            handleCloseModal();
+          }}
+        />
+      )}
     </div>
   );
 }
