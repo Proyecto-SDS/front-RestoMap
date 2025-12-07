@@ -67,8 +67,8 @@ interface PedidoClienteScreenProps {
 
 export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   const router = useRouter();
-  const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
-  const { socket, isConnected, joinPedido } = useSocket();
+  const { isLoggedIn, isLoading: isAuthLoading, user } = useAuth();
+  const { socket, isConnected, authenticate, joinPedido } = useSocket();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -180,9 +180,14 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
   useEffect(() => {
     if (!socket || !pedidoInfo?.id) return;
 
+    // Autenticar para logs del backend
+    const clientName = user?.name || 'Cliente';
+    const clientId = user?.id ? Number(user.id) : 0;
+    authenticate(clientId, clientName, 'cliente');
+
     // Unirse a la sala del pedido para recibir actualizaciones
     joinPedido(pedidoInfo.id);
-    console.log('[Socket] Unido a pedido:', pedidoInfo.id);
+    console.log('[Socket] Cliente unido a pedido:', pedidoInfo.id);
 
     // Escuchar cambios de estado de encomiendas
     const handleEstadoEncomienda = (data: {
@@ -238,7 +243,15 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
       socket.off('estado_encomienda', handleEstadoEncomienda);
       socket.off('estado_pedido', handleEstadoPedido);
     };
-  }, [socket, pedidoInfo?.id, joinPedido, router]);
+  }, [
+    socket,
+    pedidoInfo?.id,
+    user?.id,
+    user?.name,
+    authenticate,
+    joinPedido,
+    router,
+  ]);
 
   // Polling como fallback (solo si no hay WebSocket conectado)
   useEffect(() => {

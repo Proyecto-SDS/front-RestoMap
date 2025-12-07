@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { RatingBadge } from '../components/badges/RatingBadge';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
+import { DangerButton } from '../components/buttons/DangerButton';
 import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../components/buttons/SecondaryButton';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -674,6 +675,7 @@ function ReservasTab({
   const [selectedMesa, setSelectedMesa] = useState<MesaInfo | null>(null);
   const [partySize, setPartySize] = useState(2);
   const [notes, setNotes] = useState('');
+  const [showNoteInput, setShowNoteInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingMesas, setIsCheckingMesas] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -813,12 +815,22 @@ function ReservasTab({
 
   const handleNext = () => {
     setError(null);
-    setReservationStep(reservationStep + 1);
+    // Saltar del paso 3 directamente al paso 5 (eliminar paso 4 de notas)
+    if (reservationStep === 3) {
+      setReservationStep(5);
+    } else {
+      setReservationStep(reservationStep + 1);
+    }
   };
 
   const handleBack = () => {
     setError(null);
-    setReservationStep(reservationStep - 1);
+    // Desde paso 5 volver al paso 3 (saltando paso 4 eliminado)
+    if (reservationStep === 5) {
+      setReservationStep(3);
+    } else {
+      setReservationStep(reservationStep - 1);
+    }
   };
 
   const handleCancel = () => {
@@ -828,6 +840,7 @@ function ReservasTab({
     setSelectedMesa(null);
     setPartySize(2);
     setNotes('');
+    setShowNoteInput(false);
     setError(null);
   };
 
@@ -956,7 +969,7 @@ function ReservasTab({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-[#334155]">¿Cuándo quieres reservar?</h2>
-            <span className="text-sm text-[#64748B]">Paso 1 de 6</span>
+            <span className="text-sm text-[#64748B]">Paso 1 de 5</span>
           </div>
           <p className="text-[#64748B]">Selecciona fecha y hora</p>
         </div>
@@ -1057,14 +1070,7 @@ function ReservasTab({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleCancel}
-            className="text-[#64748B] hover:text-[#334155] transition-colors"
-          >
-            Cancelar
-          </button>
-          <div className="flex-1" />
+        <div className="flex justify-end">
           <PrimaryButton
             onClick={handleNext}
             disabled={!isStep1Valid}
@@ -1086,7 +1092,7 @@ function ReservasTab({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-[#334155]">¿Qué mesa prefieres?</h2>
-            <span className="text-sm text-[#64748B]">Paso 2 de 6</span>
+            <span className="text-sm text-[#64748B]">Paso 2 de 5</span>
           </div>
           <p className="text-[#64748B]">
             {formatDateDisplay(selectedDate)} a las {selectedTime}
@@ -1149,6 +1155,11 @@ function ReservasTab({
                       <Users size={16} />
                       <span>Capacidad: {mesa.capacidad} personas</span>
                     </div>
+                    {mesa.descripcion && (
+                      <p className="text-xs text-[#94A3B8] mt-2">
+                        {mesa.descripcion}
+                      </p>
+                    )}
                   </button>
                 );
               })}
@@ -1156,27 +1167,22 @@ function ReservasTab({
           )}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleBack}
-            className="text-[#64748B] hover:text-[#334155] transition-colors flex items-center gap-1"
-          >
-            ← Volver
-          </button>
-          <button
-            onClick={handleCancel}
-            className="text-[#64748B] hover:text-[#334155] transition-colors"
-          >
+        <div className="flex items-center justify-between gap-2">
+          <DangerButton onClick={handleCancel} size="sm">
             Cancelar
-          </button>
-          <div className="flex-1" />
-          <PrimaryButton
-            onClick={handleNext}
-            disabled={!isStep2Valid}
-            className="px-8"
-          >
-            Siguiente
-          </PrimaryButton>
+          </DangerButton>
+          <div className="flex items-center gap-2">
+            <SecondaryButton onClick={handleBack} size="sm">
+              Volver
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={handleNext}
+              disabled={!isStep2Valid}
+              size="sm"
+            >
+              Siguiente
+            </PrimaryButton>
+          </div>
         </div>
       </div>
     );
@@ -1184,20 +1190,26 @@ function ReservasTab({
 
   // STEP 3: SELECT PARTY SIZE
   if (reservationStep === 3) {
+    const maxCapacity = selectedMesa?.capacidad || 1;
     const isStep3Valid =
-      selectedMesa && partySize >= 1 && partySize <= selectedMesa.capacidad;
+      selectedMesa && partySize >= 1 && partySize <= maxCapacity;
 
     return (
       <div className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-[#334155]">¿Cuántas personas?</h2>
-            <span className="text-sm text-[#64748B]">Paso 3 de 6</span>
+            <span className="text-sm text-[#64748B]">Paso 3 de 5</span>
           </div>
           <p className="text-[#64748B]">
-            Capacidad de {selectedMesa?.nombre}: {selectedMesa?.capacidad}{' '}
+            {selectedMesa?.nombre} - Capacidad: {selectedMesa?.capacidad}{' '}
             personas
           </p>
+          {selectedMesa?.descripcion && (
+            <p className="text-sm text-[#94A3B8] mt-1">
+              {selectedMesa.descripcion}
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
@@ -1214,45 +1226,31 @@ function ReservasTab({
               <div className="text-sm text-[#64748B]">personas</div>
             </div>
             <button
-              onClick={() =>
-                setPartySize(
-                  Math.min(selectedMesa?.capacidad || 10, partySize + 1)
-                )
-              }
+              onClick={() => setPartySize(Math.min(maxCapacity, partySize + 1))}
               className="w-12 h-12 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-colors flex items-center justify-center text-2xl"
-              disabled={!selectedMesa || partySize >= selectedMesa.capacidad}
+              disabled={partySize >= maxCapacity}
             >
               +
             </button>
           </div>
-          {selectedMesa && partySize > selectedMesa.capacidad && (
-            <p className="text-sm text-[#EF4444] text-center mt-4">
-              Máximo {selectedMesa.capacidad} personas (capacidad de la mesa)
-            </p>
-          )}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleBack}
-            className="text-[#64748B] hover:text-[#334155] transition-colors flex items-center gap-1"
-          >
-            ← Volver
-          </button>
-          <button
-            onClick={handleCancel}
-            className="text-[#64748B] hover:text-[#334155] transition-colors"
-          >
+        <div className="flex items-center justify-between gap-2">
+          <DangerButton onClick={handleCancel} size="sm">
             Cancelar
-          </button>
-          <div className="flex-1" />
-          <PrimaryButton
-            onClick={handleNext}
-            disabled={!isStep3Valid}
-            className="px-8"
-          >
-            Siguiente
-          </PrimaryButton>
+          </DangerButton>
+          <div className="flex items-center gap-2">
+            <SecondaryButton onClick={handleBack} size="sm">
+              Volver
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={handleNext}
+              disabled={!isStep3Valid}
+              size="sm"
+            >
+              Siguiente
+            </PrimaryButton>
+          </div>
         </div>
       </div>
     );
@@ -1305,14 +1303,14 @@ function ReservasTab({
     );
   }
 
-  // STEP 5: REVIEW & CONFIRM
+  // STEP 5: REVIEW & CONFIRM (ahora es Paso 4 de 5)
   if (reservationStep === 5) {
     return (
       <div className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-[#334155]">Revisa tu reserva</h2>
-            <span className="text-sm text-[#64748B]">Paso 5 de 6</span>
+            <span className="text-sm text-[#64748B]">Paso 4 de 5</span>
           </div>
           <p className="text-[#64748B]">
             Verifica que todo esté correcto antes de confirmar
@@ -1351,18 +1349,20 @@ function ReservasTab({
             </div>
 
             <div className="flex justify-between py-3 border-b border-[#E2E8F0]">
-              <span className="text-[#64748B]">Número de personas</span>
+              <span className="text-[#64748B]">Numero de personas</span>
               <span className="text-[#334155]">
                 {partySize} {partySize === 1 ? 'persona' : 'personas'}
               </span>
             </div>
 
-            <div className="flex justify-between py-3">
-              <span className="text-[#64748B]">Notas especiales</span>
-              <span className="text-[#334155] text-right max-w-xs">
-                {notes || 'Sin notas especiales'}
-              </span>
-            </div>
+            {notes && (
+              <div className="flex justify-between py-3">
+                <span className="text-[#64748B]">Nota</span>
+                <span className="text-[#334155] text-right max-w-xs">
+                  {notes}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1372,7 +1372,44 @@ function ReservasTab({
           </div>
         )}
 
+        {/* Seccion de nota */}
         <div className="space-y-3">
+          {!showNoteInput ? (
+            <button
+              onClick={() => setShowNoteInput(true)}
+              className="w-full py-3 border border-dashed border-[#E2E8F0] rounded-xl text-[#64748B] hover:border-[#F97316] hover:text-[#F97316] transition-colors"
+            >
+              + Agregar nota (opcional)
+            </button>
+          ) : (
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4">
+              <label className="block text-sm text-[#334155] mb-2">
+                Nota (opcional)
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 100))}
+                placeholder="Ej: Cumpleanos, alergia, mesa cerca de ventana..."
+                className="w-full px-4 py-3 border border-[#E2E8F0] rounded-xl resize-none focus:outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20"
+                rows={3}
+              />
+              <div className="flex justify-between mt-2">
+                <button
+                  onClick={() => {
+                    setNotes('');
+                    setShowNoteInput(false);
+                  }}
+                  className="text-sm text-[#64748B] hover:text-[#334155]"
+                >
+                  Cancelar
+                </button>
+                <span className="text-sm text-[#64748B]">
+                  {notes.length}/100
+                </span>
+              </div>
+            </div>
+          )}
+
           <PrimaryButton
             onClick={handleConfirm}
             disabled={isLoading}
@@ -1388,25 +1425,21 @@ function ReservasTab({
             )}
           </PrimaryButton>
 
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={handleBack}
-              disabled={isLoading}
-              className="text-[#64748B] hover:text-[#334155] transition-colors disabled:opacity-50"
-            >
-              Editar
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={isLoading}
-              className="text-[#64748B] hover:text-[#334155] transition-colors disabled:opacity-50"
-            >
+          <div className="flex items-center justify-between gap-2">
+            <DangerButton onClick={handleCancel} size="sm" disabled={isLoading}>
               Cancelar
-            </button>
+            </DangerButton>
+            <SecondaryButton
+              onClick={handleBack}
+              size="sm"
+              disabled={isLoading}
+            >
+              Volver
+            </SecondaryButton>
           </div>
 
           <p className="text-sm text-[#64748B] text-center">
-            Política de cancelación: puedes cancelar hasta 24 horas antes
+            Politica de cancelacion: puedes cancelar hasta 24 horas antes
           </p>
         </div>
       </div>

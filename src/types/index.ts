@@ -131,6 +131,7 @@ export interface DetailedEstablishment extends Establishment {
 export interface MesaInfo {
   id: string;
   nombre: string;
+  descripcion?: string;
   capacidad: number;
   estado: 'disponible' | 'reservada' | 'ocupada' | 'fuera_de_servicio';
 }

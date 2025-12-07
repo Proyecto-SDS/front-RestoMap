@@ -19,6 +19,16 @@ interface Reserva {
   creado_el: string;
 }
 
+interface YearData {
+  year: number;
+  count: number;
+}
+
+interface MonthData {
+  month: number;
+  count: number;
+}
+
 interface ReservasManagementProps {
   mesas?: Mesa[];
   readOnly?: boolean;
@@ -41,6 +51,10 @@ export function ReservasManagement({
     currentDate.getMonth() + 1
   );
 
+  // Datos de periodos con contadores
+  const [yearsData, setYearsData] = useState<YearData[]>([]);
+  const [monthsData, setMonthsData] = useState<MonthData[]>([]);
+
   // Nombres de los meses
   const monthNames = [
     'Enero',
@@ -57,11 +71,25 @@ export function ReservasManagement({
     'Diciembre',
   ];
 
-  // Generar años (desde 2020 hasta año actual + 1)
-  const years = Array.from(
-    { length: currentDate.getFullYear() - 2020 + 2 },
-    (_, i) => 2020 + i
-  );
+  // Cargar periodos (años y meses con contadores)
+  const loadPeriodos = useCallback(async () => {
+    try {
+      const data = await api.empresa.getReservasPeriodos(selectedYear);
+      setYearsData(data.years || []);
+      setMonthsData(data.months || []);
+    } catch (error) {
+      console.error('Error loading periodos:', error);
+      // Fallback: usar año actual y siguiente
+      const currentYear = new Date().getFullYear();
+      setYearsData([
+        { year: currentYear + 1, count: 0 },
+        { year: currentYear, count: 0 },
+      ]);
+      setMonthsData(
+        Array.from({ length: 12 }, (_, i) => ({ month: i + 1, count: 0 }))
+      );
+    }
+  }, [selectedYear]);
 
   // Calcular fecha inicio y fin del mes
   const getMonthRange = (year: number, month: number) => {
@@ -90,6 +118,10 @@ export function ReservasManagement({
       setLoading(false);
     }
   }, [filterEstado, selectedYear, selectedMonthNum]);
+
+  useEffect(() => {
+    loadPeriodos();
+  }, [loadPeriodos]);
 
   useEffect(() => {
     loadReservas();
@@ -164,22 +196,39 @@ export function ReservasManagement({
                 onChange={(e) => setSelectedMonthNum(Number(e.target.value))}
                 className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
               >
-                {monthNames.map((name, index) => (
-                  <option key={index} value={index + 1}>
-                    {name}
-                  </option>
-                ))}
+                {monthsData.length > 0
+                  ? monthsData.map((monthItem) => (
+                      <option key={monthItem.month} value={monthItem.month}>
+                        {monthNames[monthItem.month - 1]} ({monthItem.count})
+                      </option>
+                    ))
+                  : monthNames.map((name, index) => (
+                      <option key={index} value={index + 1}>
+                        {name}
+                      </option>
+                    ))}
               </select>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
               >
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
+                {yearsData.length > 0
+                  ? yearsData.map((yearItem) => (
+                      <option key={yearItem.year} value={yearItem.year}>
+                        {yearItem.year} ({yearItem.count})
+                      </option>
+                    ))
+                  : (
+                      [
+                        new Date().getFullYear(),
+                        new Date().getFullYear() + 1,
+                      ] as number[]
+                    ).map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
               </select>
             </div>
             <select

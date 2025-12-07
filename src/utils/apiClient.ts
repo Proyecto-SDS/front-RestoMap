@@ -344,6 +344,14 @@ export const api = {
       const query = params.toString();
       return apiCall(`/api/empresa/reservas/${query ? `?${query}` : ''}`);
     },
+    getReservasPeriodos: (year?: number) => {
+      const params = new URLSearchParams();
+      if (year) params.append('year', year.toString());
+      const query = params.toString();
+      return apiCall(
+        `/api/empresa/reservas/stats/periodos${query ? `?${query}` : ''}`
+      );
+    },
     verificarQRReserva: (codigo: string) =>
       apiCall(`/api/empresa/reservas/verificar-qr/${codigo}`),
     confirmarReserva: (id: number) =>

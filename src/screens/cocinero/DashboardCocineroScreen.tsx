@@ -66,7 +66,7 @@ interface PedidosByEstado {
 export default function DashboardCocineroScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
-  const { socket, isConnected, joinLocal } = useSocket();
+  const { socket, isConnected, authenticate, joinLocal } = useSocket();
   const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>(
     'pedidos'
   );
@@ -120,13 +120,21 @@ export default function DashboardCocineroScreen() {
     }
   }, []);
 
-  // WebSocket Integration
+  // WebSocket Integration and authenticate
   useEffect(() => {
     if (user?.id_local && isConnected) {
+      authenticate(Number(user.id), user.name || 'Cocinero', 'cocinero');
       joinLocal(Number(user.id_local));
       console.log('Cocinero unido a sala local:', user.id_local);
     }
-  }, [user?.id_local, isConnected, joinLocal]);
+  }, [
+    user?.id_local,
+    user?.id,
+    user?.name,
+    isConnected,
+    authenticate,
+    joinLocal,
+  ]);
 
   useEffect(() => {
     if (!socket) return;

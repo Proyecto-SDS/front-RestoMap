@@ -21,7 +21,7 @@ import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
   const { isLoggedIn, user, logout } = useAuth();
-  const { socket, joinPedido } = useSocket();
+  const { socket, authenticate, joinPedido } = useSocket();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -71,8 +71,19 @@ export function NavHeader() {
   // Unirse a la sala del pedido para recibir eventos WebSocket
   useEffect(() => {
     if (!socket || !activeQr?.pedido_id) return;
+    // Autenticar para logs del backend
+    const clientName = user?.name || 'Cliente';
+    const clientId = user?.id ? Number(user.id) : 0;
+    authenticate(clientId, clientName, 'cliente');
     joinPedido(activeQr.pedido_id);
-  }, [socket, activeQr?.pedido_id, joinPedido]);
+  }, [
+    socket,
+    activeQr?.pedido_id,
+    user?.id,
+    user?.name,
+    authenticate,
+    joinPedido,
+  ]);
 
   // Escuchar cambios de estado del pedido via WebSocket
   useEffect(() => {

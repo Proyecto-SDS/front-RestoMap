@@ -13,6 +13,7 @@ import { io, Socket } from 'socket.io-client';
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
+  authenticate: (userId: number, nombre: string, rol: string) => void;
   joinLocal: (localId: number) => void;
   joinPedido: (pedidoId: number) => void;
   leaveRoom: (room: string) => void;
@@ -53,19 +54,33 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Guardar las salas activas para re-unirse al reconectar
-  const activeRoomsRef = React.useRef<
-    Set<{ type: 'local' | 'pedido'; id: number }>
-  >(new Set());
+  // Usamos Map con string key para evitar duplicados (Set no funciona bien con objetos)
+  const activeRoomsRef = React.useRef<Map<string, 'local' | 'pedido'>>(
+    new Map()
+  );
+
+  // Guardar datos del usuario autenticado para re-autenticar al reconectar
+  const authDataRef = React.useRef<{
+    userId: number;
+    nombre: string;
+    rol: string;
+  } | null>(null);
 
   const rejoinRooms = useCallback(() => {
     if (!socket) return;
-    activeRoomsRef.current.forEach((room) => {
-      if (room.type === 'local') {
-        console.log('[Socket] Re-uniendo a local:', room.id);
-        socket.emit('join_local', { local_id: room.id });
-      } else if (room.type === 'pedido') {
-        console.log('[Socket] Re-uniendo a pedido:', room.id);
-        socket.emit('join_pedido', { pedido_id: room.id });
+    // Re-autenticar primero
+    if (authDataRef.current) {
+      socket.emit('authenticate', authDataRef.current);
+    }
+    // Luego re-unirse a salas
+    activeRoomsRef.current.forEach((type, key) => {
+      const id = parseInt(key.split('_')[1]);
+      if (type === 'local') {
+        console.log('[Socket] Re-uniendo a local:', id);
+        socket.emit('join_local', { local_id: id });
+      } else if (type === 'pedido') {
+        console.log('[Socket] Re-uniendo a pedido:', id);
+        socket.emit('join_pedido', { pedido_id: id });
       }
     });
   }, [socket]);
@@ -100,32 +115,51 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, [socket, rejoinRooms]);
 
+  const authenticate = useCallback(
+    (userId: number, nombre: string, rol: string) => {
+      // Solo autenticar si los datos cambiaron o es primera vez
+      const current = authDataRef.current;
+      if (
+        current &&
+        current.userId === userId &&
+        current.nombre === nombre &&
+        current.rol === rol
+      ) {
+        return; // Ya autenticado con los mismos datos
+      }
+      authDataRef.current = { userId, nombre, rol };
+      socket?.emit('authenticate', { user_id: userId, nombre, rol });
+    },
+    [socket]
+  );
+
   const joinLocal = useCallback(
     (localId: number) => {
-      // Guardar sala para re-join
-      activeRoomsRef.current.add({ type: 'local', id: localId });
-      socket?.emit('join_local', { local_id: localId });
+      const key = `local_${localId}`;
+      // Solo unirse si no está ya en el Map
+      if (!activeRoomsRef.current.has(key)) {
+        activeRoomsRef.current.set(key, 'local');
+        socket?.emit('join_local', { local_id: localId });
+      }
     },
     [socket]
   );
 
   const joinPedido = useCallback(
     (pedidoId: number) => {
-      // Guardar sala para re-join
-      activeRoomsRef.current.add({ type: 'pedido', id: pedidoId });
-      socket?.emit('join_pedido', { pedido_id: pedidoId });
+      const key = `pedido_${pedidoId}`;
+      // Solo unirse si no está ya en el Map
+      if (!activeRoomsRef.current.has(key)) {
+        activeRoomsRef.current.set(key, 'pedido');
+        socket?.emit('join_pedido', { pedido_id: pedidoId });
+      }
     },
     [socket]
   );
 
   const leaveRoom = useCallback(
     (room: string) => {
-      // Remover sala del tracking
-      activeRoomsRef.current.forEach((r) => {
-        if (`${r.type}_${r.id}` === room) {
-          activeRoomsRef.current.delete(r);
-        }
-      });
+      activeRoomsRef.current.delete(room);
       socket?.emit('leave_room', { room });
     },
     [socket]
@@ -135,11 +169,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     () => ({
       socket,
       isConnected,
+      authenticate,
       joinLocal,
       joinPedido,
       leaveRoom,
     }),
-    [socket, isConnected, joinLocal, joinPedido, leaveRoom]
+    [socket, isConnected, authenticate, joinLocal, joinPedido, leaveRoom]
   );
 
   return (
