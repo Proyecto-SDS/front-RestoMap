@@ -22,12 +22,7 @@ export function KanbanBoard({
   onPedidoUpdate,
   onRefresh,
 }: KanbanBoardProps) {
-  const [selectedColumn, setSelectedColumn] = useState<{
-    columnId: string;
-    initialIndex: number;
-  } | null>(null);
-
-  // Track current index for navigation
+  const [carouselOpen, setCarouselOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const columns = [
@@ -57,31 +52,31 @@ export function KanbanBoard({
     },
   ];
 
-  const handleCardClick = (pedido: Pedido, columnId: string) => {
-    const column = columns.find((c) => c.id === columnId);
-    if (!column) return;
+  // Combinar todos los pedidos y ordenar por fecha de creación (FIFO)
+  const allPedidos = [
+    ...pedidos.tomados,
+    ...pedidos.en_proceso,
+    ...pedidos.listos,
+  ].sort((a, b) => {
+    const dateA = new Date(a.creado_el).getTime();
+    const dateB = new Date(b.creado_el).getTime();
+    return dateA - dateB; // Primero que llega, primero que sale
+  });
 
-    const index = column.pedidos.findIndex((p) => p.id === pedido.id);
-    setSelectedColumn({ columnId, initialIndex: index >= 0 ? index : 0 });
+  const handleCardClick = (pedido: Pedido) => {
+    // Encontrar el índice del pedido en la lista ordenada completa
+    const index = allPedidos.findIndex((p) => p.id === pedido.id);
     setCurrentIndex(index >= 0 ? index : 0);
+    setCarouselOpen(true);
   };
 
   const handleCloseModal = () => {
-    setSelectedColumn(null);
+    setCarouselOpen(false);
     setCurrentIndex(0);
   };
 
   const handleNavigate = (newIndex: number) => {
     setCurrentIndex(newIndex);
-  };
-
-  const getColumnData = () => {
-    if (!selectedColumn) return { pedidos: [], title: '' };
-    const column = columns.find((c) => c.id === selectedColumn.columnId);
-    return {
-      pedidos: column?.pedidos || [],
-      title: column?.title || '',
-    };
   };
 
   return (
@@ -136,7 +131,7 @@ export function KanbanBoard({
                   column.pedidos.map((pedido) => (
                     <div
                       key={pedido.id}
-                      onClick={() => handleCardClick(pedido, column.id)}
+                      onClick={() => handleCardClick(pedido)}
                       className="cursor-pointer"
                     >
                       <OrderCard pedido={pedido} bgColor={column.bgColor} />
@@ -149,19 +144,19 @@ export function KanbanBoard({
         })}
       </div>
 
-      {/* Modal Carrusel */}
-      {selectedColumn && getColumnData().pedidos.length > 0 && (
+      {/* Modal Carrusel - Muestra todos los pedidos ordenados por llegada */}
+      {carouselOpen && allPedidos.length > 0 && (
         <PedidoCarouselModal
-          pedidos={getColumnData().pedidos}
+          pedidos={allPedidos}
           currentIndex={currentIndex}
-          columnTitle={getColumnData().title}
           onClose={handleCloseModal}
           onNavigate={handleNavigate}
           onUpdate={(updatedPedido: Pedido) => {
             onPedidoUpdate(updatedPedido);
-            onRefresh();
-            handleCloseModal();
+            // Mantener el modal abierto, solo actualizar el pedido
+            // No cerrar el modal para que el usuario vea el cambio
           }}
+          onRefresh={onRefresh}
         />
       )}
     </div>

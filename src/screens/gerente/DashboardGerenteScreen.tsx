@@ -5,6 +5,7 @@ import {
   Calendar,
   ChefHat,
   Eye,
+  History,
   Home,
   Package,
   Settings,
@@ -16,6 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
 import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
 import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
+import HistorialPedidos from '../../components/gerente/HistorialPedidos';
 import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModal';
 import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
 import { ProductosManagement } from '../../components/gerente/ProductosManagement';
@@ -63,6 +65,7 @@ export default function DashboardGerenteScreen() {
     | 'panel-cocina'
     | 'panel-bartender'
     | 'panel-reservas'
+    | 'historial'
     | 'inventario'
     | 'configuracion'
   >('dashboard');
@@ -213,6 +216,11 @@ export default function DashboardGerenteScreen() {
       icon: Calendar,
     },
     {
+      id: 'historial' as const,
+      label: 'Historial',
+      icon: History,
+    },
+    {
       id: 'inventario' as const,
       label: 'Inventario',
       icon: Package,
@@ -269,6 +277,8 @@ export default function DashboardGerenteScreen() {
               ? 'Panel Barra (Solo Lectura)'
               : activeSection === 'panel-reservas'
               ? 'Panel Reservas'
+              : activeSection === 'historial'
+              ? 'Historial'
               : activeSection === 'inventario'
               ? 'Inventario'
               : 'Configuracion'
@@ -390,6 +400,9 @@ export default function DashboardGerenteScreen() {
 
             {/* Panel Reservas - Gerente puede interactuar */}
             {activeSection === 'panel-reservas' && <ReservasManagement />}
+
+            {/* Historial */}
+            {activeSection === 'historial' && <HistorialPedidos />}
 
             {/* Inventario */}
             {activeSection === 'inventario' && <ProductosManagement />}

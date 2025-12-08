@@ -3,6 +3,7 @@
 import { ArrowLeft, Building2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import HistorialPedidos from '../../components/cliente/HistorialPedidos';
 import { Toast, useToast } from '../../components/notifications/Toast';
 import { ConfirmDialog } from '../../components/profile/ConfirmDialog';
 import { EditProfileModal } from '../../components/profile/EditProfileModal';
@@ -31,7 +32,7 @@ export default function ProfileScreen() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<
-    'reservas' | 'opiniones' | 'favoritos'
+    'reservas' | 'opiniones' | 'favoritos' | 'historial'
   >('reservas');
 
   // Load data using custom hook
@@ -385,6 +386,8 @@ export default function ProfileScreen() {
               onRemove={handleRemoveFavorite}
             />
           )}
+
+          {activeTab === 'historial' && <HistorialPedidos />}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import {
   Bell,
   Bug,
   Calendar,
+  History,
   LayoutGrid,
   QrCode,
   UtensilsCrossed,
@@ -11,6 +12,7 @@ import {
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import HistorialPedidos from '../../components/gerente/HistorialPedidos';
 import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { ScanQRReserva } from '../../components/mesero/ScanQRReserva';
@@ -91,7 +93,7 @@ export default function DashboardMeseroScreen() {
   const { socket, isConnected, authenticate, joinLocal } = useSocket();
   const { agregarNotificacion } = useNotificaciones();
   const [activeSection, setActiveSection] = useState<
-    'mesas' | 'reservas' | 'qr' | 'debug-qr'
+    'mesas' | 'reservas' | 'qr' | 'debug-qr' | 'historial'
   >('mesas');
   const [mesas, setMesas] = useState<Mesa[]>([]);
 
@@ -325,6 +327,7 @@ export default function DashboardMeseroScreen() {
     { id: 'mesas' as const, label: 'Mesas', icon: LayoutGrid },
     { id: 'reservas' as const, label: 'Reservas', icon: Calendar },
     { id: 'qr' as const, label: 'Escanear QR', icon: QrCode },
+    { id: 'historial' as const, label: 'Historial', icon: History },
     { id: 'debug-qr' as const, label: 'Debug QRs', icon: Bug },
   ];
 
@@ -341,7 +344,9 @@ export default function DashboardMeseroScreen() {
         menuItems={menuItems}
         activeItem={activeSection}
         onNavigate={(id: string) => {
-          setActiveSection(id as 'mesas' | 'reservas' | 'qr' | 'debug-qr');
+          setActiveSection(
+            id as 'mesas' | 'reservas' | 'qr' | 'debug-qr' | 'historial'
+          );
           setSelectedMesaId(null);
         }}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -359,6 +364,8 @@ export default function DashboardMeseroScreen() {
               ? 'Mesas'
               : activeSection === 'reservas'
               ? 'Reservas'
+              : activeSection === 'historial'
+              ? 'Historial'
               : activeSection === 'debug-qr'
               ? 'Debug QRs'
               : 'Escanear QR'
@@ -368,6 +375,8 @@ export default function DashboardMeseroScreen() {
               ? 'Gestiona las mesas del restaurante'
               : activeSection === 'reservas'
               ? 'Gestiona las reservas del dia'
+              : activeSection === 'historial'
+              ? 'Ver historial de pedidos completados'
               : activeSection === 'debug-qr'
               ? 'Ver todos los QRs en la base de datos'
               : 'Escanea codigo QR de reservas'
@@ -415,6 +424,7 @@ export default function DashboardMeseroScreen() {
           {activeSection === 'qr' && (
             <ScanQRReserva mesas={mesas} onMesaUpdate={handleMesaUpdate} />
           )}
+          {activeSection === 'historial' && <HistorialPedidos />}
           {activeSection === 'debug-qr' && <DebugQRsPage />}
         </main>
       </div>

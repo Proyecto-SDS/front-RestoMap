@@ -3,12 +3,18 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  CheckCircle,
+  ChefHat,
+  Circle,
+  ClipboardList,
   Clock,
   DollarSign,
+  FileText,
   Plus,
   QrCode,
   ShoppingBag,
   Users,
+  UtensilsCrossed,
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -18,6 +24,7 @@ import { DangerButton } from '../buttons/DangerButton';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
 import { CancelarMesaModal } from './CancelarMesaModal';
+import { ConfirmarPagoModal } from './ConfirmarPagoModal';
 import { QRGenerateModal } from './QRGenerateModal';
 
 interface MesaDetail {
@@ -120,6 +127,9 @@ export function MesaDetailContent({
   const [tiempoRestante, setTiempoRestante] = useState<string | null>(null);
   const [tiempoUrgente, setTiempoUrgente] = useState(false);
   const [extendiendo, setExtendiendo] = useState(false);
+  const [marcarServidoLoading, setMarcarServidoLoading] = useState(false);
+  const [marcarCompletadoLoading, setMarcarCompletadoLoading] = useState(false);
+  const [showConfirmarPagoModal, setShowConfirmarPagoModal] = useState(false);
 
   const loadMesaDetail = useCallback(async () => {
     try {
@@ -182,6 +192,46 @@ export function MesaDetailContent({
     } catch (err) {
       console.error('Error canceling mesa:', err);
       alert('Error al cancelar la mesa');
+    }
+  };
+
+  const handleMarcarServido = async () => {
+    if (!mesa?.pedido_activo) return;
+
+    try {
+      setMarcarServidoLoading(true);
+      await api.empresa.updatePedidoEstado(mesa.pedido_activo.id, 'servido');
+      // Recargar los datos de la mesa
+      await loadMesaDetail();
+    } catch (err) {
+      console.error('Error al marcar pedido como servido:', err);
+      alert('Error al marcar el pedido como servido');
+    } finally {
+      setMarcarServidoLoading(false);
+    }
+  };
+
+  const handleMarcarCompletado = async (metodoPago: string) => {
+    if (!mesa?.pedido_activo) return;
+
+    try {
+      setMarcarCompletadoLoading(true);
+      // Registrar pago con el método seleccionado
+      await api.empresa.registrarPago(
+        mesa.pedido_activo.id,
+        metodoPago,
+        mesa.pedido_activo.total
+      );
+      // Marcar pedido como completado
+      await api.empresa.updatePedidoEstado(mesa.pedido_activo.id, 'completado');
+      setShowConfirmarPagoModal(false);
+      // Volver a la vista anterior (lista de mesas)
+      onVolver();
+    } catch (err) {
+      console.error('Error al registrar el pago:', err);
+      alert('Error al registrar el pago');
+    } finally {
+      setMarcarCompletadoLoading(false);
     }
   };
 
@@ -344,45 +394,132 @@ export function MesaDetailContent({
       {isOcupada && mesa.pedido_activo && (
         <>
           {/* Info del Pedido */}
-          <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg text-[#334155] flex items-center gap-2">
-                <ShoppingBag size={20} className="text-[#F97316]" />
-                Pedido Activo #{mesa.pedido_activo.id}
+          <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+              <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+                <ShoppingBag
+                  size={18}
+                  className="text-[#F97316] sm:w-5 sm:h-5"
+                />
+                Pedido #{mesa.pedido_activo.id}
               </h2>
-              <span className="text-sm text-[#64748B] flex items-center gap-1">
-                <Clock size={14} />
+              <span className="text-xs sm:text-sm text-[#64748B] flex items-center gap-1">
+                <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
                 {formatDate(mesa.pedido_activo.creado_el)}
               </span>
             </div>
+
+            {/* Estado del Pedido */}
+            <div className="mb-4">
+              <span className="text-xs sm:text-sm text-[#64748B] mb-2 block">
+                Estado del Pedido:
+              </span>
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-orange-50 text-[#F97316] border-2 border-orange-200">
+                {mesa.pedido_activo.estado === 'iniciado' && (
+                  <>
+                    <Circle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Iniciado
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'recepcion' && (
+                  <>
+                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    En Recepción
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'en_proceso' && (
+                  <>
+                    <ChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    En Preparación
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'terminado' && (
+                  <>
+                    <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Listo
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'servido' && (
+                  <>
+                    <UtensilsCrossed className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Servido
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'completado' && (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Completado
+                  </>
+                )}
+                {mesa.pedido_activo.estado === 'cancelado' && (
+                  <>
+                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Cancelado
+                  </>
+                )}
+              </span>
+            </div>
+
+            {/* Botón Entregado - Solo visible cuando el pedido está terminado (listo) */}
+            {mesa.pedido_activo.estado === 'terminado' && !readOnly && (
+              <div className="mb-4">
+                <PrimaryButton
+                  onClick={handleMarcarServido}
+                  disabled={marcarServidoLoading}
+                  size="lg"
+                >
+                  {marcarServidoLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Marcando...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag size={16} />
+                      Marcar como Entregado
+                    </>
+                  )}
+                </PrimaryButton>
+              </div>
+            )}
+
+            {/* Botón Pago - Solo visible cuando el pedido está servido */}
+            {mesa.pedido_activo.estado === 'servido' && !readOnly && (
+              <div className="mb-4">
+                <PrimaryButton
+                  onClick={() => setShowConfirmarPagoModal(true)}
+                  disabled={marcarCompletadoLoading}
+                  size="lg"
+                >
+                  <DollarSign size={16} />
+                  Registrar Pago
+                </PrimaryButton>
+              </div>
+            )}
           </div>
 
           {/* Info Cliente */}
           {mesa.pedido_activo.cliente && (
-            <div className="px-6 py-4 bg-blue-50 border-b border-blue-100 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                {mesa.pedido_activo.cliente.nombre.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="font-medium text-[#1E293B]">
-                  {mesa.pedido_activo.cliente.nombre}
-                </p>
-                <p className="text-sm text-[#64748B]">
-                  {mesa.pedido_activo.cliente.email}
-                </p>
+            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
+                  {mesa.pedido_activo.cliente.nombre.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base text-[#1E293B] truncate">
+                    {mesa.pedido_activo.cliente.nombre}
+                  </p>
+                  <p className="text-xs sm:text-sm text-[#64748B] truncate">
+                    {mesa.pedido_activo.cliente.email}
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="p-6 pt-0">
-            <div className="flex items-center gap-2 mb-4 mt-6">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-50 text-[#F97316]">
-                {mesa.pedido_activo.estado.replace('_', ' ').toUpperCase()}
-              </span>
-            </div>
-
+          <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
             {/* Encomiendas del Pedido */}
-            <div className="border-t border-[#E2E8F0] pt-4 space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {mesa.pedido_activo.encomiendas &&
               mesa.pedido_activo.encomiendas.length > 0 ? (
                 mesa.pedido_activo.encomiendas.map((enc) => (
@@ -444,27 +581,27 @@ export function MesaDetailContent({
                   </div>
                 ))
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {mesa.pedido_activo.lineas.map((linea) => (
                     <div
                       key={linea.id}
-                      className="flex items-center justify-between py-3 px-4 bg-[#F8FAFC] rounded-lg"
+                      className="flex items-start sm:items-center justify-between py-2 sm:py-3 px-3 sm:px-4 bg-[#F8FAFC] rounded-lg gap-2"
                     >
-                      <div className="flex-1">
-                        <p className="text-[#334155]">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base text-[#334155]">
                           {linea.producto_nombre}
                         </p>
                         {linea.observaciones && (
-                          <p className="text-xs text-[#94A3B8] mt-1">
+                          <p className="text-xs text-[#94A3B8] mt-0.5 sm:mt-1">
                             Nota: {linea.observaciones}
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-6">
-                        <span className="text-[#64748B] text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 flex-shrink-0">
+                        <span className="text-[#64748B] text-xs sm:text-sm">
                           x{linea.cantidad}
                         </span>
-                        <span className="text-[#334155] w-24 text-right">
+                        <span className="text-[#334155] text-sm sm:text-base font-medium sm:w-24 text-right">
                           {formatCurrency(
                             linea.precio_unitario * linea.cantidad
                           )}
@@ -616,6 +753,17 @@ export function MesaDetailContent({
           onConfirm={handleCancelarMesa}
           mesaNombre={mesa.nombre}
           hasPedido={!!mesa.pedido_activo}
+        />
+      )}
+
+      {/* Confirmar Pago Modal */}
+      {showConfirmarPagoModal && mesa.pedido_activo && (
+        <ConfirmarPagoModal
+          isOpen={showConfirmarPagoModal}
+          onClose={() => setShowConfirmarPagoModal(false)}
+          onConfirm={handleMarcarCompletado}
+          monto={mesa.pedido_activo.total}
+          isLoading={marcarCompletadoLoading}
         />
       )}
     </div>

@@ -268,6 +268,31 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ minutos }),
       }),
+    registrarPago: (pedidoId: number, metodo: string, monto: number) =>
+      apiCall(`/api/empresa/pedidos/${pedidoId}/pago`, {
+        method: 'POST',
+        body: JSON.stringify({ metodo, monto }),
+      }),
+    getHistorial: (params?: {
+      estado?: string;
+      fecha_desde?: string;
+      fecha_hasta?: string;
+      mesa_id?: string;
+      limit?: number;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.estado) searchParams.append('estado', params.estado);
+      if (params?.fecha_desde)
+        searchParams.append('fecha_desde', params.fecha_desde);
+      if (params?.fecha_hasta)
+        searchParams.append('fecha_hasta', params.fecha_hasta);
+      if (params?.mesa_id) searchParams.append('mesa_id', params.mesa_id);
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+      const query = searchParams.toString();
+      return apiCall(
+        `/api/empresa/pedidos/historial${query ? `?${query}` : ''}`
+      );
+    },
 
     // Empleados
     getEmpleados: () => apiCall('/api/empresa/empleados/'),
@@ -439,5 +464,7 @@ export const api = {
       }),
     // Obtener pedido activo del usuario (para cualquier dispositivo)
     getPedidoActivo: () => apiCall('/api/cliente/pedido-activo'),
+    // Obtener historial de pedidos completados
+    getHistorial: () => apiCall('/api/cliente/historial'),
   },
 };

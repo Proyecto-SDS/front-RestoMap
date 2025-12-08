@@ -9,25 +9,26 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pedido } from '../../screens/cocinero/DashboardCocineroScreen';
+import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { Toast, useToast } from '../notifications/Toast';
 
 interface PedidoCarouselModalProps {
   pedidos: Pedido[];
   currentIndex: number;
-  columnTitle: string;
   onClose: () => void;
   onNavigate: (index: number) => void;
   onUpdate: (pedido: Pedido) => void;
+  onRefresh: () => void;
 }
 
 export function PedidoCarouselModal({
   pedidos,
   currentIndex,
-  columnTitle,
   onClose,
   onNavigate,
   onUpdate,
+  onRefresh,
 }: PedidoCarouselModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast, showToast, hideToast } = useToast();
@@ -170,14 +171,23 @@ export function PedidoCarouselModal({
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Convertir estado a minúsculas para el backend (recepcion, en_proceso, terminado)
+      const estadoBackend = newEstado.toLowerCase();
+
+      // Llamada real a la API
+      await api.empresa.updatePedidoEstado(Number(pedido.id), estadoBackend);
 
       const updatedPedido = {
         ...pedido,
         estado: newEstado,
+        actualizado_el: new Date().toISOString(), // Actualizar timestamp
       };
 
+      // Actualizar estado local
       onUpdate(updatedPedido);
+
+      // Refrescar datos del backend para sincronizar
+      await onRefresh();
 
       const messages: Record<string, string> = {
         RECEPCION: 'Pedido recibido',
@@ -186,8 +196,11 @@ export function PedidoCarouselModal({
       };
 
       showToast('success', messages[newEstado]);
-    } catch {
-      showToast('error', 'Error al actualizar');
+
+      // NO cerrar el modal - el pedido permanece en el carrusel
+    } catch (error) {
+      console.error('Error al actualizar pedido:', error);
+      showToast('error', 'Error al actualizar pedido');
     } finally {
       setIsLoading(false);
     }
@@ -230,15 +243,50 @@ export function PedidoCarouselModal({
     return null;
   };
 
+  // Get estado badge info
+  const getEstadoBadge = (estado: string) => {
+    switch (estado) {
+      case 'RECEPCION':
+        return {
+          label: 'Recepción',
+          bg: '#EFF6FF',
+          color: '#3B82F6',
+          border: '#3B82F6',
+        };
+      case 'EN_PROCESO':
+        return {
+          label: 'En Proceso',
+          bg: '#FEF3C7',
+          color: '#F97316',
+          border: '#F97316',
+        };
+      case 'TERMINADO':
+        return {
+          label: 'Listo',
+          bg: '#F0FDF4',
+          color: '#22C55E',
+          border: '#22C55E',
+        };
+      default:
+        return {
+          label: estado,
+          bg: '#F1F5F9',
+          color: '#64748B',
+          border: '#64748B',
+        };
+    }
+  };
+
   // Render a single card
   const renderCard = (p: Pedido, index: number) => {
     const isCenter = index === currentIndex;
     const offset = index - currentIndex;
     const urgency = getUrgency(p);
     const timeSince = getTimeSince(p);
+    const estadoBadge = getEstadoBadge(p.estado);
 
-    // Calculate transform and opacity based on position
-    const baseTranslate = offset * 280;
+    // Calculate transform and opacity based on position - Aumentado el espaciado
+    const baseTranslate = offset * 420; // Aumentado de 280 a 420 para tarjetas más grandes
     const translateXValue = baseTranslate + (isCenter ? dragOffset : 0);
     const scale = isCenter ? 1 : 0.85;
     const opacity = Math.abs(offset) > 1 ? 0 : isCenter ? 1 : 0.6;
@@ -249,7 +297,7 @@ export function PedidoCarouselModal({
     return (
       <div
         key={p.id}
-        className="absolute left-1/2 w-[320px] transition-all duration-300 ease-out select-none"
+        className="absolute left-1/2 w-full max-w-[400px] md:max-w-[450px] lg:max-w-[500px] transition-all duration-300 ease-out select-none px-4"
         style={{
           transform: `translateX(calc(-50% + ${translateXValue}px)) scale(${scale})`,
           opacity,
@@ -257,6 +305,31 @@ export function PedidoCarouselModal({
           transition: isDragging ? 'none' : 'all 0.3s ease-out',
         }}
       >
+        {/* Badge de Estado - Destacado como título en un cuadro */}
+        {isCenter && (
+          <div className="flex justify-center mb-4">
+            <div
+              className="relative px-8 py-4 rounded-2xl text-lg font-bold shadow-2xl border-4 backdrop-blur-sm"
+              style={{
+                backgroundColor: estadoBadge.bg,
+                color: estadoBadge.color,
+                borderColor: estadoBadge.border,
+                boxShadow: `0 8px 32px ${estadoBadge.color}40, 0 0 0 1px ${estadoBadge.border}20`,
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full animate-pulse"
+                  style={{ backgroundColor: estadoBadge.color }}
+                />
+                <span className="uppercase tracking-wider">
+                  {estadoBadge.label}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${
             isCenter ? '' : 'pointer-events-none'
@@ -293,18 +366,18 @@ export function PedidoCarouselModal({
           </div>
 
           {/* Card Content */}
-          <div className="p-4 space-y-3 max-h-[280px] overflow-y-auto">
+          <div className="p-5 md:p-6 space-y-3 max-h-[350px] md:max-h-[400px] overflow-y-auto">
             {p.lineas.map((linea) => (
               <div
                 key={linea.id}
-                className="flex justify-between items-start py-2 border-b border-[#E2E8F0] last:border-0"
+                className="flex justify-between items-start py-3 border-b border-[#E2E8F0] last:border-0"
               >
                 <div className="flex-1">
-                  <span className="text-[#334155] font-medium">
+                  <span className="text-[#334155] font-medium text-base md:text-lg">
                     {linea.cantidad}x {linea.producto_nombre}
                   </span>
                   {linea.notas && (
-                    <p className="text-xs text-[#F97316] italic mt-1">
+                    <p className="text-sm md:text-base text-[#F97316] italic mt-1">
                       {linea.notas}
                     </p>
                   )}
@@ -313,8 +386,8 @@ export function PedidoCarouselModal({
             ))}
 
             {p.notas && (
-              <div className="bg-[#FEF3C7] rounded-lg p-3 mt-2">
-                <p className="text-xs text-[#92400E]">
+              <div className="bg-[#FEF3C7] rounded-lg p-4 mt-2">
+                <p className="text-sm md:text-base text-[#92400E]">
                   <span className="font-medium">Nota:</span> {p.notas}
                 </p>
               </div>
@@ -322,7 +395,9 @@ export function PedidoCarouselModal({
           </div>
 
           {/* Card Action */}
-          {isCenter && <div className="p-4 pt-0">{getActionButton(p)}</div>}
+          {isCenter && (
+            <div className="p-5 md:p-6 pt-0">{getActionButton(p)}</div>
+          )}
         </div>
       </div>
     );
@@ -338,10 +413,12 @@ export function PedidoCarouselModal({
         onClick={onClose}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 text-white">
+        <div className="flex items-center justify-between p-4 md:p-6 text-white">
           <div>
-            <h2 className="text-xl font-bold">{columnTitle}</h2>
-            <p className="text-sm text-white/70">
+            <h2 className="text-2xl md:text-3xl font-bold">
+              Pedidos por Orden de Llegada
+            </h2>
+            <p className="text-sm md:text-base text-white/70 mt-1">
               {currentIndex + 1} de {total} pedidos
             </p>
           </div>
@@ -352,7 +429,7 @@ export function PedidoCarouselModal({
             }}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <X size={24} />
+            <X size={28} />
           </button>
         </div>
 
@@ -381,9 +458,9 @@ export function PedidoCarouselModal({
               goToPrev();
             }}
             disabled={currentIndex === 0}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-20"
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 md:p-4 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-20 backdrop-blur-sm"
           >
-            <ChevronLeft size={28} />
+            <ChevronLeft size={32} />
           </button>
 
           <button
@@ -392,14 +469,14 @@ export function PedidoCarouselModal({
               goToNext();
             }}
             disabled={currentIndex === total - 1}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-20"
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 md:p-4 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-20 backdrop-blur-sm"
           >
-            <ChevronRight size={28} />
+            <ChevronRight size={32} />
           </button>
         </div>
 
         {/* Pagination Dots */}
-        <div className="flex items-center justify-center gap-2 p-4">
+        <div className="flex items-center justify-center gap-2 p-4 md:p-6">
           {pedidos.map((_, i) => (
             <button
               key={i}
@@ -407,9 +484,9 @@ export function PedidoCarouselModal({
                 e.stopPropagation();
                 onNavigate(i);
               }}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${
+              className={`w-3 h-3 rounded-full transition-all ${
                 i === currentIndex
-                  ? 'bg-white w-6'
+                  ? 'bg-white w-8'
                   : 'bg-white/40 hover:bg-white/60'
               }`}
             />
@@ -417,8 +494,8 @@ export function PedidoCarouselModal({
         </div>
 
         {/* Keyboard hint */}
-        <div className="text-center pb-4">
-          <span className="text-xs text-white/50">
+        <div className="text-center pb-4 md:pb-6">
+          <span className="text-sm md:text-base text-white/50">
             Usa las flechas del teclado para navegar
           </span>
         </div>

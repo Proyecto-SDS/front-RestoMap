@@ -428,8 +428,8 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
     setVista('menu');
   };
 
-  // Determinar si el menú es solo lectura (cuando está en RECEPCION y no se ha rectificado)
-  const menuSoloLectura = pedidoInfo?.estado?.toLowerCase() === 'recepcion';
+  // Determinar si el menú es solo lectura (solo se puede agregar productos en estado INICIADO)
+  const menuSoloLectura = pedidoInfo?.estado?.toLowerCase() !== 'iniciado';
 
   // Cancelar pedido - confirmación via modal
   const confirmarCancelar = async () => {
@@ -1120,22 +1120,25 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
                   <span className="font-medium text-sm sm:text-base text-[#334155]">
                     Tu pedido
                   </span>
-                  {sesionActiva && (
-                    <button
-                      onClick={handleAgregarMasProductos}
-                      disabled={actionLoading === 'rectificar'}
-                      className="px-3 py-1.5 text-xs sm:text-sm font-medium text-[#F97316] bg-[#FFF7ED] rounded-lg hover:bg-[#FFEDD5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                    >
-                      {actionLoading === 'rectificar' ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          <span>Cargando...</span>
-                        </>
-                      ) : (
-                        'Modificar'
-                      )}
-                    </button>
-                  )}
+                  {/* Botón Modificar - Solo visible si sesión activa Y estado es iniciado o recepcion */}
+                  {sesionActiva &&
+                    (pedidoInfo?.estado?.toLowerCase() === 'iniciado' ||
+                      pedidoInfo?.estado?.toLowerCase() === 'recepcion') && (
+                      <button
+                        onClick={handleAgregarMasProductos}
+                        disabled={actionLoading === 'rectificar'}
+                        className="px-3 py-1.5 text-xs sm:text-sm font-medium text-[#F97316] bg-[#FFF7ED] rounded-lg hover:bg-[#FFEDD5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        {actionLoading === 'rectificar' ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Cargando...</span>
+                          </>
+                        ) : (
+                          'Modificar'
+                        )}
+                      </button>
+                    )}
                 </div>
                 <div className="p-3 sm:p-4 space-y-2">
                   {encomiendas.flatMap((enc) =>

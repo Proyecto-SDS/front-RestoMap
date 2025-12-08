@@ -1,6 +1,8 @@
 interface TabNavigationProps {
-  activeTab: 'reservas' | 'opiniones' | 'favoritos';
-  onTabChange: (tab: 'reservas' | 'opiniones' | 'favoritos') => void;
+  activeTab: 'reservas' | 'opiniones' | 'favoritos' | 'historial';
+  onTabChange: (
+    tab: 'reservas' | 'opiniones' | 'favoritos' | 'historial'
+  ) => void;
 }
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
@@ -36,6 +38,16 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
           }`}
         >
           Mis Favoritos
+        </button>
+        <button
+          onClick={() => onTabChange('historial')}
+          className={`flex-1 px-6 py-4 text-sm transition-colors ${
+            activeTab === 'historial'
+              ? 'border-b-3 border-[#F97316] text-[#F97316]'
+              : 'text-[#64748B] hover:text-[#334155]'
+          }`}
+        >
+          Historial
         </button>
       </div>
     </div>

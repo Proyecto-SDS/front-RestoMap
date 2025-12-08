@@ -3,11 +3,17 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  CheckCircle,
+  ChefHat,
+  Circle,
+  ClipboardList,
   Clock,
   DollarSign,
+  FileText,
   QrCode,
   ShoppingBag,
   Users,
+  UtensilsCrossed,
   XCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -16,6 +22,7 @@ import { DangerButton } from '../../components/buttons/DangerButton';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
 import { CancelarMesaModal } from '../../components/mesero/CancelarMesaModal';
+import { ConfirmarPagoModal } from '../../components/mesero/ConfirmarPagoModal';
 import { QRGenerateModal } from '../../components/mesero/QRGenerateModal';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/apiClient';
@@ -92,6 +99,9 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
+  const [marcarServidoLoading, setMarcarServidoLoading] = useState(false);
+  const [marcarCompletadoLoading, setMarcarCompletadoLoading] = useState(false);
+  const [showConfirmarPagoModal, setShowConfirmarPagoModal] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -131,6 +141,46 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
     } catch (err) {
       console.error('Error canceling mesa:', err);
       alert('Error al cancelar la mesa');
+    }
+  };
+
+  const handleMarcarServido = async () => {
+    if (!mesa?.pedido_activo) return;
+
+    try {
+      setMarcarServidoLoading(true);
+      await api.empresa.updatePedidoEstado(mesa.pedido_activo.id, 'servido');
+      // Recargar los datos de la mesa
+      await loadMesaDetail();
+    } catch (err) {
+      console.error('Error al marcar pedido como servido:', err);
+      alert('Error al marcar el pedido como servido');
+    } finally {
+      setMarcarServidoLoading(false);
+    }
+  };
+
+  const handleMarcarCompletado = async (metodoPago: string) => {
+    if (!mesa?.pedido_activo) return;
+
+    try {
+      setMarcarCompletadoLoading(true);
+      // Registrar pago con el método seleccionado
+      await api.empresa.registrarPago(
+        mesa.pedido_activo.id,
+        metodoPago,
+        mesa.pedido_activo.total
+      );
+      // Marcar pedido como completado
+      await api.empresa.updatePedidoEstado(mesa.pedido_activo.id, 'completado');
+      setShowConfirmarPagoModal(false);
+      // Volver a la vista anterior (dashboard)
+      router.push('/dashboard-mesero');
+    } catch (err) {
+      console.error('Error al registrar el pago:', err);
+      alert('Error al registrar el pago');
+    } finally {
+      setMarcarCompletadoLoading(false);
     }
   };
 
@@ -256,50 +306,98 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
         {isOcupada && mesa.pedido_activo && (
           <>
             {/* Info del Pedido */}
-            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg text-[#334155] flex items-center gap-2">
-                  <ShoppingBag size={20} className="text-[#F97316]" />
-                  Pedido Activo #{mesa.pedido_activo.id}
+            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+                <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+                  <ShoppingBag
+                    size={18}
+                    className="text-[#F97316] sm:w-5 sm:h-5"
+                  />
+                  Pedido #{mesa.pedido_activo.id}
                 </h2>
-                <span className="text-sm text-[#64748B] flex items-center gap-1">
-                  <Clock size={14} />
+                <span className="text-xs sm:text-sm text-[#64748B] flex items-center gap-1">
+                  <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
                   {formatDate(mesa.pedido_activo.creado_el)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-50 text-[#F97316]">
-                  {mesa.pedido_activo.estado.replace('_', ' ').toUpperCase()}
+              {/* Estado del Pedido */}
+              <div className="mb-4">
+                <span className="text-xs sm:text-sm text-[#64748B] mb-2 block">
+                  Estado del Pedido:
+                </span>
+                <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-orange-50 text-[#F97316] border-2 border-orange-200">
+                  {mesa.pedido_activo.estado === 'iniciado' && (
+                    <>
+                      <Circle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Iniciado
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'recepcion' && (
+                    <>
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      En Recepción
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'en_proceso' && (
+                    <>
+                      <ChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      En Preparación
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'terminado' && (
+                    <>
+                      <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Listo
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'servido' && (
+                    <>
+                      <UtensilsCrossed className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Servido
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'completado' && (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Completado
+                    </>
+                  )}
+                  {mesa.pedido_activo.estado === 'cancelado' && (
+                    <>
+                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Cancelado
+                    </>
+                  )}
                 </span>
               </div>
 
               {/* Líneas del Pedido */}
               <div className="border-t border-[#E2E8F0] pt-4">
-                <h3 className="text-sm text-[#64748B] mb-3">
+                <h3 className="text-xs sm:text-sm text-[#64748B] mb-3">
                   Productos del Pedido:
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {mesa.pedido_activo.lineas.map((linea) => (
                     <div
                       key={linea.id}
-                      className="flex items-center justify-between py-3 px-4 bg-[#F8FAFC] rounded-lg"
+                      className="flex items-start sm:items-center justify-between py-2 sm:py-3 px-3 sm:px-4 bg-[#F8FAFC] rounded-lg gap-2"
                     >
-                      <div className="flex-1">
-                        <p className="text-[#334155]">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base text-[#334155]">
                           {linea.producto_nombre}
                         </p>
                         {linea.observaciones && (
-                          <p className="text-xs text-[#94A3B8] mt-1">
+                          <p className="text-xs text-[#94A3B8] mt-0.5 sm:mt-1">
                             Nota: {linea.observaciones}
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-6">
-                        <span className="text-[#64748B] text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 flex-shrink-0">
+                        <span className="text-[#64748B] text-xs sm:text-sm">
                           x{linea.cantidad}
                         </span>
-                        <span className="text-[#334155] w-24 text-right">
+                        <span className="text-[#334155] text-sm sm:text-base font-medium sm:w-24 text-right">
                           {formatCurrency(
                             linea.precio_unitario * linea.cantidad
                           )}
@@ -310,12 +408,15 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
                 </div>
 
                 {/* Total */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E2E8F0]">
-                  <span className="text-lg text-[#334155] flex items-center gap-2">
-                    <DollarSign size={20} className="text-[#22C55E]" />
+                <div className="flex items-center justify-between mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2E8F0]">
+                  <span className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+                    <DollarSign
+                      size={18}
+                      className="text-[#22C55E] sm:w-5 sm:h-5"
+                    />
                     Total
                   </span>
-                  <span className="text-2xl text-[#334155]">
+                  <span className="text-xl sm:text-2xl text-[#334155]">
                     {formatCurrency(mesa.pedido_activo.total)}
                   </span>
                 </div>
@@ -323,12 +424,57 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
             </div>
 
             {/* Acciones */}
-            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-              <h3 className="text-sm text-[#64748B] mb-4">Acciones de Mesa</h3>
-              <div className="flex gap-3">
+            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+              <h3 className="text-xs sm:text-sm text-[#64748B] mb-3 sm:mb-4">
+                Acciones de Mesa
+              </h3>
+              <div className="flex flex-col gap-2 sm:gap-3">
+                {/* Botón Entregado - Solo visible cuando el pedido está terminado (listo) */}
+                {mesa.pedido_activo.estado === 'terminado' && (
+                  <PrimaryButton
+                    onClick={handleMarcarServido}
+                    disabled={marcarServidoLoading}
+                  >
+                    {marcarServidoLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                        <span className="text-sm sm:text-base">
+                          Marcando...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-sm sm:text-base">
+                          Marcar como Entregado
+                        </span>
+                      </>
+                    )}
+                  </PrimaryButton>
+                )}
+
+                {/* Botón Pago - Solo visible cuando el pedido está servido */}
+                {mesa.pedido_activo.estado === 'servido' && (
+                  <PrimaryButton
+                    onClick={() => setShowConfirmarPagoModal(true)}
+                    disabled={marcarCompletadoLoading}
+                  >
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-sm sm:text-base">
+                      Registrar Pago
+                    </span>
+                  </PrimaryButton>
+                )}
+                      </>
+                    )}
+                  </PrimaryButton>
+                )}
+
                 <DangerButton onClick={() => setShowCancelarModal(true)}>
-                  <XCircle size={16} />
-                  Cancelar Mesa y Pedido
+                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">
+                    Cancelar Mesa y Pedido
+                  </span>
                 </DangerButton>
               </div>
             </div>
@@ -406,6 +552,17 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
           onConfirm={handleCancelarMesa}
           mesaNombre={mesa.nombre}
           hasPedido={!!mesa.pedido_activo}
+        />
+      )}
+
+      {/* Confirmar Pago Modal */}
+      {showConfirmarPagoModal && mesa.pedido_activo && (
+        <ConfirmarPagoModal
+          isOpen={showConfirmarPagoModal}
+          onClose={() => setShowConfirmarPagoModal(false)}
+          onConfirm={handleMarcarCompletado}
+          monto={mesa.pedido_activo.total}
+          isLoading={marcarCompletadoLoading}
         />
       )}
     </div>
