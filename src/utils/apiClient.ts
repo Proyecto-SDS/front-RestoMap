@@ -263,6 +263,11 @@ export const api = {
       }),
     getPedidosCocina: () => apiCall('/api/empresa/pedidos/cocina'),
     getPedidosBarra: () => apiCall('/api/empresa/pedidos/barra'),
+    extenderTiempoPedido: (id: number, minutos: number = 5) =>
+      apiCall(`/api/empresa/pedidos/${id}/extender`, {
+        method: 'POST',
+        body: JSON.stringify({ minutos }),
+      }),
 
     // Empleados
     getEmpleados: () => apiCall('/api/empresa/empleados/'),
@@ -412,6 +417,25 @@ export const api = {
       apiCall(`/api/cliente/pedido/${codigo}/cuenta/${cuentaId}/nota`, {
         method: 'PUT',
         body: JSON.stringify({ nota }),
+      }),
+    // Rectificar pedido (volver a INICIADO para modificar)
+    rectificarPedido: (codigo: string) =>
+      apiCall(`/api/cliente/pedido/${codigo}/rectificar`, {
+        method: 'POST',
+      }),
+    // Modificar pedido (reemplaza todas las encomiendas existentes)
+    modificarPedido: (
+      codigo: string,
+      productos: Array<{ id: number; cantidad: number; nota?: string }>
+    ) =>
+      apiCall(`/api/cliente/pedido/${codigo}/modificar`, {
+        method: 'POST',
+        body: JSON.stringify({ productos }),
+      }),
+    // Cancelar pedido
+    cancelarPedido: (codigo: string) =>
+      apiCall(`/api/cliente/pedido/${codigo}/cancelar`, {
+        method: 'POST',
       }),
     // Obtener pedido activo del usuario (para cualquier dispositivo)
     getPedidoActivo: () => apiCall('/api/cliente/pedido-activo'),

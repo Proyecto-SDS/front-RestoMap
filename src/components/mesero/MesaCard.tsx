@@ -2,13 +2,15 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Users } from 'lucide-react';
+import { Clock, GripVertical, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 
 interface MesaCardProps {
   mesa: Mesa;
   onClick: () => void;
   isEditMode?: boolean;
+  onExpire?: () => void;
 }
 
 const estadoConfig: Record<
@@ -48,8 +50,83 @@ const defaultConfig = {
   shape: 'rounded-full',
 };
 
-export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
+// Mapa de mesas
+// Calcular tiempo restante formateado
+function getTiempoRestante(expiracion: string | undefined): {
+  texto: string;
+  urgente: boolean;
+  critico: boolean;
+} | null {
+  if (!expiracion) return null;
+
+  const ahora = new Date();
+  const exp = new Date(expiracion);
+  const diffMs = exp.getTime() - ahora.getTime();
+
+  if (diffMs <= 0) {
+    return { texto: 'Expirado', urgente: true, critico: true };
+  }
+
+  const minutos = Math.floor(diffMs / 60000);
+  const segundos = Math.floor((diffMs % 60000) / 1000);
+
+  if (minutos >= 60) {
+    const horas = Math.floor(minutos / 60);
+    const mins = minutos % 60;
+    return { texto: `${horas}h ${mins}m`, urgente: false, critico: false };
+  }
+
+  if (minutos <= 5) {
+    return {
+      texto: `${minutos}:${segundos.toString().padStart(2, '0')}`,
+      urgente: true,
+      critico: true,
+    };
+  }
+
+  if (minutos <= 15) {
+    return { texto: `${minutos} min`, urgente: true, critico: false };
+  }
+
+  return { texto: `${minutos} min`, urgente: false, critico: false };
+}
+
+export function MesaCard({
+  mesa,
+  onClick,
+  isEditMode = false,
+  onExpire,
+}: MesaCardProps) {
   const config = estadoConfig[mesa.estado] || defaultConfig;
+  const [tiempoInfo, setTiempoInfo] = useState(
+    getTiempoRestante(mesa.expiracion)
+  );
+  const hasExpiredRef = useRef(false);
+  const lastExpiracion = useRef(mesa.expiracion);
+
+  // Actualizar tiempo cada segundo si hay expiración
+  useEffect(() => {
+    // Reset hasExpiredRef cuando cambia la expiración
+    if (lastExpiracion.current !== mesa.expiracion) {
+      hasExpiredRef.current = false;
+      lastExpiracion.current = mesa.expiracion;
+    }
+
+    if (!mesa.expiracion) return;
+
+    const interval = setInterval(() => {
+      const newInfo = getTiempoRestante(mesa.expiracion);
+      setTiempoInfo(newInfo);
+
+      // Detectar cuando el timer llega a 0 y llamar callback
+      if (newInfo?.texto === 'Expirado' && !hasExpiredRef.current) {
+        hasExpiredRef.current = true;
+        onExpire?.();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [mesa.expiracion, onExpire]);
 
   const {
     attributes,
@@ -125,6 +202,24 @@ export function MesaCard({ mesa, onClick, isEditMode = false }: MesaCardProps) {
             <span className="text-sm">
               {mesa.num_personas}{' '}
               {mesa.num_personas === 1 ? 'persona' : 'personas'} en la mesa
+            </span>
+          </div>
+        )}
+
+        {/* Tiempo restante - Solo si está ocupada y tiene expiración */}
+        {mesa.estado === 'OCUPADA' && tiempoInfo && (
+          <div
+            className={`flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg ${
+              tiempoInfo.critico
+                ? 'bg-red-100 text-red-600'
+                : tiempoInfo.urgente
+                ? 'bg-orange-100 text-orange-600'
+                : 'bg-blue-50 text-blue-600'
+            }`}
+          >
+            <Clock size={14} />
+            <span className="text-sm font-medium">
+              {tiempoInfo.texto} restante
             </span>
           </div>
         )}

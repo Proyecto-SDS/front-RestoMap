@@ -1,6 +1,6 @@
 'use client';
 
-import { Package, Wine } from 'lucide-react';
+import { Bell, Package, Wine } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { InventarioBartender } from '../../components/bartender/InventarioBartender';
@@ -11,6 +11,7 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useNotificaciones } from '../../context/NotificacionesContext';
 import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 import type { Pedido, Producto } from '../cocinero/DashboardCocineroScreen';
@@ -25,6 +26,7 @@ export default function DashboardBartenderScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
   const { socket, isConnected, authenticate, joinLocal } = useSocket();
+  const { agregarNotificacion } = useNotificaciones();
   const [activeSection, setActiveSection] = useState<'pedidos' | 'inventario'>(
     'pedidos'
   );
@@ -55,6 +57,7 @@ export default function DashboardBartenderScreen() {
         total: (p.total as number) || 0,
         estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
         creado_el: p.creado_el as string,
+        actualizado_el: (p.actualizado_el as string) || undefined,
         lineas:
           (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
             id: String(l.id),
@@ -63,6 +66,7 @@ export default function DashboardBartenderScreen() {
             producto_nombre: l.producto_nombre as string,
             cantidad: l.cantidad as number,
             precio_unitario: l.precio_unitario as number,
+            notas: (l.observaciones as string) || undefined,
           })) || [],
       })) as Pedido[];
 
@@ -133,14 +137,77 @@ export default function DashboardBartenderScreen() {
       loadPedidos();
     };
 
+    // Urgencia Kanban - pedido >30min en RECEPCION
+    const handleUrgenciaKanban = (data: {
+      pedido_id: number;
+      mesa_nombre: string;
+      minutos_espera: number;
+    }) => {
+      console.warn(
+        `URGENCIA: Pedido ${data.mesa_nombre} lleva ${data.minutos_espera} min esperando!`
+      );
+
+      // Agregar al panel de notificaciones
+      agregarNotificacion({
+        tipo: 'urgente',
+        titulo: 'Pedido URGENTE',
+        mensaje: `${data.mesa_nombre} lleva ${data.minutos_espera} min esperando atención`,
+        pedidoId: data.pedido_id,
+        mesaNombre: data.mesa_nombre,
+      });
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Pedido URGENTE', {
+          body: `${data.mesa_nombre} lleva ${data.minutos_espera} min esperando atención`,
+          icon: '/icon.png',
+          tag: `urgencia-${data.pedido_id}`,
+        });
+      }
+    };
+
+    // Pedido expirado/cancelado - remover del kanban
+    const handlePedidoExpirado = () => {
+      loadPedidos();
+    };
+
+    // Estado de pedido cambiado
+    const handleEstadoPedido = (data: { estado: string }) => {
+      if (data.estado === 'CANCELADO' || data.estado === 'COMPLETADO') {
+        loadPedidos();
+      }
+    };
+
     socket.on('nueva_encomienda', handleUpdate);
     socket.on('estado_encomienda', handleUpdate);
+    socket.on('urgencia_kanban', handleUrgenciaKanban);
+    socket.on('pedido_expirado', handlePedidoExpirado);
+    socket.on('estado_pedido', handleEstadoPedido);
 
     return () => {
       socket.off('nueva_encomienda', handleUpdate);
       socket.off('estado_encomienda', handleUpdate);
+      socket.off('urgencia_kanban', handleUrgenciaKanban);
+      socket.off('pedido_expirado', handlePedidoExpirado);
+      socket.off('estado_pedido', handleEstadoPedido);
     };
-  }, [socket, loadPedidos]);
+  }, [socket, loadPedidos, agregarNotificacion]);
+
+  // Estado de permisos de notificación (inicializado lazy)
+  const [notificacionesPermitidas, setNotificacionesPermitidas] = useState<
+    boolean | null
+  >(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission === 'granted';
+    }
+    return null;
+  });
+
+  const solicitarPermisoNotificaciones = async () => {
+    if ('Notification' in window) {
+      const permiso = await Notification.requestPermission();
+      setNotificacionesPermitidas(permiso === 'granted');
+    }
+  };
 
   const handlePedidoUpdate = (updatedPedido: Pedido) => {
     // Remove from old column and add to new column
@@ -227,6 +294,24 @@ export default function DashboardBartenderScreen() {
 
         {/* Content Area - Area clara con esquina redondeada */}
         <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
+          {/* Banner de notificaciones */}
+          {notificacionesPermitidas === false && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell size={20} className="text-blue-600" />
+                <span className="text-sm text-blue-800">
+                  Activa las notificaciones para recibir alertas de pedidos
+                  urgentes
+                </span>
+              </div>
+              <button
+                onClick={solicitarPermisoNotificaciones}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Activar
+              </button>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">

@@ -22,10 +22,13 @@ export function KanbanBoard({
   onPedidoUpdate,
   onRefresh,
 }: KanbanBoardProps) {
-  const [selectedPedido, setSelectedPedido] = useState<{
-    pedido: Pedido;
+  const [selectedColumn, setSelectedColumn] = useState<{
     columnId: string;
+    initialIndex: number;
   } | null>(null);
+
+  // Track current index for navigation
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const columns = [
     {
@@ -55,59 +58,30 @@ export function KanbanBoard({
   ];
 
   const handleCardClick = (pedido: Pedido, columnId: string) => {
-    setSelectedPedido({ pedido, columnId });
+    const column = columns.find((c) => c.id === columnId);
+    if (!column) return;
+
+    const index = column.pedidos.findIndex((p) => p.id === pedido.id);
+    setSelectedColumn({ columnId, initialIndex: index >= 0 ? index : 0 });
+    setCurrentIndex(index >= 0 ? index : 0);
   };
 
   const handleCloseModal = () => {
-    setSelectedPedido(null);
+    setSelectedColumn(null);
+    setCurrentIndex(0);
   };
 
-  const handleNavigate = (direction: 'prev' | 'next') => {
-    if (!selectedPedido) return;
-
-    const column = columns.find((c) => c.id === selectedPedido.columnId);
-    if (!column) return;
-
-    const currentIndex = column.pedidos.findIndex(
-      (p) => p.id === selectedPedido.pedido.id
-    );
-    if (currentIndex === -1) return;
-
-    let newIndex: number;
-    if (direction === 'prev') {
-      newIndex =
-        currentIndex > 0 ? currentIndex - 1 : column.pedidos.length - 1;
-    } else {
-      newIndex =
-        currentIndex < column.pedidos.length - 1 ? currentIndex + 1 : 0;
-    }
-
-    setSelectedPedido({
-      pedido: column.pedidos[newIndex],
-      columnId: selectedPedido.columnId,
-    });
+  const handleNavigate = (newIndex: number) => {
+    setCurrentIndex(newIndex);
   };
 
-  const getCurrentPosition = () => {
-    if (!selectedPedido) return { current: 0, total: 0 };
-
-    const column = columns.find((c) => c.id === selectedPedido.columnId);
-    if (!column) return { current: 0, total: 0 };
-
-    const currentIndex = column.pedidos.findIndex(
-      (p) => p.id === selectedPedido.pedido.id
-    );
-
+  const getColumnData = () => {
+    if (!selectedColumn) return { pedidos: [], title: '' };
+    const column = columns.find((c) => c.id === selectedColumn.columnId);
     return {
-      current: currentIndex + 1,
-      total: column.pedidos.length,
+      pedidos: column?.pedidos || [],
+      title: column?.title || '',
     };
-  };
-
-  const getColumnTitle = () => {
-    if (!selectedPedido) return '';
-    const column = columns.find((c) => c.id === selectedPedido.columnId);
-    return column?.title || '';
   };
 
   return (
@@ -165,11 +139,7 @@ export function KanbanBoard({
                       onClick={() => handleCardClick(pedido, column.id)}
                       className="cursor-pointer"
                     >
-                      <OrderCard
-                        pedido={pedido}
-                        bgColor={column.bgColor}
-                        onUpdate={onPedidoUpdate}
-                      />
+                      <OrderCard pedido={pedido} bgColor={column.bgColor} />
                     </div>
                   ))
                 )}
@@ -180,11 +150,11 @@ export function KanbanBoard({
       </div>
 
       {/* Modal Carrusel */}
-      {selectedPedido && (
+      {selectedColumn && getColumnData().pedidos.length > 0 && (
         <PedidoCarouselModal
-          pedido={selectedPedido.pedido}
-          columnTitle={getColumnTitle()}
-          position={getCurrentPosition()}
+          pedidos={getColumnData().pedidos}
+          currentIndex={currentIndex}
+          columnTitle={getColumnData().title}
           onClose={handleCloseModal}
           onNavigate={handleNavigate}
           onUpdate={(updatedPedido: Pedido) => {

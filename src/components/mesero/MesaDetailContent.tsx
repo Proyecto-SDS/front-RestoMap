@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Clock,
   DollarSign,
+  Plus,
   QrCode,
   ShoppingBag,
   Users,
@@ -33,6 +34,7 @@ interface PedidoActivo {
   estado: string;
   total: number;
   creado_el: string;
+  expiracion?: string;
   lineas: LineaPedido[];
   cliente?: {
     id: number;
@@ -115,6 +117,9 @@ export function MesaDetailContent({
   const [error, setError] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
+  const [tiempoRestante, setTiempoRestante] = useState<string | null>(null);
+  const [tiempoUrgente, setTiempoUrgente] = useState(false);
+  const [extendiendo, setExtendiendo] = useState(false);
 
   const loadMesaDetail = useCallback(async () => {
     try {
@@ -195,6 +200,62 @@ export function MesaDetailContent({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // Calcular tiempo restante
+  useEffect(() => {
+    if (!mesa?.pedido_activo?.expiracion) {
+      setTiempoRestante(null);
+      return;
+    }
+
+    const calcular = () => {
+      const ahora = new Date();
+      const exp = new Date(mesa.pedido_activo!.expiracion!);
+      const diffMs = exp.getTime() - ahora.getTime();
+
+      if (diffMs <= 0) {
+        setTiempoRestante('Expirado');
+        setTiempoUrgente(true);
+        return;
+      }
+
+      const minutos = Math.floor(diffMs / 60000);
+      const segundos = Math.floor((diffMs % 60000) / 1000);
+
+      if (minutos >= 60) {
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        setTiempoRestante(`${horas}h ${mins}m`);
+        setTiempoUrgente(false);
+      } else if (minutos <= 10) {
+        setTiempoRestante(`${minutos}:${segundos.toString().padStart(2, '0')}`);
+        setTiempoUrgente(true);
+      } else {
+        setTiempoRestante(`${minutos} min`);
+        setTiempoUrgente(minutos <= 15);
+      }
+    };
+
+    calcular();
+    const interval = setInterval(calcular, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Solo recalcular cuando cambia expiracion
+  }, [mesa?.pedido_activo?.expiracion]);
+
+  // Extender tiempo
+  const handleExtenderTiempo = async (minutos: number) => {
+    if (!mesa?.pedido_activo) return;
+    setExtendiendo(true);
+    try {
+      await api.empresa.extenderTiempoPedido(mesa.pedido_activo.id, minutos);
+      loadMesaDetail();
+    } catch (err) {
+      console.error('Error extendiendo tiempo:', err);
+      alert('Error al extender tiempo');
+    } finally {
+      setExtendiendo(false);
+    }
   };
 
   if (loading) {
@@ -431,6 +492,51 @@ export function MesaDetailContent({
           {!readOnly && (
             <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
               <h3 className="text-sm text-[#64748B] mb-4">Acciones</h3>
+
+              {/* Tiempo restante y botones extender */}
+              {tiempoRestante && (
+                <div className="mb-4 p-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#64748B] flex items-center gap-2">
+                      <Clock size={16} />
+                      Tiempo restante:
+                    </span>
+                    <span
+                      className={`font-bold text-lg ${
+                        tiempoUrgente ? 'text-red-500' : 'text-[#334155]'
+                      }`}
+                    >
+                      {tiempoRestante}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleExtenderTiempo(5)}
+                      disabled={extendiendo}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} />5 min
+                    </button>
+                    <button
+                      onClick={() => handleExtenderTiempo(10)}
+                      disabled={extendiendo}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} />
+                      10 min
+                    </button>
+                    <button
+                      onClick={() => handleExtenderTiempo(15)}
+                      disabled={extendiendo}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} />
+                      15 min
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <DangerButton onClick={() => setShowCancelarModal(true)}>
                   <XCircle size={16} />

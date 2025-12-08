@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Bell,
   Bug,
   Calendar,
   LayoutGrid,
@@ -20,6 +21,7 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useNotificaciones } from '../../context/NotificacionesContext';
 import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
 
@@ -57,6 +59,7 @@ export interface Mesa {
   posicion_x?: number;
   posicion_y?: number;
   num_personas?: number;
+  expiracion?: string; // ISO timestamp de expiración del pedido activo
 }
 
 export interface Pedido {
@@ -86,6 +89,7 @@ export default function DashboardMeseroScreen() {
   const router = useRouter();
   const { user, userType, isLoggedIn } = useAuth();
   const { socket, isConnected, authenticate, joinLocal } = useSocket();
+  const { agregarNotificacion } = useNotificaciones();
   const [activeSection, setActiveSection] = useState<
     'mesas' | 'reservas' | 'qr' | 'debug-qr'
   >('mesas');
@@ -112,6 +116,7 @@ export default function DashboardMeseroScreen() {
           estado: (m.estado as string).toUpperCase() as MesaEstado,
           pedidos_count: m.pedidos_count as number,
           num_personas: (m.num_personas as number) || undefined,
+          expiracion: (m.expiracion as string) || undefined,
         }))
         .sort((a: Mesa, b: Mesa) => a.orden - b.orden);
       setMesas(mesasData);
@@ -161,14 +166,124 @@ export default function DashboardMeseroScreen() {
       void loadMesas();
     };
 
+    // Alertas de pedidos (TERMINADO/SERVIDO)
+    const handleAlertaPedido = (data: {
+      pedido_id: number;
+      mesa_id: number;
+      mesa_nombre: string;
+      tipo_alerta: string;
+      mensaje: string;
+      minutos_restantes?: number;
+    }) => {
+      console.log('WS: Alerta Pedido', data);
+
+      // Mostrar notificación según tipo de alerta
+      const isUrgente =
+        data.tipo_alerta === 'terminado_10min' ||
+        data.tipo_alerta === 'servido_5min';
+
+      // Agregar al panel de notificaciones
+      agregarNotificacion({
+        tipo: isUrgente ? 'urgente' : 'alerta',
+        titulo: isUrgente ? 'ALERTA URGENTE' : 'Alerta Pedido',
+        mensaje: data.mensaje,
+        pedidoId: data.pedido_id,
+        mesaId: data.mesa_id,
+        mesaNombre: data.mesa_nombre,
+      });
+
+      // Usar notificación del navegador si está permitida
+      if (Notification.permission === 'granted') {
+        new Notification(isUrgente ? 'ALERTA URGENTE' : 'Alerta Pedido', {
+          body: data.mensaje,
+          icon: '/icon.png',
+          tag: `alerta-${data.pedido_id}-${data.tipo_alerta}`,
+        });
+      }
+
+      // También mostrar en consola para desarrollo
+      if (isUrgente) {
+        console.warn(`ALERTA URGENTE: ${data.mensaje}`);
+      }
+    };
+
+    // Pedido expirado (cancelación automática)
+    const handlePedidoExpirado = (data: {
+      pedido_id: number;
+      mesa_id: number;
+      mesa_nombre: string;
+    }) => {
+      console.log('WS: Pedido Expirado', data);
+
+      // Agregar al panel de notificaciones
+      agregarNotificacion({
+        tipo: 'expirado',
+        titulo: 'Pedido Expirado',
+        mensaje: `El pedido de ${data.mesa_nombre} ha expirado y fue cancelado`,
+        pedidoId: data.pedido_id,
+        mesaId: data.mesa_id,
+        mesaNombre: data.mesa_nombre,
+      });
+
+      // Notificación de expiración
+      if (Notification.permission === 'granted') {
+        new Notification('Pedido Expirado', {
+          body: `El pedido de ${data.mesa_nombre} ha expirado y fue cancelado`,
+          icon: '/icon.png',
+          tag: `expirado-${data.pedido_id}`,
+        });
+      }
+
+      // Recargar mesas para reflejar cambio de estado
+      void loadMesas();
+    };
+
+    // Expiración actualizada (cuando se extiende tiempo o cambia estado)
+    const handleExpiracionActualizada = (data: {
+      mesa_id: number;
+      expiracion: string | null;
+    }) => {
+      console.log('WS: Expiracion actualizada', data);
+      setMesas((prev) =>
+        prev.map((mesa) =>
+          mesa.id === String(data.mesa_id)
+            ? { ...mesa, expiracion: data.expiracion || undefined }
+            : mesa
+        )
+      );
+    };
+
     socket.on('mesa_actualizada', handleMesaActualizada);
     socket.on('qr_escaneado', handleQREscaneado);
+    socket.on('alerta_pedido', handleAlertaPedido);
+    socket.on('pedido_expirado', handlePedidoExpirado);
+    socket.on('expiracion_actualizada', handleExpiracionActualizada);
 
     return () => {
       socket.off('mesa_actualizada', handleMesaActualizada);
       socket.off('qr_escaneado', handleQREscaneado);
+      socket.off('alerta_pedido', handleAlertaPedido);
+      socket.off('pedido_expirado', handlePedidoExpirado);
+      socket.off('expiracion_actualizada', handleExpiracionActualizada);
     };
-  }, [socket, loadMesas]);
+  }, [socket, loadMesas, agregarNotificacion]);
+
+  // Estado de permisos de notificación (inicializado lazy)
+  const [notificacionesPermitidas, setNotificacionesPermitidas] = useState<
+    boolean | null
+  >(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission === 'granted';
+    }
+    return null;
+  });
+
+  const solicitarPermisoNotificaciones = async () => {
+    if ('Notification' in window) {
+      const permiso = await Notification.requestPermission();
+      setNotificacionesPermitidas(permiso === 'granted');
+    }
+  };
 
   // Load initial data on mount
   const hasMountedRef = useRef(false);
@@ -263,6 +378,23 @@ export default function DashboardMeseroScreen() {
 
         {/* Content Area - Area clara con esquina redondeada */}
         <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
+          {/* Banner de notificaciones */}
+          {notificacionesPermitidas === false && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell size={20} className="text-blue-600" />
+                <span className="text-sm text-blue-800">
+                  Activa las notificaciones para recibir alertas de pedidos
+                </span>
+              </div>
+              <button
+                onClick={solicitarPermisoNotificaciones}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Activar
+              </button>
+            </div>
+          )}
           {activeSection === 'mesas' &&
             (selectedMesaId ? (
               <MesaDetailContent

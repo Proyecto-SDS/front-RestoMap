@@ -247,6 +247,7 @@ export function TablasMapa({
                 mesa={mesa}
                 onClick={() => handleMesaClick(mesa)}
                 isEditMode={isEditMode}
+                onExpire={onRefresh}
               />
             ))}
 

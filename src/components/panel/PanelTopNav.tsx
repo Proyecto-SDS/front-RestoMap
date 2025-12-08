@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import type { User } from '../../types';
+import { NotificacionesPanel } from './NotificacionesPanel';
 
 // ============================================
 // TIPOS
@@ -196,6 +197,9 @@ export function PanelTopNav({
 
         {/* ===== SECCION DERECHA ===== */}
         <div className="flex items-center gap-2">
+          {/* Panel de Notificaciones */}
+          <NotificacionesPanel />
+
           {/* ===== DROPDOWN DE USUARIO ===== */}
           <div className="relative" ref={dropdownRef}>
             <button

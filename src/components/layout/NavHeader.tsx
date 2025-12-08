@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
+import { CancelarPedidoModal } from '../cliente/CancelarPedidoModal';
 import { ScanQRClienteModal } from '../cliente/ScanQRClienteModal';
 
 export function NavHeader() {
@@ -32,8 +33,11 @@ export function NavHeader() {
   const [activeQr, setActiveQr] = useState<{
     qr_codigo: string;
     pedido_id: number;
+    estado?: string;
   } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [showCancelarModal, setShowCancelarModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Consultar pedido activo desde backend (solo API, sin localStorage)
   const checkPedidoActivo = useCallback(async () => {
@@ -47,6 +51,7 @@ export function NavHeader() {
         setActiveQr({
           qr_codigo: response.qr_codigo,
           pedido_id: response.pedido_id,
+          estado: response.estado,
         });
       } else {
         setActiveQr(null);
@@ -57,14 +62,13 @@ export function NavHeader() {
   }, [isLoggedIn]);
   // Marcar componente como montado
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necesario para evitar problemas de hidratación
     setIsMounted(true);
   }, []);
 
   // Consultar backend cuando el usuario está logueado o cuando cambia la ruta
   useEffect(() => {
     if (!isMounted || !isLoggedIn) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- El callback actualiza estado basado en respuesta async
+
     void checkPedidoActivo();
   }, [isMounted, isLoggedIn, pathname, checkPedidoActivo]);
 
@@ -116,9 +120,31 @@ export function NavHeader() {
   const isEmployee = !!user?.id_local;
   // Ocultar boton QR si ya esta en pagina de pedido
   const isOnPedidoPage = pathname?.startsWith('/pedido');
-  // Solo mostrar botón QR después de montar (evita hidratación incorrecta)
-  const showQrButton =
-    isMounted && isLoggedIn && !isEmployee && !isOnPedidoPage;
+  // Puede cancelar solo en estados iniciado o recepcion
+  const puedeCancelar =
+    activeQr?.estado?.toLowerCase() === 'iniciado' ||
+    activeQr?.estado?.toLowerCase() === 'recepcion';
+
+  // Funcion para cancelar pedido
+  const handleCancelarPedido = async () => {
+    if (!activeQr?.qr_codigo) return;
+    setIsCancelling(true);
+    try {
+      await api.cliente.cancelarPedido(activeQr.qr_codigo);
+      setShowCancelarModal(false);
+      setActiveQr(null);
+      router.push('/');
+    } catch (err) {
+      console.error('Error cancelando pedido:', err);
+      const errorMsg =
+        err instanceof Error ? err.message : 'Error al cancelar el pedido';
+      alert(errorMsg);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  // Mostrar botón QR a todos los usuarios logueados (empleados también son clientes)
+  const showQrButton = isMounted && isLoggedIn && !isOnPedidoPage;
 
   useEffect(() => {
     const mainElement = document.querySelector('main');
@@ -215,8 +241,18 @@ export function NavHeader() {
 
             {/* Right - User Menu (Desktop) */}
             <div className="hidden md:flex items-center gap-2">
-              {/* Boton Escanear QR - solo para usuarios logueados no empleados, no en pagina pedido */}
-              {/* Boton Escanear QR o Ir al Pedido */}
+              {/* Boton Cancelar Pedido - solo en pagina de pedido */}
+              {isOnPedidoPage && activeQr && puedeCancelar && (
+                <button
+                  onClick={() => setShowCancelarModal(true)}
+                  disabled={isCancelling}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#FEE2E2] text-[#DC2626] hover:bg-[#FECACA] transition-colors disabled:opacity-50"
+                >
+                  <X size={18} />
+                  <span className="text-sm font-medium">Cancelar pedido</span>
+                </button>
+              )}
+              {/* Boton Escanear QR o Ir al Pedido - NO en pagina pedido */}
               {showQrButton &&
                 (activeQr ? (
                   <Link
@@ -310,6 +346,38 @@ export function NavHeader() {
               )}
             </div>
 
+            {/* Mobile - Boton Cancelar Pedido (siempre visible en mobile) */}
+            {isOnPedidoPage && activeQr && puedeCancelar && (
+              <button
+                onClick={() => setShowCancelarModal(true)}
+                disabled={isCancelling}
+                className="md:hidden flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#FEE2E2] text-[#DC2626] hover:bg-[#FECACA] transition-colors disabled:opacity-50"
+              >
+                <X size={16} />
+                <span className="text-xs font-medium">Cancelar</span>
+              </button>
+            )}
+
+            {/* Mobile - Boton Escanear QR o Ir al Pedido (siempre visible en mobile) */}
+            {showQrButton &&
+              (activeQr ? (
+                <Link
+                  href={`/pedido?qr=${activeQr.qr_codigo}`}
+                  className="md:hidden flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#22C55E] text-white hover:bg-[#16A34A] transition-colors"
+                >
+                  <UtensilsCrossed size={16} />
+                  <span className="text-xs font-medium">Ir al Pedido</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowQRModal(true)}
+                  className="md:hidden flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] transition-colors"
+                >
+                  <QrCode size={16} />
+                  <span className="text-xs font-medium">Escanear QR</span>
+                </button>
+              ))}
+
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -360,8 +428,21 @@ export function NavHeader() {
                     Mi Perfil
                   </button>
 
-                  {/* Escanear QR - solo para clientes no empleados, no en pagina pedido */}
-                  {/* Escanear QR o Ir al Pedido - movil */}
+                  {/* Cancelar Pedido - solo en pagina pedido movil */}
+                  {isOnPedidoPage && activeQr && puedeCancelar && (
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setShowCancelarModal(true);
+                      }}
+                      disabled={isCancelling}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#DC2626] bg-[#FEE2E2] hover:bg-[#FECACA] transition-colors disabled:opacity-50"
+                    >
+                      <X size={18} />
+                      Cancelar pedido
+                    </button>
+                  )}
+                  {/* Escanear QR o Ir al Pedido - movil, NO en pagina pedido */}
                   {showQrButton &&
                     (activeQr ? (
                       <Link
@@ -423,6 +504,14 @@ export function NavHeader() {
       <ScanQRClienteModal
         isOpen={showQRModal}
         onClose={() => setShowQRModal(false)}
+      />
+
+      {/* Modal Cancelar Pedido */}
+      <CancelarPedidoModal
+        isOpen={showCancelarModal}
+        onClose={() => setShowCancelarModal(false)}
+        onConfirm={handleCancelarPedido}
+        isLoading={isCancelling}
       />
     </>
   );

@@ -39,7 +39,6 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
 
   const [qrCode, setQrCode] = useState(() => initialQrUrl || '');
   const [qrCodeShort, setQrCodeShort] = useState(''); // Solo el código, sin URL
-  const [qrExpiration, setQrExpiration] = useState(0); // Inicia en 0, se setea cuando se genera
   const [copied, setCopied] = useState(false);
   const [numPersonas, setNumPersonas] = useState(1);
   const [showQR, setShowQR] = useState(false);
@@ -61,7 +60,6 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
       const qrUrl = `${baseUrl}/pedido?qr=${data.qr.codigo}`;
       setQrCode(qrUrl);
       setQrCodeShort(data.qr.codigo); // Guardar solo el código
-      setQrExpiration(5 * 60); // 5 minutos iniciales (se extiende a 2h al escanear)
       setShowQR(true);
     } catch (error) {
       console.error('Error generating QR:', error);
@@ -77,17 +75,6 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
       void generateQRCode();
     }
   }, [isOpen, initialQrUrl, generateQRCode]);
-
-  useEffect(() => {
-    // Countdown timer
-    if (qrExpiration > 0 && isOpen) {
-      const timer = setInterval(() => {
-        setQrExpiration((prev) => Math.max(0, prev - 1));
-      }, 1000); // Update every second
-
-      return () => clearInterval(timer);
-    }
-  }, [qrExpiration, isOpen]);
 
   // Escuchar evento de QR escaneado para cerrar el modal automáticamente
   useEffect(() => {
@@ -239,16 +226,12 @@ export function QRGenerateModal(props: QRGenerateModalProps) {
                 </p>
               </div>
 
-              {/* Expiration Timer */}
-              <div className="text-center">
-                <p className="text-sm text-[#64748B] mb-1">Expira en:</p>
-                <p className="text-2xl text-[#F97316]">
-                  {Math.floor(qrExpiration / 60)}:
-                  {String(qrExpiration % 60).padStart(2, '0')}
+              {/* Instructions */}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <span className="font-medium">Este QR no expira.</span> El
+                  tiempo se gestiona automáticamente según el estado del pedido.
                 </p>
-                {qrExpiration === 0 && (
-                  <p className="text-xs text-[#EF4444] mt-1">Código expirado</p>
-                )}
               </div>
 
               {/* Instructions */}
