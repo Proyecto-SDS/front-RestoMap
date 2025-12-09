@@ -431,10 +431,11 @@ export const api = {
       localId: number,
       redes: Array<{ id_tipo_red: number; url: string }>
     ) =>
-      apiCall(`/api/locales/${localId}/redes`, {
+      apiCall('/api/empresa/local/redes', {
         method: 'PUT',
-        body: JSON.stringify({ redes }),
+        body: JSON.stringify(redes),
       }),
+    getTiposRed: () => apiCall('/api/empresa/local/tipos-red'),
 
     // Gestión de Fotos
     getFotos: () => apiCall('/api/empresa/fotos/'),

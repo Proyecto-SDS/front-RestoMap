@@ -7,13 +7,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Facebook,
+  Globe,
   Heart,
   Instagram,
+  Linkedin,
   MapPin,
+  MessageCircle,
+  Music,
   Phone,
   Star,
   Twitter,
   Users,
+  Youtube,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -244,7 +249,15 @@ function InformacionTab({ establishment, hours, photos }: InformacionTabProps) {
                       return <Facebook size={18} />;
                     if (tipo.includes('twitter') || tipo.includes('x'))
                       return <Twitter size={18} />;
-                    return null;
+                    if (tipo.includes('tiktok')) return <Music size={18} />;
+                    if (tipo.includes('youtube')) return <Youtube size={18} />;
+                    if (tipo.includes('whatsapp'))
+                      return <MessageCircle size={18} />;
+                    if (tipo.includes('linkedin'))
+                      return <Linkedin size={18} />;
+                    if (tipo.includes('web') || tipo.includes('sitio'))
+                      return <Globe size={18} />;
+                    return <Globe size={18} />; // Default fallback
                   };
 
                   const icon = getIcon();

@@ -4,7 +4,9 @@ import {
   Check,
   Clock,
   Edit2,
+  Globe,
   Image as ImageIcon,
+  Link,
   Mail,
   MapPin,
   Phone,
@@ -103,10 +105,26 @@ export function LocalConfigManager() {
     capturas: [],
   });
 
+  const [redes, setRedes] = useState<Red[]>([]);
+  const [tiposRed, setTiposRed] = useState<{ id: number; nombre: string }[]>(
+    []
+  );
+  const [editingRedes, setEditingRedes] = useState(false);
+
   useEffect(() => {
     loadLocalInfo();
     loadFotos();
+    loadTiposRed();
   }, []);
+
+  const loadTiposRed = async () => {
+    try {
+      const data = await api.empresa.getTiposRed();
+      setTiposRed(data);
+    } catch (err) {
+      console.error('Error loading social types:', err);
+    }
+  };
 
   const loadLocalInfo = async () => {
     try {
@@ -120,6 +138,12 @@ export function LocalConfigManager() {
         descripcion: data.descripcion || '',
       });
       setHorarios(data.horarios || []);
+
+      // Mapear redes existentes a tipos
+      // Si el local tiene redes, las usamos
+      if (data.redes) {
+        setRedes(data.redes);
+      }
     } catch (err) {
       console.error('Error loading local info:', err);
       setError('No se pudo cargar la información del local');
@@ -225,6 +249,62 @@ export function LocalConfigManager() {
             [field]: value,
           },
         ];
+      }
+    });
+  };
+
+  const handleCancelRedes = () => {
+    if (localInfo && localInfo.redes) {
+      setRedes(localInfo.redes);
+    } else {
+      setRedes([]);
+    }
+    setEditingRedes(false);
+  };
+
+  const handleSaveRedes = async () => {
+    if (!localInfo) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(null);
+
+      // Enviar solo las redes con URL válida
+      const redesToSend = redes.filter((r) => r.url && r.url.trim() !== '');
+
+      // Mapear para asegurar formato correcto
+      const payload = redesToSend.map((r) => ({
+        id_tipo_red: r.id_tipo_red,
+        url: r.url,
+      }));
+
+      await api.empresa.updateLocalRedes(localInfo.id, payload);
+
+      setSuccess('Redes sociales actualizadas correctamente');
+      setEditingRedes(false);
+      await loadLocalInfo(); // Recargar para confirmar cambios
+    } catch (err) {
+      console.error('Error saving redes:', err);
+      setError('Error al guardar las redes sociales');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRedChange = (idTipo: number, url: string) => {
+    setRedes((prev) => {
+      // Verificar si ya existe esa red
+      const existingIndex = prev.findIndex((r) => r.id_tipo_red === idTipo);
+
+      if (existingIndex >= 0) {
+        // Actualizar existente
+        const newRedes = [...prev];
+        newRedes[existingIndex] = { ...newRedes[existingIndex], url };
+        return newRedes;
+      } else {
+        // Agregar nueva
+        return [...prev, { id_tipo_red: idTipo, url }];
       }
     });
   };
@@ -662,6 +742,99 @@ export function LocalConfigManager() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* Redes Sociales */}
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg text-[#334155] flex items-center gap-2">
+            <Globe size={20} className="text-[#F97316]" />
+            Redes Sociales
+          </h2>
+          {!editingRedes && (
+            <SecondaryButton onClick={() => setEditingRedes(true)}>
+              <Edit2 size={16} />
+              Editar
+            </SecondaryButton>
+          )}
+        </div>
+
+        {editingRedes ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {tiposRed.map((tipo) => {
+                const currentRed = redes.find((r) => r.id_tipo_red === tipo.id);
+                return (
+                  <div key={tipo.id}>
+                    <label className="block text-sm text-[#64748B] mb-1">
+                      {tipo.nombre}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Link size={14} className="text-[#94A3B8]" />
+                      </div>
+                      <input
+                        type="url"
+                        value={currentRed?.url || ''}
+                        onChange={(e) =>
+                          handleRedChange(tipo.id, e.target.value)
+                        }
+                        placeholder={`URL de ${tipo.nombre}`}
+                        className="w-full pl-9 pr-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <SecondaryButton onClick={handleCancelRedes} disabled={saving}>
+                <X size={16} />
+                Cancelar
+              </SecondaryButton>
+              <PrimaryButton onClick={handleSaveRedes} disabled={saving}>
+                <Save size={16} />
+                {saving ? 'Guardando...' : 'Guardar'}
+              </PrimaryButton>
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {redes.length === 0 ? (
+              <p className="text-sm text-[#94A3B8] col-span-full py-2">
+                No hay redes sociales configuradas
+              </p>
+            ) : (
+              redes.map((red) => {
+                const tipo = tiposRed.find((t) => t.id === red.id_tipo_red);
+                return (
+                  <div
+                    key={red.id_tipo_red}
+                    className="flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg overflow-hidden"
+                  >
+                    <div className="p-2 bg-white rounded-full text-[#F97316] shrink-0">
+                      <Globe size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-[#94A3B8] mb-0.5">
+                        {tipo?.nombre || 'Red Social'}
+                      </p>
+                      <a
+                        href={red.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-[#334155] font-medium truncate block hover:text-[#F97316] transition-colors"
+                      >
+                        {red.url}
+                      </a>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>
