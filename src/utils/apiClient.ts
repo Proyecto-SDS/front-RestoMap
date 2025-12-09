@@ -429,7 +429,7 @@ export const api = {
       }),
     updateLocalRedes: (
       localId: number,
-      redes: Array<{ id_tipo_red: number; url: string }>
+      redes: Array<{ id_tipo_red: number; nombre_usuario: string }>
     ) =>
       apiCall('/api/empresa/local/redes', {
         method: 'PUT',

@@ -48,7 +48,7 @@ interface Horario {
 interface Red {
   id_tipo_red: number;
   tipo_nombre?: string;
-  url: string;
+  nombre_usuario: string;
 }
 
 interface Foto {
@@ -270,20 +270,22 @@ export function LocalConfigManager() {
       setError(null);
       setSuccess(null);
 
-      // Enviar solo las redes con URL válida
-      const redesToSend = redes.filter((r) => r.url && r.url.trim() !== '');
+      // Enviar solo las redes con nombre de usuario válido
+      const redesToSend = redes.filter(
+        (r) => r.nombre_usuario && r.nombre_usuario.trim() !== ''
+      );
 
-      // Mapear para asegurar formato correcto
+      // Mapear para enviar nombre_usuario al backend
       const payload = redesToSend.map((r) => ({
         id_tipo_red: r.id_tipo_red,
-        url: r.url,
+        nombre_usuario: r.nombre_usuario,
       }));
 
       await api.empresa.updateLocalRedes(localInfo.id, payload);
 
       setSuccess('Redes sociales actualizadas correctamente');
       setEditingRedes(false);
-      await loadLocalInfo(); // Recargar para confirmar cambios
+      await loadLocalInfo();
     } catch (err) {
       console.error('Error saving redes:', err);
       setError('Error al guardar las redes sociales');
@@ -292,19 +294,22 @@ export function LocalConfigManager() {
     }
   };
 
-  const handleRedChange = (idTipo: number, url: string) => {
+  const handleRedChange = (idTipo: number, nombreUsuario: string) => {
     setRedes((prev) => {
-      // Verificar si ya existe esa red
       const existingIndex = prev.findIndex((r) => r.id_tipo_red === idTipo);
 
       if (existingIndex >= 0) {
-        // Actualizar existente
         const newRedes = [...prev];
-        newRedes[existingIndex] = { ...newRedes[existingIndex], url };
+        newRedes[existingIndex] = {
+          ...newRedes[existingIndex],
+          nombre_usuario: nombreUsuario,
+        };
         return newRedes;
       } else {
-        // Agregar nueva
-        return [...prev, { id_tipo_red: idTipo, url }];
+        return [
+          ...prev,
+          { id_tipo_red: idTipo, nombre_usuario: nombreUsuario },
+        ];
       }
     });
   };
@@ -766,6 +771,28 @@ export function LocalConfigManager() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tiposRed.map((tipo) => {
                 const currentRed = redes.find((r) => r.id_tipo_red === tipo.id);
+
+                // Determinar placeholder e icono según el tipo de red
+                const getPlaceholder = () => {
+                  const nombre = tipo.nombre.toLowerCase();
+                  if (nombre.includes('whatsapp')) return '56912345678';
+                  if (nombre.includes('sitio') || nombre.includes('web'))
+                    return 'https://tusitio.com';
+                  if (
+                    nombre.includes('instagram') ||
+                    nombre.includes('tiktok') ||
+                    nombre.includes('twitter') ||
+                    nombre.includes('youtube')
+                  )
+                    return '@tu_cuenta';
+                  return 'tu_perfil';
+                };
+
+                const isWebOrWhatsApp =
+                  tipo.nombre.toLowerCase().includes('sitio') ||
+                  tipo.nombre.toLowerCase().includes('web') ||
+                  tipo.nombre.toLowerCase().includes('whatsapp');
+
                 return (
                   <div key={tipo.id}>
                     <label className="block text-sm text-[#64748B] mb-1">
@@ -773,15 +800,19 @@ export function LocalConfigManager() {
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Link size={14} className="text-[#94A3B8]" />
+                        {isWebOrWhatsApp ? (
+                          <Link size={14} className="text-[#94A3B8]" />
+                        ) : (
+                          <span className="text-[#94A3B8] text-sm">@</span>
+                        )}
                       </div>
                       <input
-                        type="url"
-                        value={currentRed?.url || ''}
+                        type="text"
+                        value={currentRed?.nombre_usuario || ''}
                         onChange={(e) =>
                           handleRedChange(tipo.id, e.target.value)
                         }
-                        placeholder={`URL de ${tipo.nombre}`}
+                        placeholder={getPlaceholder()}
                         className="w-full pl-9 pr-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                       />
                     </div>
@@ -822,14 +853,9 @@ export function LocalConfigManager() {
                       <p className="text-xs text-[#94A3B8] mb-0.5">
                         {tipo?.nombre || 'Red Social'}
                       </p>
-                      <a
-                        href={red.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm text-[#334155] font-medium truncate block hover:text-[#F97316] transition-colors"
-                      >
-                        {red.url}
-                      </a>
+                      <p className="text-sm text-[#334155] font-medium truncate">
+                        @{red.nombre_usuario}
+                      </p>
                     </div>
                   </div>
                 );
