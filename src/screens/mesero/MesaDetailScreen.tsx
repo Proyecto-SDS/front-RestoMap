@@ -460,13 +460,7 @@ export default function MesaDetailScreen({ mesaId }: MesaDetailScreenProps) {
                     disabled={marcarCompletadoLoading}
                   >
                     <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="text-sm sm:text-base">
-                      Registrar Pago
-                    </span>
-                  </PrimaryButton>
-                )}
-                      </>
-                    )}
+                    <span className="text-sm sm:text-base">Registrar Pago</span>
                   </PrimaryButton>
                 )}
 

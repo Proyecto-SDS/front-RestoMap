@@ -15,12 +15,14 @@ interface KanbanBoardProps {
   pedidos: PedidosByEstado;
   onPedidoUpdate: (pedido: Pedido) => void;
   onRefresh: () => void;
+  readOnly?: boolean;
 }
 
 export function KanbanBoard({
   pedidos,
   onPedidoUpdate,
   onRefresh,
+  readOnly = false,
 }: KanbanBoardProps) {
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -64,6 +66,9 @@ export function KanbanBoard({
   });
 
   const handleCardClick = (pedido: Pedido) => {
+    // En modo readOnly no abrir el modal
+    if (readOnly) return;
+
     // Encontrar el índice del pedido en la lista ordenada completa
     const index = allPedidos.findIndex((p) => p.id === pedido.id);
     setCurrentIndex(index >= 0 ? index : 0);

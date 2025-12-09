@@ -398,6 +398,60 @@ export const api = {
       apiCall(`/api/empresa/debug/qrs/${mesaId}`),
     limpiarQRsHuerfanos: () =>
       apiCall('/api/empresa/debug/qrs/limpiar', { method: 'POST' }),
+
+    // Configuración del Local
+    getLocalInfo: () => apiCall('/api/empresa/local/'),
+    updateLocalInfo: (
+      localId: number,
+      data: {
+        nombre?: string;
+        telefono?: number;
+        correo?: string;
+        descripcion?: string;
+      }
+    ) =>
+      apiCall(`/api/locales/${localId}/info`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    updateLocalHorarios: (
+      localId: number,
+      horarios: Array<{
+        dia_semana: number;
+        hora_apertura?: string;
+        hora_cierre?: string;
+        abierto: boolean;
+      }>
+    ) =>
+      apiCall(`/api/locales/${localId}/horarios`, {
+        method: 'PUT',
+        body: JSON.stringify({ horarios }),
+      }),
+    updateLocalRedes: (
+      localId: number,
+      redes: Array<{ id_tipo_red: number; url: string }>
+    ) =>
+      apiCall(`/api/locales/${localId}/redes`, {
+        method: 'PUT',
+        body: JSON.stringify({ redes }),
+      }),
+
+    // Gestión de Fotos
+    getFotos: () => apiCall('/api/empresa/fotos/'),
+    updateBanner: (imagen: string, filename?: string) =>
+      apiCall('/api/empresa/fotos/banner', {
+        method: 'POST',
+        body: JSON.stringify({ imagen, filename: filename || 'banner.jpg' }),
+      }),
+    agregarCaptura: (imagen: string, filename?: string) =>
+      apiCall('/api/empresa/fotos/capturas', {
+        method: 'POST',
+        body: JSON.stringify({ imagen, filename: filename || 'captura.jpg' }),
+      }),
+    eliminarCaptura: (fotoId: number) =>
+      apiCall(`/api/empresa/fotos/capturas/${fotoId}`, {
+        method: 'DELETE',
+      }),
   },
 
   // ============================================

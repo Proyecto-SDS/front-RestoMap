@@ -6,7 +6,6 @@ import {
   ChefHat,
   Eye,
   History,
-  Home,
   Package,
   Settings,
   Users,
@@ -15,15 +14,15 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
+import { KanbanBoard } from '../../components/cocinero/KanbanBoard';
 import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
 import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
 import HistorialPedidos from '../../components/gerente/HistorialPedidos';
 import { InviteEmployeeModal } from '../../components/gerente/InviteEmployeeModal';
+import { LocalConfigManager } from '../../components/gerente/LocalConfigManager';
 import { MetricsDashboard } from '../../components/gerente/MetricsDashboard';
 import { ProductosManagement } from '../../components/gerente/ProductosManagement';
-import { StatsOverview } from '../../components/gerente/StatsOverview';
 import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
-import { PedidosManagement } from '../../components/mesero/PedidosManagement';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { TablasMapa } from '../../components/mesero/TablasMapa';
 import { Toast, useToast } from '../../components/notifications/Toast';
@@ -33,8 +32,10 @@ import {
   PanelTopNav,
 } from '../../components/panel';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { api } from '../../utils/apiClient';
-import type { Mesa, Pedido } from '../mesero/DashboardMeseroScreen';
+import type { Pedido as PedidoKanban } from '../cocinero/DashboardCocineroScreen';
+import type { Mesa, MesaEstado } from '../mesero/DashboardMeseroScreen';
 
 interface Empleado {
   id: string;
@@ -47,6 +48,7 @@ interface Empleado {
 
 export default function DashboardGerenteScreen() {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const { toast, showToast, hideToast } = useToast();
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -58,7 +60,6 @@ export default function DashboardGerenteScreen() {
   const [dateRange, setDateRange] = useState<string>('mes');
   const [showProfile, setShowProfile] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    | 'dashboard'
     | 'empleados'
     | 'metricas'
     | 'panel-mesero'
@@ -68,53 +69,160 @@ export default function DashboardGerenteScreen() {
     | 'historial'
     | 'inventario'
     | 'configuracion'
-  >('dashboard');
+  >('configuracion');
   const [mesas, setMesas] = useState<Mesa[]>([]);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidosCocina, setPedidosCocina] = useState<{
+    tomados: PedidoKanban[];
+    en_proceso: PedidoKanban[];
+    listos: PedidoKanban[];
+  }>({ tomados: [], en_proceso: [], listos: [] });
+  const [pedidosBarra, setPedidosBarra] = useState<{
+    tomados: PedidoKanban[];
+    en_proceso: PedidoKanban[];
+    listos: PedidoKanban[];
+  }>({ tomados: [], en_proceso: [], listos: [] });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedMesaId, setSelectedMesaId] = useState<string | null>(null);
+
+  // Cargar mesas
+  const loadMesas = async () => {
+    try {
+      const mesasData = await api.empresa.getMesas();
+      setMesas(
+        mesasData
+          .map((m: Record<string, unknown>) => ({
+            id: String(m.id),
+            id_empresa: String(m.id_local),
+            nombre: m.nombre as string,
+            descripcion: (m.descripcion as string) || '',
+            capacidad: m.capacidad as number,
+            orden: (m.orden as number) ?? 0,
+            estado: (m.estado as string).toUpperCase() as MesaEstado,
+            pedidos_count: m.pedidos_count as number,
+            num_personas: (m.num_personas as number) || undefined,
+            expiracion: (m.expiracion as string) || undefined,
+          }))
+          .sort((a: Mesa, b: Mesa) => a.orden - b.orden) as Mesa[]
+      );
+    } catch (error) {
+      console.error('Error loading mesas:', error);
+    }
+  };
+
+  // Cargar pedidos de cocina
+  const loadPedidosCocina = async () => {
+    try {
+      const data = await api.empresa.getPedidosCocina();
+      const pedidosList = data.map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        id_mesa: String(p.id_mesa),
+        mesa_nombre: p.mesa_nombre as string,
+        fecha_pedido: p.creado_el as string,
+        total: (p.total as number) || 0,
+        estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
+        creado_el: p.creado_el as string,
+        lineas:
+          (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
+            id: String(l.id),
+            id_pedido: String(p.id),
+            id_producto: String(l.producto_id),
+            producto_nombre: l.producto_nombre as string,
+            cantidad: l.cantidad as number,
+            precio_unitario: l.precio_unitario as number,
+          })) || [],
+      })) as PedidoKanban[];
+      setPedidosCocina({
+        tomados: pedidosList.filter((p) => p.estado === 'RECEPCION'),
+        en_proceso: pedidosList.filter((p) => p.estado === 'EN_PROCESO'),
+        listos: pedidosList.filter((p) => p.estado === 'TERMINADO'),
+      });
+    } catch (error) {
+      console.error('Error loading pedidos cocina:', error);
+    }
+  };
+
+  // Cargar pedidos de barra
+  const loadPedidosBarra = async () => {
+    try {
+      const data = await api.empresa.getPedidosBarra();
+      const pedidosList = data.map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        id_mesa: String(p.id_mesa),
+        mesa_nombre: p.mesa_nombre as string,
+        fecha_pedido: p.creado_el as string,
+        total: (p.total as number) || 0,
+        estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
+        creado_el: p.creado_el as string,
+        lineas:
+          (p.lineas as Array<Record<string, unknown>>)?.map((l) => ({
+            id: String(l.id),
+            id_pedido: String(p.id),
+            id_producto: String(l.producto_id),
+            producto_nombre: l.producto_nombre as string,
+            cantidad: l.cantidad as number,
+            precio_unitario: l.precio_unitario as number,
+          })) || [],
+      })) as PedidoKanban[];
+      setPedidosBarra({
+        tomados: pedidosList.filter((p) => p.estado === 'RECEPCION'),
+        en_proceso: pedidosList.filter((p) => p.estado === 'EN_PROCESO'),
+        listos: pedidosList.filter((p) => p.estado === 'TERMINADO'),
+      });
+    } catch (error) {
+      console.error('Error loading pedidos barra:', error);
+    }
+  };
 
   // Cargar mesas y pedidos cuando se navega a paneles
   useEffect(() => {
     const loadPanelData = async () => {
       if (
         activeSection === 'panel-mesero' ||
-        activeSection === 'panel-cocina' ||
-        activeSection === 'panel-bartender' ||
         activeSection === 'panel-reservas'
       ) {
-        try {
-          const [mesasData, pedidosData] = await Promise.all([
-            api.empresa.getMesas(),
-            api.empresa.getPedidos(),
-          ]);
-          setMesas(
-            mesasData.map((m: Record<string, unknown>) => ({
-              id: String(m.id),
-              id_empresa: String(m.id_local),
-              nombre: m.nombre as string,
-              capacidad: m.capacidad as number,
-              estado: (m.estado as string).toUpperCase(),
-            })) as Mesa[]
-          );
-          setPedidos(
-            pedidosData.map((p: Record<string, unknown>) => ({
-              id: String(p.id),
-              id_mesa: String(p.id_mesa),
-              fecha_pedido: p.creado_el as string,
-              total: p.total as number,
-              estado: ((p.estado as string) || 'INICIADO').toUpperCase(),
-              creado_el: p.creado_el as string,
-              mesa_nombre: p.mesa_nombre as string,
-            })) as Pedido[]
-          );
-        } catch (error) {
-          console.error('Error loading panel data:', error);
-        }
+        await loadMesas();
+      }
+      if (activeSection === 'panel-cocina') {
+        await loadPedidosCocina();
+      }
+      if (activeSection === 'panel-bartender') {
+        await loadPedidosBarra();
       }
     };
     loadPanelData();
   }, [activeSection]);
+
+  // WebSocket listeners para mantener estados en vivo
+  useEffect(() => {
+    if (!socket) return;
+
+    // Handler para actualización de estado de mesa
+    const handleMesaUpdate = () => {
+      if (activeSection === 'panel-mesero') {
+        loadMesas();
+      }
+    };
+
+    // Handler para actualización de pedidos
+    const handlePedidoUpdate = () => {
+      if (activeSection === 'panel-cocina') {
+        loadPedidosCocina();
+      }
+      if (activeSection === 'panel-bartender') {
+        loadPedidosBarra();
+      }
+    };
+
+    socket.on('mesa_status_changed', handleMesaUpdate);
+    socket.on('pedido_actualizado', handlePedidoUpdate);
+    socket.on('nuevo_pedido', handlePedidoUpdate);
+
+    return () => {
+      socket.off('mesa_status_changed', handleMesaUpdate);
+      socket.off('pedido_actualizado', handlePedidoUpdate);
+      socket.off('nuevo_pedido', handlePedidoUpdate);
+    };
+  }, [socket, activeSection]);
 
   // Cargar empleados desde API
   useEffect(() => {
@@ -138,6 +246,8 @@ export default function DashboardGerenteScreen() {
   }, []);
 
   // Calcular stats derivados de empleados usando useMemo
+  // TODO: Implementar uso de stats en el dashboard
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const stats = useMemo(() => {
     return {
       ventasHoy: 0,
@@ -181,9 +291,9 @@ export default function DashboardGerenteScreen() {
 
   const menuItems = [
     {
-      id: 'dashboard' as const,
-      label: 'Dashboard',
-      icon: Home,
+      id: 'configuracion' as const,
+      label: 'Información del Local',
+      icon: Settings,
     },
     {
       id: 'empleados' as const,
@@ -192,8 +302,23 @@ export default function DashboardGerenteScreen() {
     },
     {
       id: 'metricas' as const,
-      label: 'Metricas',
+      label: 'Métricas',
       icon: BarChart3,
+    },
+    {
+      id: 'inventario' as const,
+      label: 'Inventario',
+      icon: Package,
+    },
+    {
+      id: 'panel-reservas' as const,
+      label: 'Reservas',
+      icon: Calendar,
+    },
+    {
+      id: 'historial' as const,
+      label: 'Historial',
+      icon: History,
     },
     {
       id: 'panel-mesero' as const,
@@ -210,26 +335,6 @@ export default function DashboardGerenteScreen() {
       label: 'Panel Barra',
       icon: Wine,
     },
-    {
-      id: 'panel-reservas' as const,
-      label: 'Panel Reservas',
-      icon: Calendar,
-    },
-    {
-      id: 'historial' as const,
-      label: 'Historial',
-      icon: History,
-    },
-    {
-      id: 'inventario' as const,
-      label: 'Inventario',
-      icon: Package,
-    },
-    {
-      id: 'configuracion' as const,
-      label: 'Configuracion',
-      icon: Settings,
-    },
   ];
 
   if (!user) {
@@ -245,7 +350,7 @@ export default function DashboardGerenteScreen() {
       <PanelSidebar
         title="RestoMap"
         subtitle="Panel Gerente"
-        icon={Home}
+        icon={Settings}
         menuItems={menuItems}
         activeItem={activeSection}
         onNavigate={(id) => {
@@ -263,25 +368,23 @@ export default function DashboardGerenteScreen() {
           panelName="Panel de Gerente"
           onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
           pageTitle={
-            activeSection === 'dashboard'
-              ? 'Dashboard'
+            activeSection === 'configuracion'
+              ? 'Información del Local'
               : activeSection === 'empleados'
               ? 'Empleados'
               : activeSection === 'metricas'
-              ? 'Metricas'
+              ? 'Métricas'
+              : activeSection === 'inventario'
+              ? 'Inventario'
+              : activeSection === 'panel-reservas'
+              ? 'Reservas'
+              : activeSection === 'historial'
+              ? 'Historial'
               : activeSection === 'panel-mesero'
               ? 'Panel Mesero (Solo Lectura)'
               : activeSection === 'panel-cocina'
               ? 'Panel Cocina (Solo Lectura)'
-              : activeSection === 'panel-bartender'
-              ? 'Panel Barra (Solo Lectura)'
-              : activeSection === 'panel-reservas'
-              ? 'Panel Reservas'
-              : activeSection === 'historial'
-              ? 'Historial'
-              : activeSection === 'inventario'
-              ? 'Inventario'
-              : 'Configuracion'
+              : 'Panel Barra (Solo Lectura)'
           }
           pageDescription="Vista del gerente"
           user={user}
@@ -292,25 +395,6 @@ export default function DashboardGerenteScreen() {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Main content area */}
           <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
-            {/* Dashboard Section */}
-            {activeSection === 'dashboard' && (
-              <>
-                <StatsOverview stats={stats} />
-                <EmployeeManagement
-                  empleados={empleados}
-                  onInvite={() => setShowInviteModal(true)}
-                  onEdit={(empleado) => setEditingEmpleado(empleado)}
-                  onDelete={(id) => setShowDeleteConfirm(id)}
-                />
-                <div className="mt-8">
-                  <MetricsDashboard
-                    dateRange={dateRange}
-                    onDateRangeChange={setDateRange}
-                  />
-                </div>
-              </>
-            )}
-
             {/* Empleados Section */}
             {activeSection === 'empleados' && (
               <>
@@ -370,10 +454,10 @@ export default function DashboardGerenteScreen() {
                     de cocina en modo solo lectura.
                   </p>
                 </div>
-                <PedidosManagement
-                  pedidos={pedidos}
-                  mesas={mesas}
+                <KanbanBoard
+                  pedidos={pedidosCocina}
                   onPedidoUpdate={() => {}}
+                  onRefresh={loadPedidosCocina}
                   readOnly={true}
                 />
               </div>
@@ -389,10 +473,10 @@ export default function DashboardGerenteScreen() {
                     de barra en modo solo lectura.
                   </p>
                 </div>
-                <PedidosManagement
-                  pedidos={pedidos}
-                  mesas={mesas}
+                <KanbanBoard
+                  pedidos={pedidosBarra}
                   onPedidoUpdate={() => {}}
+                  onRefresh={loadPedidosBarra}
                   readOnly={true}
                 />
               </div>
@@ -408,15 +492,7 @@ export default function DashboardGerenteScreen() {
             {activeSection === 'inventario' && <ProductosManagement />}
 
             {/* Configuracion */}
-            {activeSection === 'configuracion' && (
-              <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-8 text-center">
-                <Settings size={48} className="text-[#94A3B8] mx-auto mb-4" />
-                <h3 className="text-[#334155] mb-2">Configuracion</h3>
-                <p className="text-sm text-[#64748B]">
-                  Seccion de configuracion del local (proximamente)
-                </p>
-              </div>
-            )}
+            {activeSection === 'configuracion' && <LocalConfigManager />}
           </main>
         </div>
       </div>

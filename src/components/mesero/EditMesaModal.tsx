@@ -35,6 +35,8 @@ export function EditMesaModal({
 
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre es requerido';
+    } else if (formData.nombre.length > 30) {
+      newErrors.nombre = 'El nombre no puede exceder 30 caracteres';
     }
 
     if (formData.capacidad < 1 || formData.capacidad > 20) {
@@ -123,6 +125,7 @@ export function EditMesaModal({
                 setFormData({ ...formData, nombre: e.target.value })
               }
               placeholder="Ej: Mesa 1, Mesa VIP"
+              maxLength={30}
               className={`
                 w-full px-3 py-2.5 border rounded-xl
                 transition-all duration-200
@@ -134,9 +137,16 @@ export function EditMesaModal({
                 }
               `}
             />
-            {errors.nombre && (
-              <p className="mt-1.5 text-xs text-[#EF4444]">{errors.nombre}</p>
-            )}
+            <div className="flex justify-between mt-1.5">
+              {errors.nombre ? (
+                <p className="text-xs text-[#EF4444]">{errors.nombre}</p>
+              ) : (
+                <span></span>
+              )}
+              <p className="text-xs text-[#94A3B8]">
+                {formData.nombre.length}/30
+              </p>
+            </div>
           </div>
 
           {/* Capacidad */}

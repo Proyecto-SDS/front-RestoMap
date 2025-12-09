@@ -25,7 +25,6 @@ export function InviteEmployeeModal({
     { value: 'mesero', label: 'Mesero' },
     { value: 'cocinero', label: 'Cocinero' },
     { value: 'bartender', label: 'Bartender' },
-    { value: 'gerente', label: 'Gerente' },
   ];
 
   const validateForm = () => {

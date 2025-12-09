@@ -34,16 +34,12 @@ export function EmployeeManagement({
   );
   const itemsPerPage = 10;
 
-  const roles = [
-    'todos',
-    'admin',
-    'mesero',
-    'cocinero',
-    'bartender',
-    'reservas',
-  ];
+  const roles = ['todos', 'mesero', 'cocinero', 'bartender'];
 
   const filteredEmpleados = empleados.filter((emp) => {
+    // Excluir roles de gerente y admin
+    if (emp.rol === 'gerente' || emp.rol === 'admin') return false;
+
     const matchesRole = filterRole === 'todos' || emp.rol === filterRole;
     const matchesSearch =
       emp.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
