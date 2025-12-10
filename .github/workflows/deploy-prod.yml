@@ -1,0 +1,88 @@
+name: Despliegue FRONT PRODUCCIÓN (Manual/Auto)
+
+on:
+  # Opción 1: Automático al hacer push a main
+  push:
+    branches: [ "main" ]
+    
+  # Opción 2: Manual eligiendo la rama
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama a desplegar (ej: main, develop)'
+        required: true
+        default: 'main'
+        type: string
+
+env:
+  PROJECT_ID: 'restomap-478918'
+  REGION: 'us-central1'
+  REPO_NAME: 'repo'
+  SERVICE_NAME: 'frontend-prod'
+  
+  # --- DATOS FIJOS ---
+  BACKEND_URL: 'https://backend-prod-414435283954.us-central1.run.app'
+  # Tu Key de Mapbox (Tal cual me la pasaste)
+  MAPBOX_TOKEN: 'pk.eyJ1IjoidnRhcGlhZCIsImEiOiJjbWl6NWhxMTYwbWdlM2RvcGc5eGo2dmNzIn0.jQyvh09VmuTxj6Qt5BBuKA'
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+        with:
+          # MAGIA: Usa la rama que escribiste o la del push automático
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: 🔑 Autenticación con GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/414435283954/locations/global/workloadIdentityPools/github-pool/providers/github-provider1'
+          service_account: 'github-deploy-sa@restomap-478918.iam.gserviceaccount.com'
+
+      - name: 🏗️ Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🔨 Build y Push Docker
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+          
+          # Usamos el SHA corto o 'manual' para el tag
+          TAG_VERSION="${{ github.sha }}"
+          
+          IMAGE_TAG="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${TAG_VERSION}"
+          LATEST_TAG="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:latest"
+          
+          echo "🔹 Construyendo Frontend (Rama: ${{ inputs.branch || github.ref_name }})"
+          
+          # --- BUILD ---
+          # OJO: Aquí están los nombres corregidos para tu Dockerfile
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="${{ env.BACKEND_URL }}" \
+            --build-arg NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="${{ env.MAPBOX_TOKEN }}" \
+            -t $IMAGE_TAG -t $LATEST_TAG .
+            
+          docker push $IMAGE_TAG
+          docker push $LATEST_TAG
+          
+          # --- DEPLOY ---
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image $IMAGE_TAG \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 3000 \
+            --min-instances 1 \
+            --memory 512Mi
+
+      - name: ✅ Resumen
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format 'value(status.url)')
+          echo "### 🚀 Frontend Desplegado Exitosamente"
+          echo "📌 Rama usada: ${{ inputs.branch || github.ref_name }}"
+          echo "🔗 URL: $SERVICE_URL"
