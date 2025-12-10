@@ -167,7 +167,7 @@ function SidebarContent({
             <div style={styles.logoGlow} />
             <div style={styles.logoBox}>
               <Image
-                src="/logo.svg"
+                src="/logo.png"
                 alt="RestoMap"
                 width={36}
                 height={36}

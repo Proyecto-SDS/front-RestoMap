@@ -225,7 +225,7 @@ export function NavHeader() {
             >
               <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
                 <Image
-                  src="/logo.svg"
+                  src="/logo.png"
                   alt="RestoMap Logo"
                   width={48}
                   height={48}

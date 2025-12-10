@@ -174,7 +174,7 @@ export default function LoginScreen() {
           <div className="flex items-center gap-3 mb-12">
             <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg p-2">
               <Image
-                src="/logo.svg"
+                src="/logo.png"
                 alt="RestoMap Logo"
                 width={80}
                 height={80}
