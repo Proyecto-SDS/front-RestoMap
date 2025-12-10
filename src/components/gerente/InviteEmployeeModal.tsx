@@ -49,18 +49,36 @@ export function InviteEmployeeModal({
     setErrors({});
 
     try {
-      await api.empresa.createInvitation(formData.correo, formData.rol);
+      const response = await api.empresa.createInvitation(
+        formData.correo,
+        formData.rol
+      );
 
-      setSuccessMessage(`Invitación enviada exitosamente a ${formData.correo}`);
+      // Verificar si el empleado fue agregado automáticamente o si se creó una invitación
+      if (response.auto_aceptado) {
+        // El usuario ya existía y fue agregado automáticamente
+        setSuccessMessage(
+          response.message ||
+            `${formData.correo} ha sido agregado como empleado exitosamente.`
+        );
+      } else {
+        // Se creó una invitación pendiente
+        setSuccessMessage(
+          response.message ||
+            `Invitación enviada a ${formData.correo}. El usuario debe registrarse para aceptarla.`
+        );
+      }
 
       // Esperar un poco para mostrar el mensaje de éxito
       setTimeout(() => {
         onSuccess();
         onClose();
-      }, 1500);
+      }, 2000);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Error al enviar invitación';
+        error instanceof Error
+          ? error.message
+          : 'Error al procesar la solicitud';
       setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
@@ -73,9 +91,9 @@ export function InviteEmployeeModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
           <div>
-            <h2 className="text-xl text-[#334155]">Invitar Nuevo Empleado</h2>
+            <h2 className="text-xl text-[#334155]">Agregar Empleado</h2>
             <p className="text-sm text-[#94A3B8] mt-1">
-              Se enviará una invitación por correo electrónico
+              Ingresa el correo del nuevo empleado
             </p>
           </div>
           <button
@@ -136,10 +154,8 @@ export function InviteEmployeeModal({
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2">
             <Mail size={16} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="text-xs text-[#64748B]">
-              Se enviará un correo a{' '}
-              <strong>{formData.correo || 'este correo'}</strong> con un enlace
-              para aceptar la invitación. Si no tiene cuenta, deberá registrarse
-              primero.
+              El usuario debe tener una cuenta registrada en RestoMap para poder
+              ser agregado como empleado.
             </p>
           </div>
 
@@ -171,7 +187,7 @@ export function InviteEmployeeModal({
               isLoading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Enviando...' : 'Enviar Invitación'}
+              {isLoading ? 'Procesando...' : 'Agregar Empleado'}
             </PrimaryButton>
           </div>
         </form>

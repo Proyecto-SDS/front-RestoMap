@@ -211,7 +211,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           // Mostrar notificación con mejor UX
           setTimeout(() => {
             alert(
-              '❌ Tu pedido ha sido cancelado por el personal del restaurante.\n\nSi tienes alguna duda, por favor consulta con el mesero.'
+              'Tu pedido ha sido cancelado por el personal del restaurante.\n\nSi tienes alguna duda, por favor consulta con el mesero.'
             );
             // Redirigir al home
             router.push('/');
@@ -220,7 +220,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           // Mostrar notificación de pedido completado
           setTimeout(() => {
             alert(
-              '✅ ¡Tu pedido ha sido completado y pagado!\n\n¡Gracias por tu visita! Esperamos verte pronto.'
+              '¡Tu pedido ha sido completado y pagado!\n\n¡Gracias por tu visita! Esperamos verte pronto.'
             );
             // Redirigir al home
             router.push('/');
@@ -502,7 +502,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
       recepcion: {
         texto: 'En recepción',
         color: 'bg-yellow-100 text-yellow-700',
-        icon: '🟡',
+        icon: '',
       },
       en_proceso: {
         texto: 'En preparación',
@@ -512,22 +512,22 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
       terminado: {
         texto: 'Listo',
         color: 'bg-green-100 text-green-700',
-        icon: '🟢',
+        icon: '',
       },
       servido: {
         texto: 'Servido',
         color: 'bg-teal-100 text-teal-700',
-        icon: '🍽️',
+        icon: '',
       },
       completado: {
         texto: 'Completado',
         color: 'bg-blue-100 text-blue-700',
-        icon: '✅',
+        icon: '',
       },
       cancelado: {
         texto: 'Cancelado',
         color: 'bg-red-100 text-red-700',
-        icon: '❌',
+        icon: '',
       },
     };
     return estados[estado] || estados.iniciado;
@@ -553,7 +553,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
         {/* Contenido centrado */}
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center max-w-md">
-            <div className="text-6xl mb-6">❌</div>
+            <div className="text-6xl mb-6"></div>
             <h2 className="text-2xl font-bold text-[#EF4444] mb-4">
               Pedido Cancelado
             </h2>
@@ -592,7 +592,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
           <div className="max-w-2xl mx-auto">
             {/* Mensaje de completado */}
             <div className="text-center mb-8">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="text-6xl mb-4"></div>
               <h2 className="text-2xl font-bold text-[#22C55E] mb-2">
                 ¡Pedido Completado!
               </h2>
@@ -920,7 +920,7 @@ export function PedidoClienteScreen({ qrCodigo }: PedidoClienteScreenProps) {
                                   ) : enCarrito.nota ? (
                                     <div className="mt-2 pt-2 border-t border-[#E2E8F0]">
                                       <p className="text-xs text-[#64748B] italic line-clamp-1">
-                                        📝 {enCarrito.nota}
+                                        {enCarrito.nota}
                                       </p>
                                     </div>
                                   ) : null}

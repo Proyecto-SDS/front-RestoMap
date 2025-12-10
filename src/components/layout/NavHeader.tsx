@@ -517,7 +517,7 @@ export function NavHeader() {
               ) : (
                 <button
                   onClick={handleLoginClick}
-                  className="w-full flex items-center justify-center gap-2 mx-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
+                  className="flex items-center justify-center gap-2 mx-4 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
                 >
                   <User size={18} />
                   <span>Ingresar</span>

@@ -80,12 +80,12 @@ export function ScanQRClienteModal({
           onClose();
           router.push(`/pedido?qr=${codigo}`);
         } else {
-          setError(response.error || 'QR invalido');
+          setError(
+            'El código QR no es válido o ha expirado. Verifica el código e intenta nuevamente.'
+          );
         }
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : 'Error al validar el QR';
-        setError(errorMsg);
+      } catch {
+        setError('No se pudo validar el código QR. Intenta nuevamente.');
       } finally {
         setIsLoading(false);
       }

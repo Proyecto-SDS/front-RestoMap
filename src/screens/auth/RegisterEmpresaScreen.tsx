@@ -20,7 +20,7 @@ import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { AddressSearchInput } from '../../components/inputs/AddressSearchInput';
 import { TermsModal } from '../../components/modals/TermsModal';
-import { Toast, useToast } from '../../components/notifications/Toast';
+
 import { useAuth } from '../../context/AuthContext';
 import { DireccionData } from '../../hooks/useAddressSearch';
 import { api } from '../../utils/apiClient';
@@ -121,7 +121,7 @@ const initialFormData: FormData = {
 
 export default function RegisterEmpresaScreen() {
   const router = useRouter();
-  const { toast, showToast, hideToast } = useToast();
+
   const { user, isLoggedIn } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -204,13 +204,11 @@ export default function RegisterEmpresaScreen() {
           glosa_giro: result.glosa_giro || '',
         }));
         setRutValidated(true);
-        showToast('success', 'RUT validado correctamente');
       }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error al validar RUT';
       setErrors({ rut_empresa: errorMessage });
-      showToast('error', errorMessage);
     } finally {
       setIsValidatingRut(false);
     }
@@ -373,10 +371,6 @@ export default function RegisterEmpresaScreen() {
         if (isLoggedIn) {
           // Si estaba logueado, cerrar sesión LOCALMENTE (no llamar al backend)
           // porque el JWT antiguo ya no es válido después de vincular la empresa
-          showToast(
-            'success',
-            'Empresa registrada exitosamente. Por favor, inicia sesión nuevamente.'
-          );
           setTimeout(() => {
             // Limpiar localStorage directamente sin llamar al backend
             if (typeof window !== 'undefined') {
@@ -391,19 +385,18 @@ export default function RegisterEmpresaScreen() {
             window.dispatchEvent(event);
 
             router.push('/login');
-          }, 2500);
+          }, 1000);
         } else {
           // Si no estaba logueado, simplemente redirigir al login
-          showToast('success', 'Empresa registrada exitosamente');
           setTimeout(() => {
             router.push('/login');
-          }, 2000);
+          }, 500);
         }
       }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error al registrar empresa';
-      showToast('error', errorMessage);
+      setErrors({ general: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -1077,16 +1070,6 @@ export default function RegisterEmpresaScreen() {
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
 
       {/* Terms Modal */}
       <TermsModal

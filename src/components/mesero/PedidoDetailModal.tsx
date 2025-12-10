@@ -6,7 +6,6 @@ import {
 } from '../../screens/mesero/DashboardMeseroScreen';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
-import { Toast, useToast } from '../notifications/Toast';
 
 interface PedidoDetailModalProps {
   pedido: Pedido;
@@ -22,7 +21,6 @@ export function PedidoDetailModal({
   const [estado, setEstado] = useState<PedidoEstado>(pedido.estado);
   const [isLoading, setIsLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -59,7 +57,6 @@ export function PedidoDetailModal({
       };
 
       onUpdate(updatedPedido);
-      showToast('success', 'Pedido actualizado correctamente');
 
       setTimeout(() => {
         onClose();
@@ -85,7 +82,6 @@ export function PedidoDetailModal({
       };
 
       onUpdate(cancelledPedido);
-      showToast('success', 'Pedido cancelado correctamente');
 
       setTimeout(() => {
         onClose();
@@ -292,16 +288,6 @@ export function PedidoDetailModal({
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
     </>
   );
 }

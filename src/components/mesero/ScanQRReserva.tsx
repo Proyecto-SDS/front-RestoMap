@@ -14,7 +14,6 @@ import { Mesa } from '../../screens/mesero/DashboardMeseroScreen';
 import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
 import { SecondaryButton } from '../buttons/SecondaryButton';
-import { Toast, useToast } from '../notifications/Toast';
 
 interface ScanQRReservaProps {
   mesas: Mesa[];
@@ -48,7 +47,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
   const [manualCode, setManualCode] = useState('');
   const streamRef = useRef<MediaStream | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const { toast, showToast, hideToast } = useToast();
 
   // Start camera with QR scanning
   const startCamera = async () => {
@@ -117,7 +115,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       if (response.success) {
         setScannedReserva(response.reserva);
         stopCamera();
-        showToast('success', '¡Reserva verificada correctamente!');
       } else {
         setError(response.error || 'Código QR inválido');
       }
@@ -125,7 +122,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       const errorMsg =
         err instanceof Error ? err.message : 'Error al verificar el código QR';
       setError(errorMsg);
-      showToast('error', errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +143,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       await handleValidateQR(decodedText);
     } catch {
       setError('No se pudo leer el código QR de la imagen');
-      showToast('error', 'No se pudo leer el código QR de la imagen');
     } finally {
       setIsLoading(false);
     }
@@ -174,11 +169,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       const response = await api.empresa.confirmarReserva(scannedReserva.id);
 
       if (response.success) {
-        showToast(
-          'success',
-          '¡Reserva confirmada! Pedido creado automáticamente.'
-        );
-
         // Update mesa estado if needed
         const mesaNombre = response.pedido?.mesa_nombre;
         const mesaActualizada = mesas.find((m) => m.nombre === mesaNombre);
@@ -202,7 +192,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       const errorMsg =
         err instanceof Error ? err.message : 'Error al confirmar la reserva';
       setError(errorMsg);
-      showToast('error', errorMsg);
     } finally {
       setIsConfirming(false);
     }
@@ -221,8 +210,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
     try {
       await api.empresa.cancelarReserva(scannedReserva.id);
 
-      showToast('success', 'Reserva cancelada exitosamente');
-
       // Reset after delay
       setTimeout(() => {
         setScannedReserva(null);
@@ -232,7 +219,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
       const errorMsg =
         err instanceof Error ? err.message : 'Error al cancelar la reserva';
       setError(errorMsg);
-      showToast('error', errorMsg);
     } finally {
       setIsCanceling(false);
     }
@@ -597,16 +583,6 @@ export function ScanQRReserva({ mesas, onMesaUpdate }: ScanQRReservaProps) {
             )}
           </div>
         </>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
       )}
     </div>
   );
