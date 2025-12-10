@@ -273,6 +273,70 @@ html {
     scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
   }
 
+  /* Address Search Dropdown */
+  .address-search-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .address-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    z-index: 50;
+    overflow: hidden;
+    animation: dropdown-appear 0.15s ease-out;
+    display: flex;
+    flex-direction: column;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .address-dropdown-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .address-dropdown-item:hover {
+    background-color: #fff7ed;
+  }
+
+  .address-dropdown-item:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .address-dropdown-empty {
+    padding: 24px 14px;
+    text-align: center;
+  }
+
+  @keyframes dropdown-appear {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   /* Horizontal scrollbar styling */
   .custom-scrollbar-x::-webkit-scrollbar {
     height: 3px;

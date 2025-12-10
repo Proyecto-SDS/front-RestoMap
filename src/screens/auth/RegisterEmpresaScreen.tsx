@@ -11,7 +11,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  MapPin,
   Phone,
   Store,
   User,
@@ -19,8 +18,10 @@ import {
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
+import { AddressSearchInput } from '../../components/inputs/AddressSearchInput';
 import { TermsModal } from '../../components/modals/TermsModal';
 import { Toast, useToast } from '../../components/notifications/Toast';
+import { DireccionData } from '../../hooks/useAddressSearch';
 import { api } from '../../utils/apiClient';
 
 // Tipos de local (basados en catalogs.py del backend)
@@ -80,6 +81,9 @@ interface FormData {
   calle: string;
   numero: string;
   id_comuna: number;
+  latitud: number | null;
+  longitud: number | null;
+  direccionCompleta: string;
   // Paso 3: Gerente
   nombre_gerente: string;
   correo_gerente: string;
@@ -101,6 +105,9 @@ const initialFormData: FormData = {
   calle: '',
   numero: '',
   id_comuna: 1,
+  latitud: null,
+  longitud: null,
+  direccionCompleta: '',
   nombre_gerente: '',
   correo_gerente: '',
   telefono_gerente: '',
@@ -213,11 +220,8 @@ export default function RegisterEmpresaScreen() {
     if (!formData.correo_local || !formData.correo_local.includes('@')) {
       newErrors.correo_local = 'Correo invalido';
     }
-    if (!formData.calle || formData.calle.length < 3) {
-      newErrors.calle = 'Ingresa una direccion valida';
-    }
-    if (!formData.numero || parseInt(formData.numero) <= 0) {
-      newErrors.numero = 'Numero invalido';
+    if (!formData.calle || !formData.latitud || !formData.longitud) {
+      newErrors.direccion = 'Selecciona una direccion del buscador';
     }
 
     setErrors(newErrors);
@@ -295,8 +299,10 @@ export default function RegisterEmpresaScreen() {
         descripcion: formData.descripcion || undefined,
         id_tipo_local: formData.id_tipo_local,
         calle: formData.calle,
-        numero: parseInt(formData.numero),
+        numero: parseInt(formData.numero) || 0,
         id_comuna: formData.id_comuna,
+        latitud: formData.latitud!,
+        longitud: formData.longitud!,
         nombre_gerente: formData.nombre_gerente,
         correo_gerente: formData.correo_gerente,
         telefono_gerente: formData.telefono_gerente,
@@ -611,56 +617,53 @@ export default function RegisterEmpresaScreen() {
                   <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
                     Direccion
                   </label>
-                  <div className="flex gap-2 sm:gap-3">
-                    <div className="relative flex-1">
-                      <MapPin
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                        size={18}
-                      />
-                      <input
-                        type="text"
-                        value={formData.calle}
-                        onChange={(e) => handleChange('calle', e.target.value)}
-                        placeholder="Av. Principal"
-                        className={`w-full pl-10 pr-4 py-2.5 text-sm sm:text-base border rounded-xl ${
-                          errors.calle ? 'border-[#EF4444]' : 'border-[#E2E8F0]'
-                        }`}
-                      />
-                    </div>
-                    <input
-                      type="number"
-                      value={formData.numero}
-                      onChange={(e) => handleChange('numero', e.target.value)}
-                      placeholder="N"
-                      className={`w-16 sm:w-24 px-2 sm:px-4 py-2.5 text-sm sm:text-base border rounded-xl ${
-                        errors.numero ? 'border-[#EF4444]' : 'border-[#E2E8F0]'
-                      }`}
-                    />
-                  </div>
-                  {(errors.calle || errors.numero) && (
-                    <p className="mt-1 text-xs text-[#EF4444]">
-                      {errors.calle || errors.numero}
-                    </p>
-                  )}
-                </div>
+                  <AddressSearchInput
+                    onSelect={(direccion: DireccionData) => {
+                      // Buscar id_comuna basado en el nombre
+                      const comunaEncontrada = COMUNAS_SANTIAGO.find(
+                        (c) =>
+                          c.nombre.toLowerCase() ===
+                          direccion.comuna.toLowerCase()
+                      );
 
-                <div className="sm:col-span-2">
-                  <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
-                    Comuna
-                  </label>
-                  <select
-                    value={formData.id_comuna}
-                    onChange={(e) =>
-                      handleChange('id_comuna', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2.5 text-sm sm:text-base border border-[#E2E8F0] rounded-xl"
-                  >
-                    {COMUNAS_SANTIAGO.map((comuna) => (
-                      <option key={comuna.id} value={comuna.id}>
-                        {comuna.nombre}
-                      </option>
-                    ))}
-                  </select>
+                      setFormData((prev) => ({
+                        ...prev,
+                        calle: direccion.calle,
+                        numero: direccion.numero,
+                        latitud: direccion.latitud,
+                        longitud: direccion.longitud,
+                        direccionCompleta: direccion.direccionCompleta,
+                        id_comuna: comunaEncontrada?.id || prev.id_comuna,
+                      }));
+
+                      if (errors.direccion) {
+                        setErrors((prev) => ({ ...prev, direccion: '' }));
+                      }
+                    }}
+                    initialValue={formData.direccionCompleta}
+                    error={errors.direccion}
+                  />
+                  {formData.calle && formData.latitud && (
+                    <div className="mt-2 p-2 bg-[#F0FDF4] border border-[#22C55E]/20 rounded-lg">
+                      <p className="text-xs text-[#166534]">
+                        <strong>Calle:</strong> {formData.calle}{' '}
+                        {formData.numero}
+                        {COMUNAS_SANTIAGO.find(
+                          (c) => c.id === formData.id_comuna
+                        )?.nombre && (
+                          <span>
+                            {' '}
+                            -{' '}
+                            {
+                              COMUNAS_SANTIAGO.find(
+                                (c) => c.id === formData.id_comuna
+                              )?.nombre
+                            }
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">

@@ -104,6 +104,8 @@ export const api = {
     calle: string;
     numero: number;
     id_comuna: number;
+    latitud: number;
+    longitud: number;
     nombre_gerente: string;
     correo_gerente: string;
     telefono_gerente: string;
