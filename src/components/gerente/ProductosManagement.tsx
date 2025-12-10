@@ -1,6 +1,14 @@
 'use client';
 
-import { Edit, Package, Plus, Search, Trash2, X } from 'lucide-react';
+import {
+  Edit,
+  Image as ImageIcon,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../utils/apiClient';
 import { DangerButton } from '../buttons/DangerButton';
@@ -16,6 +24,7 @@ interface Producto {
   categoria_id?: number;
   categoria_nombre?: string;
   tipo_categoria_id?: number;
+  imagen?: string;
 }
 
 interface ProductosManagementProps {
@@ -40,6 +49,10 @@ export function ProductosManagement({
     null
   );
   const [saving, setSaving] = useState(false);
+
+  // Estado para imagen
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [imagenFile, setImagenFile] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -76,10 +89,12 @@ export function ProductosManagement({
       tipo_categoria_id: '',
       categoria_id: '',
     });
+    setImagenPreview(null);
+    setImagenFile(null);
     setShowModal(true);
   };
 
-  const handleOpenEdit = (producto: Producto) => {
+  const handleOpenEdit = async (producto: Producto) => {
     setEditingProducto(producto);
     setFormData({
       nombre: producto.nombre,
@@ -88,7 +103,43 @@ export function ProductosManagement({
       tipo_categoria_id: producto.tipo_categoria_id?.toString() || '',
       categoria_id: producto.categoria_id?.toString() || '',
     });
+    setImagenPreview(null);
+    setImagenFile(null);
+
+    // Cargar imagen existente
+    try {
+      const response = await api.empresa.getFotoProducto(producto.id);
+      if (response?.foto?.ruta) {
+        setImagenPreview(response.foto.ruta);
+      }
+    } catch {
+      // No hay imagen o error
+    }
+
     setShowModal(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    // Validar tamano (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagenPreview(base64);
+      setImagenFile(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -111,10 +162,22 @@ export function ProductosManagement({
           : undefined,
       };
 
+      let productoId = editingProducto?.id;
+
       if (editingProducto) {
         await api.empresa.updateProducto(editingProducto.id, data);
       } else {
-        await api.empresa.createProducto(data);
+        const response = await api.empresa.createProducto(data);
+        productoId = response.producto?.id;
+      }
+
+      // Subir imagen si hay una nueva
+      if (imagenFile && productoId) {
+        try {
+          await api.empresa.updateFotoProducto(productoId, imagenFile);
+        } catch {
+          console.error('Error subiendo imagen');
+        }
       }
 
       await loadProductos();
@@ -318,14 +381,30 @@ export function ProductosManagement({
                     className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <p className="text-sm text-[#334155] font-medium">
-                        {producto.nombre}
-                      </p>
-                      {producto.descripcion && (
-                        <p className="text-xs text-[#94A3B8] line-clamp-1">
-                          {producto.descripcion}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {producto.imagen ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={producto.imagen}
+                            alt={producto.nombre}
+                            className="w-12 h-12 object-cover rounded-lg border border-[#E2E8F0] flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-[#F1F5F9] rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ImageIcon size={20} className="text-[#94A3B8]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-[#334155] font-medium">
+                            {producto.nombre}
+                          </p>
+                          {producto.descripcion && (
+                            <p className="text-xs text-[#94A3B8] line-clamp-1">
+                              {producto.descripcion}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-[#64748B]">
@@ -530,6 +609,57 @@ export function ProductosManagement({
                   className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                   placeholder="0"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm text-[#64748B] mb-1">
+                  Imagen del producto
+                </label>
+                <div className="flex items-start gap-4">
+                  {imagenPreview ? (
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imagenPreview}
+                        alt="Preview"
+                        className="w-24 h-24 object-cover rounded-lg border border-[#E2E8F0]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagenPreview(null);
+                          setImagenFile(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 border-2 border-dashed border-[#E2E8F0] rounded-lg flex items-center justify-center bg-[#F8FAFC]">
+                      <ImageIcon size={24} className="text-[#94A3B8]" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      id="producto-imagen-input"
+                    />
+                    <label
+                      htmlFor="producto-imagen-input"
+                      className="inline-flex items-center gap-2 px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#64748B] bg-white hover:bg-[#F8FAFC] cursor-pointer transition-colors"
+                    >
+                      <ImageIcon size={16} />
+                      Seleccionar imagen
+                    </label>
+                    <p className="text-xs text-[#94A3B8] mt-1">
+                      PNG, JPG o WEBP. Max 2MB
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

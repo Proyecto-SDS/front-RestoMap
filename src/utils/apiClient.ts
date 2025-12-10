@@ -495,6 +495,19 @@ export const api = {
       apiCall(`/api/empresa/fotos/capturas/${fotoId}`, {
         method: 'DELETE',
       }),
+
+    // Fotos de productos
+    getFotoProducto: (productoId: number) =>
+      apiCall(`/api/empresa/fotos/producto/${productoId}`),
+    updateFotoProducto: (productoId: number, imagen: string) =>
+      apiCall(`/api/empresa/fotos/producto/${productoId}`, {
+        method: 'POST',
+        body: JSON.stringify({ imagen }),
+      }),
+    eliminarFotoProducto: (productoId: number) =>
+      apiCall(`/api/empresa/fotos/producto/${productoId}`, {
+        method: 'DELETE',
+      }),
   },
 
   // ============================================
