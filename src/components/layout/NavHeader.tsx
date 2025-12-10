@@ -324,6 +324,20 @@ export function NavHeader() {
                         </button>
                       )}
 
+                      {/* Registrar Empresa - solo para usuarios normales (no empleados) */}
+                      {!isEmployee && (
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false);
+                            router.push('/register-empresa');
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                        >
+                          <Building2 size={16} />
+                          Registrar Empresa
+                        </button>
+                      )}
+
                       {/* Cerrar sesion */}
                       <button
                         onClick={handleLogout}
@@ -474,6 +488,20 @@ export function NavHeader() {
                     >
                       <Building2 size={18} />
                       Panel de Gestion
+                    </button>
+                  )}
+
+                  {/* Registrar Empresa - solo para usuarios normales (no empleados) */}
+                  {!isEmployee && (
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        router.push('/register-empresa');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] hover:bg-[#FFF7ED] transition-colors"
+                    >
+                      <Building2 size={18} />
+                      Registrar Empresa
                     </button>
                   )}
 

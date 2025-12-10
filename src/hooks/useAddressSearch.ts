@@ -143,7 +143,17 @@ export function useAddressSearch(): UseAddressSearchReturn {
 
     // Extraer calle y numero
     const calle = feature.text || '';
-    const numero = feature.address || '';
+    let numero = feature.address || '';
+
+    // Si no hay numero en address, intentar extraerlo del place_name
+    if (!numero && feature.place_name) {
+      // Ejemplo de place_name: "Av Providencia 1234, Providencia, Santiago, Chile"
+      // Intentar extraer el primer número que aparezca después de la calle
+      const match = feature.place_name.match(/^[^\d,]+\s+(\d+)/);
+      if (match && match[1]) {
+        numero = match[1];
+      }
+    }
 
     // Coordenadas: center es [lng, lat]
     const longitud = feature.center[0];

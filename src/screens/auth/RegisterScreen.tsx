@@ -40,9 +40,24 @@ export default function RegisterScreen() {
   };
 
   const validatePhone = (phone: string): boolean => {
-    // Chilean phone format: +56912345678 or 912345678
-    const phoneRegex = /^(\+?56)?9\d{8}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+    // Chilean phone format: 9 dígitos empezando con 9
+    return /^9\d{8}$/.test(phone);
+  };
+
+  const validatePassword = (
+    password: string
+  ): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    if (!/[A-Z]/.test(password)) {
+      errors.push('una mayuscula');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('una minuscula');
+    }
+    if (!/\d/.test(password)) {
+      errors.push('un numero');
+    }
+    return { valid: errors.length === 0, errors };
   };
 
   const validateForm = (): boolean => {
@@ -50,26 +65,35 @@ export default function RegisterScreen() {
 
     if (!formData.nombre || formData.nombre.length < 2) {
       newErrors.nombre = 'El nombre debe tener al menos 2 caracteres';
-    } else if (formData.nombre.length > 100) {
-      newErrors.nombre = 'El nombre es demasiado largo';
+    } else if (formData.nombre.length > 50) {
+      newErrors.nombre = 'El nombre no puede exceder 50 caracteres';
     }
 
     if (!formData.correo) {
       newErrors.correo = 'El correo es requerido';
+    } else if (formData.correo.length > 75) {
+      newErrors.correo = 'El correo no puede exceder 75 caracteres';
     } else if (!validateEmail(formData.correo)) {
-      newErrors.correo = 'Correo inválido';
+      newErrors.correo = 'Correo invalido';
     }
 
     if (!formData.telefono) {
-      newErrors.telefono = 'El teléfono es requerido';
+      newErrors.telefono = 'El telefono es requerido';
     } else if (!validatePhone(formData.telefono)) {
-      newErrors.telefono = 'Teléfono inválido (ej: +56912345678)';
+      newErrors.telefono = 'Telefono invalido (9 digitos, ej: 912345678)';
     }
 
     if (!formData.contrasena) {
-      newErrors.contrasena = 'La contraseña es requerida';
+      newErrors.contrasena = 'La contrasena es requerida';
     } else if (formData.contrasena.length < 6) {
-      newErrors.contrasena = 'Mínimo 6 caracteres';
+      newErrors.contrasena = 'Minimo 6 caracteres';
+    } else {
+      const passwordValidation = validatePassword(formData.contrasena);
+      if (!passwordValidation.valid) {
+        newErrors.contrasena = `Debe contener: ${passwordValidation.errors.join(
+          ', '
+        )}`;
+      }
     }
 
     if (!formData.confirmarContrasena) {
@@ -111,7 +135,29 @@ export default function RegisterScreen() {
   };
 
   const handleChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Aplicar límites según el campo
+    let processedValue = value;
+
+    if (typeof value === 'string') {
+      switch (field) {
+        case 'nombre':
+          processedValue = value.slice(0, 50);
+          break;
+        case 'correo':
+          processedValue = value.slice(0, 75);
+          break;
+        case 'telefono':
+          // Solo permitir números, máximo 9 dígitos
+          processedValue = value.replace(/\D/g, '').slice(0, 9);
+          break;
+        case 'contrasena':
+        case 'confirmarContrasena':
+          processedValue = value.slice(0, 50);
+          break;
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, [field]: processedValue }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
@@ -158,7 +204,10 @@ export default function RegisterScreen() {
               {/* Name */}
               <div>
                 <label htmlFor="nombre" className="block mb-1.5 text-[#334155]">
-                  Nombre completo
+                  Nombre completo{' '}
+                  <span className="text-xs text-[#94A3B8]">
+                    ({formData.nombre.length}/50)
+                  </span>
                 </label>
                 <div className="relative">
                   <User
@@ -170,7 +219,8 @@ export default function RegisterScreen() {
                     id="nombre"
                     value={formData.nombre}
                     onChange={(e) => handleChange('nombre', e.target.value)}
-                    placeholder="Juan Pérez"
+                    placeholder="Juan Perez"
+                    maxLength={50}
                     className={`
                       w-full pl-10 pr-3 py-2 border rounded-xl
                       transition-all duration-200
@@ -193,7 +243,10 @@ export default function RegisterScreen() {
               {/* Email */}
               <div>
                 <label htmlFor="correo" className="block mb-1.5 text-[#334155]">
-                  Correo electrónico
+                  Correo electronico{' '}
+                  <span className="text-xs text-[#94A3B8]">
+                    ({formData.correo.length}/75)
+                  </span>
                 </label>
                 <div className="relative">
                   <Mail
@@ -206,6 +259,7 @@ export default function RegisterScreen() {
                     value={formData.correo}
                     onChange={(e) => handleChange('correo', e.target.value)}
                     placeholder="tu@ejemplo.com"
+                    maxLength={75}
                     className={`
                       w-full pl-10 pr-3 py-2 border rounded-xl
                       transition-all duration-200
@@ -231,7 +285,10 @@ export default function RegisterScreen() {
                   htmlFor="telefono"
                   className="block mb-1.5 text-[#334155]"
                 >
-                  Teléfono
+                  Telefono{' '}
+                  <span className="text-xs text-[#94A3B8]">
+                    ({formData.telefono.length}/9)
+                  </span>
                 </label>
                 <div className="relative">
                   <Phone
@@ -243,7 +300,8 @@ export default function RegisterScreen() {
                     id="telefono"
                     value={formData.telefono}
                     onChange={(e) => handleChange('telefono', e.target.value)}
-                    placeholder="+56912345678"
+                    placeholder="912345678"
+                    maxLength={9}
                     className={`
                       w-full pl-10 pr-3 py-2 border rounded-xl
                       transition-all duration-200
@@ -269,7 +327,10 @@ export default function RegisterScreen() {
                   htmlFor="contrasena"
                   className="block mb-1.5 text-[#334155]"
                 >
-                  Contraseña
+                  Contrasena{' '}
+                  <span className="text-xs text-[#94A3B8]">
+                    ({formData.contrasena.length}/50)
+                  </span>
                 </label>
                 <div className="relative">
                   <Lock
@@ -281,7 +342,8 @@ export default function RegisterScreen() {
                     id="contrasena"
                     value={formData.contrasena}
                     onChange={(e) => handleChange('contrasena', e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Min 6 caracteres"
+                    maxLength={50}
                     className={`
                       w-full pl-10 pr-10 py-2 border rounded-xl
                       transition-all duration-200
@@ -298,12 +360,53 @@ export default function RegisterScreen() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
                     aria-label={
-                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                      showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'
                     }
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {/* Password requirements indicator */}
+                {formData.contrasena && (
+                  <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                    <span
+                      className={
+                        /[A-Z]/.test(formData.contrasena)
+                          ? 'text-[#22C55E]'
+                          : 'text-[#94A3B8]'
+                      }
+                    >
+                      1 mayuscula
+                    </span>
+                    <span
+                      className={
+                        /[a-z]/.test(formData.contrasena)
+                          ? 'text-[#22C55E]'
+                          : 'text-[#94A3B8]'
+                      }
+                    >
+                      1 minuscula
+                    </span>
+                    <span
+                      className={
+                        /\d/.test(formData.contrasena)
+                          ? 'text-[#22C55E]'
+                          : 'text-[#94A3B8]'
+                      }
+                    >
+                      1 numero
+                    </span>
+                    <span
+                      className={
+                        formData.contrasena.length >= 6
+                          ? 'text-[#22C55E]'
+                          : 'text-[#94A3B8]'
+                      }
+                    >
+                      6+ caracteres
+                    </span>
+                  </div>
+                )}
                 {errors.contrasena && (
                   <p className="mt-1.5 text-sm text-[#EF4444]">
                     {errors.contrasena}
@@ -317,7 +420,10 @@ export default function RegisterScreen() {
                   htmlFor="confirmarContrasena"
                   className="block mb-1.5 text-[#334155]"
                 >
-                  Confirmar contraseña
+                  Confirmar contrasena{' '}
+                  <span className="text-xs text-[#94A3B8]">
+                    ({formData.confirmarContrasena.length}/50)
+                  </span>
                 </label>
                 <div className="relative">
                   <Lock
@@ -331,7 +437,8 @@ export default function RegisterScreen() {
                     onChange={(e) =>
                       handleChange('confirmarContrasena', e.target.value)
                     }
-                    placeholder="••••••••"
+                    placeholder="Repite tu contrasena"
+                    maxLength={50}
                     className={`
                       w-full pl-10 pr-10 py-2 border rounded-xl
                       transition-all duration-200
@@ -349,8 +456,8 @@ export default function RegisterScreen() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
                     aria-label={
                       showConfirmPassword
-                        ? 'Ocultar contraseña'
-                        : 'Mostrar contraseña'
+                        ? 'Ocultar contrasena'
+                        : 'Mostrar contrasena'
                     }
                   >
                     {showConfirmPassword ? (
@@ -415,19 +522,6 @@ export default function RegisterScreen() {
                   className="text-[#F97316] hover:underline"
                 >
                   Inicia sesión
-                </button>
-              </p>
-            </div>
-
-            {/* Business registration link */}
-            <div className="mt-4 text-center">
-              <p className="text-sm text-[#64748B]">
-                ¿Tienes un restaurante o bar?{' '}
-                <button
-                  onClick={() => router.push('/register-empresa')}
-                  className="text-[#F97316] hover:underline font-medium"
-                >
-                  Registra tu empresa
                 </button>
               </p>
             </div>

@@ -29,6 +29,7 @@ interface LocalInfo {
   correo: string;
   descripcion?: string;
   tipo_local?: string;
+  rut_empresa?: string;
   direccion?: {
     calle: string;
     numero: number;
@@ -595,7 +596,13 @@ export function LocalConfigManager() {
           <p className="text-xs text-[#94A3B8] mb-3">
             Información no editable (contacta a soporte para modificar)
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-[#94A3B8] mb-1">RUT Empresa</p>
+              <p className="text-sm text-[#64748B]">
+                {localInfo?.rut_empresa || '-'}
+              </p>
+            </div>
             <div>
               <p className="text-xs text-[#94A3B8] mb-1">Tipo de Local</p>
               <p className="text-sm text-[#64748B]">

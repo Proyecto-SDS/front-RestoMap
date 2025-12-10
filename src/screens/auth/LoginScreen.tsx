@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
+import { Modal } from '../../components/modals/Modal';
 import { Toast, useToast } from '../../components/notifications/Toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -37,6 +38,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
 
   // Get the page the user was trying to access
   const from = searchParams?.get('from') || '/';
@@ -426,6 +428,19 @@ export default function LoginScreen() {
               </button>
             </p>
           </div>
+
+          {/* Business registration link */}
+          <div className="mt-3 text-center">
+            <p className="text-sm text-[#64748B]">
+              Tienes un restaurante o bar?{' '}
+              <button
+                onClick={() => setShowBusinessModal(true)}
+                className="text-[#F97316] hover:underline font-medium"
+              >
+                Registra tu empresa
+              </button>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -438,6 +453,40 @@ export default function LoginScreen() {
           onClose={hideToast}
         />
       )}
+
+      {/* Business Account Modal */}
+      <Modal
+        isOpen={showBusinessModal}
+        onClose={() => setShowBusinessModal(false)}
+        title="Registro de Empresa"
+        size="sm"
+      >
+        <div className="text-center">
+          <p className="text-[#64748B] mb-6">
+            ¿Ya tienes una cuenta en RestoMap?
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setShowBusinessModal(false);
+                // Ya tiene cuenta, quedarse en login
+              }}
+              className="w-full py-3 px-4 bg-[#F97316] text-white rounded-xl font-medium hover:bg-[#EA580C] transition-colors"
+            >
+              Si
+            </button>
+            <button
+              onClick={() => {
+                setShowBusinessModal(false);
+                router.push('/register-empresa');
+              }}
+              className="w-full py-3 px-4 border border-[#E2E8F0] text-[#334155] rounded-xl font-medium hover:bg-[#F1F5F9] transition-colors"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
