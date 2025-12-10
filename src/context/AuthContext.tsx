@@ -71,6 +71,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  // Escuchar evento de forzar cierre de sesión (disparado por apiClient cuando token es inválido)
+  useEffect(() => {
+    const handleForceLogout = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Force logout triggered:', customEvent.detail?.reason);
+
+      // Limpiar todo completamente
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_user_type');
+        // También limpiar cualquier otra variante que pueda existir
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
+
+      // Resetear estado
+      setUser(null);
+      setUserType('persona');
+      setIsLoggedIn(false);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:forceLogout', handleForceLogout);
+      return () => {
+        window.removeEventListener('auth:forceLogout', handleForceLogout);
+      };
+    }
+  }, []);
+
   const login = async (
     correo: string,
     contrasena: string

@@ -3,6 +3,9 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Variable de control para evitar múltiples redirecciones
+let isRedirectingToLogin = false;
+
 interface ApiCallOptions extends RequestInit {
   token?: string;
 }
@@ -36,6 +39,41 @@ export async function apiCall(endpoint: string, options: ApiCallOptions = {}) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage =
         errorData.error || errorData.message || `API error: ${response.status}`;
+
+      // Detectar errores de token inválido
+      // EXCLUIR endpoints de autenticación donde 401 significa credenciales inválidas
+      const isAuthEndpoint =
+        endpoint.includes('/login') ||
+        endpoint.includes('/register') ||
+        endpoint.includes('/logout');
+
+      const isInvalidToken =
+        !isAuthEndpoint &&
+        (response.status === 401 ||
+          (errorMessage &&
+            (errorMessage.toLowerCase().includes('token invalido') ||
+              errorMessage.toLowerCase().includes('token inválido') ||
+              errorMessage.toLowerCase().includes('modificados'))));
+
+      // Si el token es inválido, disparar evento de cierre de sesión
+      if (isInvalidToken && !isRedirectingToLogin) {
+        isRedirectingToLogin = true;
+        console.warn('Token inválido detectado. Cerrando sesión...');
+
+        // Disparar evento personalizado para que AuthContext limpie todo
+        if (typeof window !== 'undefined') {
+          const event = new CustomEvent('auth:forceLogout', {
+            detail: { reason: 'Token inválido' },
+          });
+          window.dispatchEvent(event);
+
+          // Esperar un poco y redirigir
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 200);
+        }
+      }
+
       const error = new Error(errorMessage) as ApiError;
       error.status = response.status;
       throw error;
@@ -96,6 +134,7 @@ export const api = {
   registerEmpresa: (data: {
     rut_empresa: string;
     razon_social: string;
+    glosa_giro?: string;
     nombre_local: string;
     telefono_local: string;
     correo_local: string;
@@ -104,11 +143,14 @@ export const api = {
     calle: string;
     numero: number;
     id_comuna: number;
+    latitud: number;
+    longitud: number;
     nombre_gerente: string;
     correo_gerente: string;
     telefono_gerente: string;
-    contrasena: string;
+    contrasena?: string;
     acepta_terminos: boolean;
+    id_persona?: number;
   }) =>
     apiCall('/api/auth/register-empresa', {
       method: 'POST',

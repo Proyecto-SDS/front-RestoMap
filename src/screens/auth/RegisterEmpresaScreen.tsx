@@ -11,16 +11,18 @@ import {
   Loader2,
   Lock,
   Mail,
-  MapPin,
   Phone,
   Store,
   User,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
+import { AddressSearchInput } from '../../components/inputs/AddressSearchInput';
 import { TermsModal } from '../../components/modals/TermsModal';
 import { Toast, useToast } from '../../components/notifications/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { DireccionData } from '../../hooks/useAddressSearch';
 import { api } from '../../utils/apiClient';
 
 // Tipos de local (basados en catalogs.py del backend)
@@ -80,6 +82,9 @@ interface FormData {
   calle: string;
   numero: string;
   id_comuna: number;
+  latitud: number | null;
+  longitud: number | null;
+  direccionCompleta: string;
   // Paso 3: Gerente
   nombre_gerente: string;
   correo_gerente: string;
@@ -87,6 +92,7 @@ interface FormData {
   contrasena: string;
   confirmar_contrasena: string;
   acepta_terminos: boolean;
+  acepta_terminos_persona: boolean;
 }
 
 const initialFormData: FormData = {
@@ -101,17 +107,22 @@ const initialFormData: FormData = {
   calle: '',
   numero: '',
   id_comuna: 1,
+  latitud: null,
+  longitud: null,
+  direccionCompleta: '',
   nombre_gerente: '',
   correo_gerente: '',
   telefono_gerente: '',
   contrasena: '',
   confirmar_contrasena: '',
   acepta_terminos: false,
+  acepta_terminos_persona: false,
 };
 
 export default function RegisterEmpresaScreen() {
   const router = useRouter();
   const { toast, showToast, hideToast } = useToast();
+  const { user, isLoggedIn } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -122,6 +133,18 @@ export default function RegisterEmpresaScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Prellenar datos del usuario logueado
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      setFormData((prev) => ({
+        ...prev,
+        nombre_gerente: user.name || '',
+        correo_gerente: user.email || '',
+        telefono_gerente: user.phone?.replace(/\D/g, '').slice(-9) || '',
+      }));
+    }
+  }, [isLoggedIn, user]);
 
   const handleChange = (
     field: keyof FormData,
@@ -213,11 +236,13 @@ export default function RegisterEmpresaScreen() {
     if (!formData.correo_local || !formData.correo_local.includes('@')) {
       newErrors.correo_local = 'Correo invalido';
     }
-    if (!formData.calle || formData.calle.length < 3) {
-      newErrors.calle = 'Ingresa una direccion valida';
+    if (!formData.calle || !formData.latitud || !formData.longitud) {
+      newErrors.direccion = 'Selecciona una direccion del buscador';
     }
-    if (!formData.numero || parseInt(formData.numero) <= 0) {
-      newErrors.numero = 'Numero invalido';
+    // Validar que el número de dirección esté presente
+    if (!formData.numero || formData.numero.trim() === '') {
+      newErrors.direccion =
+        'La direccion debe incluir un numero. Ejemplo: "Av Providencia 1234"';
     }
 
     setErrors(newErrors);
@@ -236,14 +261,21 @@ export default function RegisterEmpresaScreen() {
     if (!formData.telefono_gerente || formData.telefono_gerente.length !== 9) {
       newErrors.telefono_gerente = 'Telefono invalido';
     }
-    if (!formData.contrasena || formData.contrasena.length < 6) {
-      newErrors.contrasena = 'Minimo 6 caracteres';
-    }
-    if (formData.contrasena !== formData.confirmar_contrasena) {
-      newErrors.confirmar_contrasena = 'Las contrasenas no coinciden';
+    // Solo validar contraseña si no está logueado
+    if (!isLoggedIn) {
+      if (!formData.contrasena || formData.contrasena.length < 6) {
+        newErrors.contrasena = 'Minimo 6 caracteres';
+      }
+      if (formData.contrasena !== formData.confirmar_contrasena) {
+        newErrors.confirmar_contrasena = 'Las contrasenas no coinciden';
+      }
+      if (!formData.acepta_terminos_persona) {
+        newErrors.acepta_terminos_persona =
+          'Debes aceptar los terminos de usuario';
+      }
     }
     if (!formData.acepta_terminos) {
-      newErrors.acepta_terminos = 'Debes aceptar los terminos';
+      newErrors.acepta_terminos = 'Debes aceptar los terminos de empresa';
     }
 
     setErrors(newErrors);
@@ -282,6 +314,35 @@ export default function RegisterEmpresaScreen() {
     }
   };
 
+  // Verificar si el paso 3 está completo (para habilitar/deshabilitar botón)
+  const isStep3Complete = (): boolean => {
+    // Campos siempre requeridos
+    if (
+      !formData.nombre_gerente ||
+      !formData.correo_gerente ||
+      !formData.telefono_gerente
+    ) {
+      return false;
+    }
+
+    // Si NO está logueado, requiere contraseñas y términos de persona
+    if (!isLoggedIn) {
+      if (!formData.contrasena || !formData.confirmar_contrasena) {
+        return false;
+      }
+      if (!formData.acepta_terminos_persona) {
+        return false;
+      }
+    }
+
+    // Siempre requiere términos de empresa
+    if (!formData.acepta_terminos) {
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
@@ -289,26 +350,55 @@ export default function RegisterEmpresaScreen() {
       const result = await api.registerEmpresa({
         rut_empresa: formData.rut_empresa.replace(/\./g, ''),
         razon_social: formData.razon_social,
+        glosa_giro: formData.glosa_giro || undefined,
         nombre_local: formData.nombre_local,
         telefono_local: formData.telefono_local,
         correo_local: formData.correo_local,
         descripcion: formData.descripcion || undefined,
         id_tipo_local: formData.id_tipo_local,
         calle: formData.calle,
-        numero: parseInt(formData.numero),
+        numero: parseInt(formData.numero) || 0,
         id_comuna: formData.id_comuna,
+        latitud: formData.latitud!,
+        longitud: formData.longitud!,
         nombre_gerente: formData.nombre_gerente,
         correo_gerente: formData.correo_gerente,
         telefono_gerente: formData.telefono_gerente,
-        contrasena: formData.contrasena,
+        contrasena: isLoggedIn ? undefined : formData.contrasena,
         acepta_terminos: formData.acepta_terminos,
+        id_persona: isLoggedIn && user ? parseInt(user.id) : undefined,
       });
 
       if (result.success) {
-        showToast('success', 'Empresa registrada exitosamente');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        if (isLoggedIn) {
+          // Si estaba logueado, cerrar sesión LOCALMENTE (no llamar al backend)
+          // porque el JWT antiguo ya no es válido después de vincular la empresa
+          showToast(
+            'success',
+            'Empresa registrada exitosamente. Por favor, inicia sesión nuevamente.'
+          );
+          setTimeout(() => {
+            // Limpiar localStorage directamente sin llamar al backend
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('auth_user');
+              localStorage.removeItem('auth_user_type');
+            }
+            // Disparar evento para que AuthContext se actualice
+            const event = new CustomEvent('auth:forceLogout', {
+              detail: { reason: 'Empresa registrada - JWT desactualizado' },
+            });
+            window.dispatchEvent(event);
+
+            router.push('/login');
+          }, 2500);
+        } else {
+          // Si no estaba logueado, simplemente redirigir al login
+          showToast('success', 'Empresa registrada exitosamente');
+          setTimeout(() => {
+            router.push('/login');
+          }, 2000);
+        }
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -611,56 +701,53 @@ export default function RegisterEmpresaScreen() {
                   <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
                     Direccion
                   </label>
-                  <div className="flex gap-2 sm:gap-3">
-                    <div className="relative flex-1">
-                      <MapPin
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                        size={18}
-                      />
-                      <input
-                        type="text"
-                        value={formData.calle}
-                        onChange={(e) => handleChange('calle', e.target.value)}
-                        placeholder="Av. Principal"
-                        className={`w-full pl-10 pr-4 py-2.5 text-sm sm:text-base border rounded-xl ${
-                          errors.calle ? 'border-[#EF4444]' : 'border-[#E2E8F0]'
-                        }`}
-                      />
-                    </div>
-                    <input
-                      type="number"
-                      value={formData.numero}
-                      onChange={(e) => handleChange('numero', e.target.value)}
-                      placeholder="N"
-                      className={`w-16 sm:w-24 px-2 sm:px-4 py-2.5 text-sm sm:text-base border rounded-xl ${
-                        errors.numero ? 'border-[#EF4444]' : 'border-[#E2E8F0]'
-                      }`}
-                    />
-                  </div>
-                  {(errors.calle || errors.numero) && (
-                    <p className="mt-1 text-xs text-[#EF4444]">
-                      {errors.calle || errors.numero}
-                    </p>
-                  )}
-                </div>
+                  <AddressSearchInput
+                    onSelect={(direccion: DireccionData) => {
+                      // Buscar id_comuna basado en el nombre
+                      const comunaEncontrada = COMUNAS_SANTIAGO.find(
+                        (c) =>
+                          c.nombre.toLowerCase() ===
+                          direccion.comuna.toLowerCase()
+                      );
 
-                <div className="sm:col-span-2">
-                  <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
-                    Comuna
-                  </label>
-                  <select
-                    value={formData.id_comuna}
-                    onChange={(e) =>
-                      handleChange('id_comuna', parseInt(e.target.value))
-                    }
-                    className="w-full px-4 py-2.5 text-sm sm:text-base border border-[#E2E8F0] rounded-xl"
-                  >
-                    {COMUNAS_SANTIAGO.map((comuna) => (
-                      <option key={comuna.id} value={comuna.id}>
-                        {comuna.nombre}
-                      </option>
-                    ))}
-                  </select>
+                      setFormData((prev) => ({
+                        ...prev,
+                        calle: direccion.calle,
+                        numero: direccion.numero,
+                        latitud: direccion.latitud,
+                        longitud: direccion.longitud,
+                        direccionCompleta: direccion.direccionCompleta,
+                        id_comuna: comunaEncontrada?.id || prev.id_comuna,
+                      }));
+
+                      if (errors.direccion) {
+                        setErrors((prev) => ({ ...prev, direccion: '' }));
+                      }
+                    }}
+                    initialValue={formData.direccionCompleta}
+                    error={errors.direccion}
+                  />
+                  {formData.calle && formData.latitud && (
+                    <div className="mt-2 p-2 bg-[#F0FDF4] border border-[#22C55E]/20 rounded-lg">
+                      <p className="text-xs text-[#166534]">
+                        <strong>Calle:</strong> {formData.calle}{' '}
+                        {formData.numero}
+                        {COMUNAS_SANTIAGO.find(
+                          (c) => c.id === formData.id_comuna
+                        )?.nombre && (
+                          <span>
+                            {' '}
+                            -{' '}
+                            {
+                              COMUNAS_SANTIAGO.find(
+                                (c) => c.id === formData.id_comuna
+                              )?.nombre
+                            }
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">
@@ -689,8 +776,17 @@ export default function RegisterEmpresaScreen() {
                   Datos del Gerente
                 </h2>
                 <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-                  Cuenta del administrador principal
+                  {isLoggedIn
+                    ? 'Tu cuenta sera vinculada como gerente'
+                    : 'Cuenta del administrador principal'}
                 </p>
+                {isLoggedIn && (
+                  <div className="mt-3 p-2 bg-[#F0FDF4] border border-[#22C55E]/20 rounded-lg">
+                    <p className="text-xs text-[#166534]">
+                      Usando tu cuenta actual: <strong>{user?.email}</strong>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -710,11 +806,12 @@ export default function RegisterEmpresaScreen() {
                         handleChange('nombre_gerente', e.target.value)
                       }
                       placeholder="Juan Perez"
+                      disabled={isLoggedIn}
                       className={`w-full pl-10 pr-4 py-2.5 text-sm sm:text-base border rounded-xl ${
                         errors.nombre_gerente
                           ? 'border-[#EF4444]'
                           : 'border-[#E2E8F0]'
-                      }`}
+                      } ${isLoggedIn ? 'bg-[#F1F5F9] cursor-not-allowed' : ''}`}
                     />
                   </div>
                   {errors.nombre_gerente && (
@@ -740,11 +837,12 @@ export default function RegisterEmpresaScreen() {
                         handleChange('correo_gerente', e.target.value)
                       }
                       placeholder="gerente@empresa.cl"
+                      disabled={isLoggedIn}
                       className={`w-full pl-10 pr-4 py-2.5 text-sm sm:text-base border rounded-xl ${
                         errors.correo_gerente
                           ? 'border-[#EF4444]'
                           : 'border-[#E2E8F0]'
-                      }`}
+                      } ${isLoggedIn ? 'bg-[#F1F5F9] cursor-not-allowed' : ''}`}
                     />
                   </div>
                   {errors.correo_gerente && (
@@ -774,11 +872,12 @@ export default function RegisterEmpresaScreen() {
                       }
                       placeholder="987654321"
                       maxLength={9}
+                      disabled={isLoggedIn}
                       className={`w-full pl-10 pr-4 py-2.5 text-sm sm:text-base border rounded-xl ${
                         errors.telefono_gerente
                           ? 'border-[#EF4444]'
                           : 'border-[#E2E8F0]'
-                      }`}
+                      } ${isLoggedIn ? 'bg-[#F1F5F9] cursor-not-allowed' : ''}`}
                     />
                   </div>
                   {errors.telefono_gerente && (
@@ -788,87 +887,129 @@ export default function RegisterEmpresaScreen() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
-                    Contrasena
-                  </label>
-                  <div className="relative">
-                    <Lock
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                      size={18}
-                    />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.contrasena}
-                      onChange={(e) =>
-                        handleChange('contrasena', e.target.value)
-                      }
-                      placeholder="min. 6 caracteres"
-                      className={`w-full pl-10 pr-10 py-2.5 text-sm sm:text-base border rounded-xl ${
-                        errors.contrasena
-                          ? 'border-[#EF4444]'
-                          : 'border-[#E2E8F0]'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {errors.contrasena && (
-                    <p className="mt-1 text-xs text-[#EF4444]">
-                      {errors.contrasena}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
-                    Confirmar
-                  </label>
-                  <div className="relative">
-                    <Lock
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                      size={18}
-                    />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.confirmar_contrasena}
-                      onChange={(e) =>
-                        handleChange('confirmar_contrasena', e.target.value)
-                      }
-                      placeholder="repetir"
-                      className={`w-full pl-10 pr-10 py-2.5 text-sm sm:text-base border rounded-xl ${
-                        errors.confirmar_contrasena
-                          ? 'border-[#EF4444]'
-                          : 'border-[#E2E8F0]'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={16} />
-                      ) : (
-                        <Eye size={16} />
+                {/* Campos de contraseña - solo si no está logueado */}
+                {!isLoggedIn && (
+                  <>
+                    <div>
+                      <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
+                        Contrasena
+                      </label>
+                      <div className="relative">
+                        <Lock
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+                          size={18}
+                        />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.contrasena}
+                          onChange={(e) =>
+                            handleChange('contrasena', e.target.value)
+                          }
+                          placeholder="min. 6 caracteres"
+                          className={`w-full pl-10 pr-10 py-2.5 text-sm sm:text-base border rounded-xl ${
+                            errors.contrasena
+                              ? 'border-[#EF4444]'
+                              : 'border-[#E2E8F0]'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+                        >
+                          {showPassword ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      </div>
+                      {errors.contrasena && (
+                        <p className="mt-1 text-xs text-[#EF4444]">
+                          {errors.contrasena}
+                        </p>
                       )}
-                    </button>
-                  </div>
-                  {errors.confirmar_contrasena && (
-                    <p className="mt-1 text-xs text-[#EF4444]">
-                      {errors.confirmar_contrasena}
+                    </div>
+
+                    <div>
+                      <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
+                        Confirmar
+                      </label>
+                      <div className="relative">
+                        <Lock
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+                          size={18}
+                        />
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={formData.confirmar_contrasena}
+                          onChange={(e) =>
+                            handleChange('confirmar_contrasena', e.target.value)
+                          }
+                          placeholder="repetir"
+                          className={`w-full pl-10 pr-10 py-2.5 text-sm sm:text-base border rounded-xl ${
+                            errors.confirmar_contrasena
+                              ? 'border-[#EF4444]'
+                              : 'border-[#E2E8F0]'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      </div>
+                      {errors.confirmar_contrasena && (
+                        <p className="mt-1 text-xs text-[#EF4444]">
+                          {errors.confirmar_contrasena}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div className="sm:col-span-2 space-y-3">
+                  {/* Términos de usuario - solo si no está logueado */}
+                  {!isLoggedIn && (
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.acepta_terminos_persona}
+                        onChange={(e) =>
+                          handleChange(
+                            'acepta_terminos_persona',
+                            e.target.checked
+                          )
+                        }
+                        className="mt-0.5 w-4 h-4 text-[#F97316] border-[#E2E8F0] rounded"
+                      />
+                      <span className="text-xs sm:text-sm text-[#64748B]">
+                        Acepto los{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowTermsModal(true)}
+                          className="text-[#F97316] hover:underline"
+                        >
+                          Terminos y Condiciones de Usuario
+                        </button>
+                      </span>
+                    </label>
+                  )}
+                  {errors.acepta_terminos_persona && (
+                    <p className="text-xs text-[#EF4444]">
+                      {errors.acepta_terminos_persona}
                     </p>
                   )}
-                </div>
 
-                <div className="sm:col-span-2">
+                  {/* Términos de empresa - siempre visible */}
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -885,12 +1026,12 @@ export default function RegisterEmpresaScreen() {
                         onClick={() => setShowTermsModal(true)}
                         className="text-[#F97316] hover:underline"
                       >
-                        Terminos y Condiciones
+                        Terminos y Condiciones de Empresa
                       </button>
                     </span>
                   </label>
                   {errors.acepta_terminos && (
-                    <p className="mt-1 text-xs text-[#EF4444]">
+                    <p className="text-xs text-[#EF4444]">
                       {errors.acepta_terminos}
                     </p>
                   )}
@@ -912,7 +1053,11 @@ export default function RegisterEmpresaScreen() {
               onClick={handleNext}
               className="flex-1 h-10 sm:h-12 text-sm sm:text-base"
               isLoading={isSubmitting}
-              disabled={isSubmitting || (currentStep === 1 && !rutValidated)}
+              disabled={
+                isSubmitting ||
+                (currentStep === 1 && !rutValidated) ||
+                (currentStep === 3 && !isStep3Complete())
+              }
             >
               <span className="flex items-center gap-2 justify-center">
                 {currentStep === 3 ? (

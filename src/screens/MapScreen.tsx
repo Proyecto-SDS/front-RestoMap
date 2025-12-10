@@ -8,8 +8,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBadge } from '../components/badges/StatusBadge';
 import { TypeBadge } from '../components/badges/TypeBadge';
 import { FilterChip } from '../components/inputs/FilterChip';
+import { EstablishmentInfoPanel } from '../components/map/EstablishmentInfoPanel';
+import { GeolocationButton } from '../components/map/GeolocationButton';
+import { RoutePanel } from '../components/map/RoutePanel';
 import { ConfirmDialog } from '../components/profile/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
+import { useGeolocation } from '../hooks/useGeolocation';
+import {
+  getRoute,
+  getRouteLineStyle,
+  type RouteResult,
+  type TransportMode,
+} from '../services/mapboxRouteService';
 import type { Establishment, EstablishmentType } from '../types';
 import { api } from '../utils/apiClient';
 import { ESTABLISHMENT_TYPES } from '../utils/constants';
@@ -803,6 +813,22 @@ export default function MapScreen() {
     establishmentId: string | null;
   }>({ isOpen: false, establishmentId: null });
 
+  // Geolocation hook
+  const geolocation = useGeolocation();
+
+  // Route mode states
+  const [routeMode, setRouteMode] = useState(false);
+  const [selectedDestination, setSelectedDestination] =
+    useState<Establishment | null>(null);
+  const [currentRoute, setCurrentRoute] = useState<RouteResult | null>(null);
+  const [transportMode, setTransportMode] =
+    useState<TransportMode>('driving-traffic');
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+
+  // User location marker ref
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
   // Load establishments from API
   useEffect(() => {
     const loadEstablishments = async () => {
@@ -919,15 +945,26 @@ export default function MapScreen() {
     setSelectedType(type);
   };
 
-  const handleMarkerClick = useCallback((establishment: Establishment) => {
-    setSelectedEstablishmentId(establishment.id);
+  const handleMarkerClick = useCallback(
+    (establishment: Establishment) => {
+      setSelectedEstablishmentId(establishment.id);
+      setSelectedDestination(establishment);
+      setShowInfoPanel(true);
 
-    // En mobile, abrir el drawer cuando se hace click en un marcador
-    if (window.innerWidth < 768) {
-      // md breakpoint
-      setIsDrawerOpen(true);
-    }
-  }, []);
+      // Cerrar modo ruta si está activo y se selecciona otro destino
+      if (routeMode) {
+        setRouteMode(false);
+        setCurrentRoute(null);
+      }
+
+      // En mobile, abrir el drawer cuando se hace click en un marcador
+      if (window.innerWidth < 768) {
+        // md breakpoint
+        setIsDrawerOpen(true);
+      }
+    },
+    [routeMode]
+  );
 
   const handleSelectEstablishment = (id: string) => {
     setSelectedEstablishmentId(id);
@@ -940,8 +977,208 @@ export default function MapScreen() {
         zoom: 15,
         duration: 1000,
       });
+      setSelectedDestination(establishment);
+      setShowInfoPanel(true);
     }
   };
+
+  // Effect para crear/actualizar el marcador de ubicación del usuario
+  useEffect(() => {
+    if (!mapRef.current || !geolocation.position) return;
+
+    // Crear elemento del marcador azul
+    const createUserMarkerElement = () => {
+      const el = document.createElement('div');
+      el.className = 'user-location-marker';
+      el.innerHTML = `
+        <div style="position: relative;">
+          <div style="
+            width: 20px;
+            height: 20px;
+            background: #3B82F6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+          "></div>
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 50%;
+            animation: pulse 2s ease-out infinite;
+          "></div>
+        </div>
+        <style>
+          @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+          }
+        </style>
+      `;
+      return el;
+    };
+
+    if (!userMarkerRef.current) {
+      userMarkerRef.current = new mapboxgl.Marker({
+        element: createUserMarkerElement(),
+      })
+        .setLngLat([geolocation.position.lng, geolocation.position.lat])
+        .addTo(mapRef.current);
+    } else {
+      userMarkerRef.current.setLngLat([
+        geolocation.position.lng,
+        geolocation.position.lat,
+      ]);
+    }
+  }, [geolocation.position]);
+
+  // Effect para centrar en la ubicación del usuario la primera vez
+  useEffect(() => {
+    if (
+      geolocation.position &&
+      geolocation.status === 'granted' &&
+      mapRef.current
+    ) {
+      const firstTime = !userMarkerRef.current;
+      if (firstTime) {
+        mapRef.current.flyTo({
+          center: [geolocation.position.lng, geolocation.position.lat],
+          zoom: 14,
+          duration: 1500,
+        });
+      }
+    }
+  }, [geolocation.position, geolocation.status]);
+
+  // Función para calcular ruta
+  const calculateRoute = useCallback(
+    async (destination: Establishment, mode: TransportMode) => {
+      if (!geolocation.position) return;
+
+      setIsRouteLoading(true);
+      try {
+        const origin: [number, number] = [
+          geolocation.position.lng,
+          geolocation.position.lat,
+        ];
+        const dest: [number, number] = destination.coordinates;
+
+        const route = await getRoute(origin, dest, mode);
+        setCurrentRoute(route);
+
+        if (mapRef.current) {
+          const map = mapRef.current;
+
+          if (map.getSource('route')) {
+            map.removeLayer('route');
+            map.removeSource('route');
+          }
+
+          const lineStyle = getRouteLineStyle(mode);
+          map.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: route.geometry,
+            },
+          });
+
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': lineStyle.color,
+              'line-width': lineStyle.width,
+              ...(lineStyle.dashArray
+                ? { 'line-dasharray': lineStyle.dashArray }
+                : {}),
+            },
+          });
+
+          const bounds = new mapboxgl.LngLatBounds();
+          bounds.extend(origin);
+          bounds.extend(dest);
+          map.fitBounds(bounds, { padding: 80, duration: 1000 });
+        }
+      } catch (error) {
+        console.error('Error al calcular ruta:', error);
+        alert(
+          error instanceof Error ? error.message : 'Error al calcular la ruta'
+        );
+      } finally {
+        setIsRouteLoading(false);
+      }
+    },
+    [geolocation.position]
+  );
+
+  // Handler para iniciar modo ruta
+  const handleGetDirections = useCallback(() => {
+    if (!selectedDestination || !geolocation.position) return;
+
+    setRouteMode(true);
+    setShowInfoPanel(false);
+    calculateRoute(selectedDestination, transportMode);
+  }, [
+    selectedDestination,
+    geolocation.position,
+    transportMode,
+    calculateRoute,
+  ]);
+
+  // Handler para cambiar modo de transporte
+  const handleTransportModeChange = useCallback(
+    (mode: TransportMode) => {
+      setTransportMode(mode);
+      if (selectedDestination && routeMode) {
+        calculateRoute(selectedDestination, mode);
+      }
+    },
+    [selectedDestination, routeMode, calculateRoute]
+  );
+
+  // Handler para cerrar modo ruta
+  const handleCloseRoute = useCallback(() => {
+    setRouteMode(false);
+    setCurrentRoute(null);
+    setSelectedDestination(null);
+
+    if (mapRef.current) {
+      const map = mapRef.current;
+      if (map.getSource('route')) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+    }
+  }, []);
+
+  // Handler para cerrar panel de información
+  const handleCloseInfoPanel = useCallback(() => {
+    setShowInfoPanel(false);
+    setSelectedEstablishmentId(null);
+    setSelectedDestination(null);
+  }, []);
+
+  // Handler para centrar en ubicación del usuario
+  const handleCenterOnUser = useCallback(() => {
+    if (geolocation.position && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [geolocation.position.lng, geolocation.position.lat],
+        zoom: 15,
+        duration: 1000,
+      });
+    }
+  }, [geolocation.position]);
 
   const handleToggleFavorite = async (localId: string) => {
     if (!isLoggedIn) {
@@ -1080,6 +1317,43 @@ export default function MapScreen() {
               Listado ({searchedEstablishments.length})
             </span>
           </button>
+
+          {/* Geolocation Button - Top right controls */}
+          <div className="absolute top-4 right-14 z-50">
+            <GeolocationButton
+              status={geolocation.status}
+              onRequestLocation={geolocation.requestPosition}
+              onCenterOnUser={handleCenterOnUser}
+              error={geolocation.error}
+            />
+          </div>
+
+          {/* Establishment Info Panel - Bottom center */}
+          {showInfoPanel && selectedDestination && !routeMode && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+              <EstablishmentInfoPanel
+                establishment={selectedDestination}
+                onClose={handleCloseInfoPanel}
+                onGetDirections={handleGetDirections}
+                hasUserLocation={geolocation.status === 'granted'}
+              />
+            </div>
+          )}
+
+          {/* Route Panel - Bottom center (when in route mode) */}
+          {routeMode && selectedDestination && currentRoute && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+              <RoutePanel
+                destinationName={selectedDestination.name}
+                distance={currentRoute.distance}
+                duration={currentRoute.duration}
+                mode={transportMode}
+                onModeChange={handleTransportModeChange}
+                onClose={handleCloseRoute}
+                isLoading={isRouteLoading}
+              />
+            </div>
+          )}
         </div>
       </div>
 
