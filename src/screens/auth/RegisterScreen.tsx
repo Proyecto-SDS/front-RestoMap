@@ -83,7 +83,7 @@ export default function RegisterScreen() {
     }
 
     if (!formData.contrasena) {
-      newErrors.contrasena = 'La contrasena es requerida';
+      newErrors.contrasena = 'La contraseña es requerida';
     } else if (formData.contrasena.length < 6) {
       newErrors.contrasena = 'Minimo 6 caracteres';
     } else {
@@ -326,7 +326,7 @@ export default function RegisterScreen() {
                   htmlFor="contrasena"
                   className="block mb-1.5 text-[#334155]"
                 >
-                  Contrasena{' '}
+                  Contraseña{' '}
                   <span className="text-xs text-[#94A3B8]">
                     ({formData.contrasena.length}/50)
                   </span>
@@ -359,7 +359,7 @@ export default function RegisterScreen() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
                     aria-label={
-                      showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'
+                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                     }
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -417,7 +417,7 @@ export default function RegisterScreen() {
                   htmlFor="confirmarContrasena"
                   className="block mb-1.5 text-[#334155]"
                 >
-                  Confirmar contrasena{' '}
+                  Confirmar contraseña{' '}
                   <span className="text-xs text-[#94A3B8]">
                     ({formData.confirmarContrasena.length}/50)
                   </span>
@@ -434,7 +434,7 @@ export default function RegisterScreen() {
                     onChange={(e) =>
                       handleChange('confirmarContrasena', e.target.value)
                     }
-                    placeholder="Repite tu contrasena"
+                    placeholder="Repite tu contraseña"
                     maxLength={50}
                     className={`
                       w-full pl-10 pr-10 py-2 border rounded-xl
@@ -453,8 +453,8 @@ export default function RegisterScreen() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] transition-colors"
                     aria-label={
                       showConfirmPassword
-                        ? 'Ocultar contrasena'
-                        : 'Mostrar contrasena'
+                        ? 'Ocultar contraseña'
+                        : 'Mostrar contraseña'
                     }
                   >
                     {showConfirmPassword ? (

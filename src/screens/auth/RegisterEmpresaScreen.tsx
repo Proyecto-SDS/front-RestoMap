@@ -265,7 +265,7 @@ export default function RegisterEmpresaScreen() {
         newErrors.contrasena = 'Minimo 6 caracteres';
       }
       if (formData.contrasena !== formData.confirmar_contrasena) {
-        newErrors.confirmar_contrasena = 'Las contrasenas no coinciden';
+        newErrors.confirmar_contrasena = 'Las contraseñas no coinciden';
       }
       if (!formData.acepta_terminos_persona) {
         newErrors.acepta_terminos_persona =
@@ -876,7 +876,7 @@ export default function RegisterEmpresaScreen() {
                   <>
                     <div>
                       <label className="block mb-1.5 text-xs sm:text-sm font-medium text-[#334155]">
-                        Contrasena
+                        Contraseña
                       </label>
                       <div className="relative">
                         <Lock

@@ -23,7 +23,7 @@ export function TermsModal({ isOpen, onClose, type }: TermsModalProps) {
               Terminos y Condiciones de Uso - RestoMap
             </h3>
             <p className="text-sm text-[#64748B] mb-4">
-              Ultima actualizacion: Diciembre 2024 - Version 1.0
+              Ultima actualizacion: Diciembre 2025 - Version 1.0
             </p>
 
             <h4 className="font-semibold mt-4 mb-2">
@@ -69,7 +69,7 @@ export function TermsModal({ isOpen, onClose, type }: TermsModalProps) {
               Terminos y Condiciones para Establecimientos - RestoMap
             </h3>
             <p className="text-sm text-[#64748B] mb-4">
-              Ultima actualizacion: Diciembre 2024 - Version 1.0
+              Ultima actualizacion: Diciembre 2025 - Version 1.0
             </p>
 
             <h4 className="font-semibold mt-4 mb-2">
