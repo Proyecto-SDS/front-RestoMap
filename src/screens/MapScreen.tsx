@@ -1346,9 +1346,9 @@ export default function MapScreen() {
             />
           </div>
 
-          {/* Establishment Info Panel - Bottom center (with safe spacing for mobile button) */}
+          {/* Establishment Info Panel - Bottom center */}
           {showInfoPanel && selectedDestination && !routeMode && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 md:px-0">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
               <EstablishmentInfoPanel
                 establishment={selectedDestination}
                 onClose={handleCloseInfoPanel}

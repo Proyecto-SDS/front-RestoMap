@@ -15,7 +15,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { Modal } from '../../components/modals/Modal';
-
+import { Toast, useToast } from '../../components/notifications/Toast';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
@@ -458,6 +458,16 @@ export default function LoginScreen() {
           </div>
         </div>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          isVisible={toast.isVisible}
+          onClose={hideToast}
+        />
+      )}
 
       {/* Business Account Modal */}
       <Modal
