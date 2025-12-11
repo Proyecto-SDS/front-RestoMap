@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 export default function LoginScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast, showToast, hideToast } = useToast();
   const {
     login,
     isLoggedIn,
