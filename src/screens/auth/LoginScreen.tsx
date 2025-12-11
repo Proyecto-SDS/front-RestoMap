@@ -290,7 +290,7 @@ export default function LoginScreen() {
           {/* Form Title */}
           <div className="mb-6">
             <h1 className="text-3xl font-semibold text-[#334155] mb-2">
-              Inicia sesion
+              Inicia sesión
             </h1>
             <p className="text-[#64748B]">
               Accede a tu cuenta para reservar y dejar opiniones
@@ -303,13 +303,31 @@ export default function LoginScreen() {
               Cuentas demo:
             </p>
             <p className="text-sm text-blue-800">
-              <strong>Cliente:</strong> juan@test.cl / test123
+              <strong>Cliente:</strong> juan@test.cl
             </p>
             <p className="text-sm text-blue-800">
-              <strong>Gerente:</strong> gerente@test.cl / test123
+              <strong>Gerente:</strong> gerente@test.cl
             </p>
             <p className="text-sm text-blue-800">
-              <strong>Mesero:</strong> mesero@test.cl / test123
+              <strong>Mesero:</strong> mesero@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Cocina:</strong> cocina@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Bartender:</strong> bartender@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Gerente 2:</strong> gerente2@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Gerente 3:</strong> gerente3@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Gerente 4:</strong> gerente4@test.cl
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Gerente 5:</strong> gerente5@test.cl
             </p>
           </div>
 

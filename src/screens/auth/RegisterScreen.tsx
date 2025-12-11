@@ -366,46 +366,44 @@ export default function RegisterScreen() {
                   </button>
                 </div>
                 {/* Password requirements indicator */}
-                {formData.contrasena && (
-                  <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
-                    <span
-                      className={
-                        /[A-Z]/.test(formData.contrasena)
-                          ? 'text-[#22C55E]'
-                          : 'text-[#94A3B8]'
-                      }
-                    >
-                      1 mayuscula
-                    </span>
-                    <span
-                      className={
-                        /[a-z]/.test(formData.contrasena)
-                          ? 'text-[#22C55E]'
-                          : 'text-[#94A3B8]'
-                      }
-                    >
-                      1 minuscula
-                    </span>
-                    <span
-                      className={
-                        /\d/.test(formData.contrasena)
-                          ? 'text-[#22C55E]'
-                          : 'text-[#94A3B8]'
-                      }
-                    >
-                      1 numero
-                    </span>
-                    <span
-                      className={
-                        formData.contrasena.length >= 6
-                          ? 'text-[#22C55E]'
-                          : 'text-[#94A3B8]'
-                      }
-                    >
-                      6+ caracteres
-                    </span>
-                  </div>
-                )}
+                <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                  <span
+                    className={
+                      /[A-Z]/.test(formData.contrasena)
+                        ? 'text-[#22C55E]'
+                        : 'text-[#94A3B8]'
+                    }
+                  >
+                    1 mayuscula
+                  </span>
+                  <span
+                    className={
+                      /[a-z]/.test(formData.contrasena)
+                        ? 'text-[#22C55E]'
+                        : 'text-[#94A3B8]'
+                    }
+                  >
+                    1 minuscula
+                  </span>
+                  <span
+                    className={
+                      /\d/.test(formData.contrasena)
+                        ? 'text-[#22C55E]'
+                        : 'text-[#94A3B8]'
+                    }
+                  >
+                    1 numero
+                  </span>
+                  <span
+                    className={
+                      formData.contrasena.length >= 6
+                        ? 'text-[#22C55E]'
+                        : 'text-[#94A3B8]'
+                    }
+                  >
+                    6+ caracteres
+                  </span>
+                </div>
                 {errors.contrasena && (
                   <p className="mt-1.5 text-sm text-[#EF4444]">
                     {errors.contrasena}
