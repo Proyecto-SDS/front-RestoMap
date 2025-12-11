@@ -2,7 +2,7 @@
 
 import { Check, Mail, MapPin, UserCheck, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, Suspense } from 'react'; // <--- 1. Importamos Suspense
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
 import { useAuth } from '../../context/AuthContext';
@@ -19,7 +19,8 @@ interface InvitationDetails {
   expira_el: string;
 }
 
-export default function AcceptInvitationPage() {
+// 2. Renombramos tu componente principal a "InvitationContent"
+function InvitationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -304,5 +305,19 @@ export default function AcceptInvitationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 3. Nuevo componente Default (Wrapper de Suspense)
+export default function AcceptInvitationPage() {
+  return (
+    // Usamos el mismo diseño de loading que tienes arriba como fallback
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F97316]"></div>
+      </div>
+    }>
+      <InvitationContent />
+    </Suspense>
   );
 }
