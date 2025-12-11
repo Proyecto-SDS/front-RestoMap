@@ -6,10 +6,10 @@
 .pnp.js
 .yarn/install-state.gz
 
-# lockfiles - El servidor usa npm, así que mantenemos package-lock.json
+# lockfiles - Usamos pnpm, ignorar otros lockfiles
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
+# pnpm-lock.yaml se mantiene en el repo para Docker
 pnpm-workspace.yaml
 .pnpm-store/
 .pnpm-debug.log
