@@ -15,6 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { SecondaryButton } from '../../components/buttons/SecondaryButton';
 import { KanbanBoard } from '../../components/cocinero/KanbanBoard';
+import { CategoriasManagement } from '../../components/gerente/CategoriasManagement';
 import { EditEmployeeModal } from '../../components/gerente/EditEmployeeModal';
 import { EmployeeManagement } from '../../components/gerente/EmployeeManagement';
 import HistorialPedidos from '../../components/gerente/HistorialPedidos';
@@ -82,6 +83,9 @@ export default function DashboardGerenteScreen() {
   }>({ tomados: [], en_proceso: [], listos: [] });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedMesaId, setSelectedMesaId] = useState<string | null>(null);
+  const [inventarioTab, setInventarioTab] = useState<
+    'productos' | 'categorias'
+  >('productos');
 
   // Cargar mesas
   const loadMesas = async () => {
@@ -485,7 +489,39 @@ export default function DashboardGerenteScreen() {
             {activeSection === 'historial' && <HistorialPedidos />}
 
             {/* Inventario */}
-            {activeSection === 'inventario' && <ProductosManagement />}
+            {activeSection === 'inventario' && (
+              <div className="space-y-4">
+                {/* Tabs de Inventario */}
+                <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-2">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setInventarioTab('productos')}
+                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                        inventarioTab === 'productos'
+                          ? 'bg-[#F97316] text-white'
+                          : 'text-[#64748B] hover:bg-[#F1F5F9]'
+                      }`}
+                    >
+                      Productos
+                    </button>
+                    <button
+                      onClick={() => setInventarioTab('categorias')}
+                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                        inventarioTab === 'categorias'
+                          ? 'bg-[#F97316] text-white'
+                          : 'text-[#64748B] hover:bg-[#F1F5F9]'
+                      }`}
+                    >
+                      Categorias
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contenido del Tab */}
+                {inventarioTab === 'productos' && <ProductosManagement />}
+                {inventarioTab === 'categorias' && <CategoriasManagement />}
+              </div>
+            )}
 
             {/* Configuracion */}
             {activeSection === 'configuracion' && <LocalConfigManager />}

@@ -400,6 +400,29 @@ export const api = {
     deleteProducto: (id: number) =>
       apiCall(`/api/empresa/productos/${id}`, { method: 'DELETE' }),
 
+    // Categorias
+    getCategorias: (tipo?: number) => {
+      const params = new URLSearchParams();
+      if (tipo) params.append('tipo', tipo.toString());
+      const query = params.toString();
+      return apiCall(`/api/empresa/categorias/${query ? `?${query}` : ''}`);
+    },
+    createCategoria: (data: { nombre: string; id_tipo_categoria: number }) =>
+      apiCall('/api/empresa/categorias/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateCategoria: (
+      id: number,
+      data: { nombre?: string; id_tipo_categoria?: number }
+    ) =>
+      apiCall(`/api/empresa/categorias/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteCategoria: (id: number) =>
+      apiCall(`/api/empresa/categorias/${id}`, { method: 'DELETE' }),
+
     // Reservas
     getReservas: (options?: {
       fecha?: string;

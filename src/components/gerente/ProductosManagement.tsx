@@ -27,6 +27,14 @@ interface Producto {
   imagen?: string;
 }
 
+interface CategoriaApi {
+  id: number;
+  nombre: string;
+  id_tipo_categoria: number;
+  tipo_nombre: string;
+  productos_count: number;
+}
+
 interface ProductosManagementProps {
   readOnly?: boolean;
 }
@@ -49,6 +57,9 @@ export function ProductosManagement({
     null
   );
   const [saving, setSaving] = useState(false);
+  const [categoriasFromApi, setCategoriasFromApi] = useState<CategoriaApi[]>(
+    []
+  );
 
   // Estado para imagen
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
@@ -66,8 +77,12 @@ export function ProductosManagement({
   const loadProductos = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.empresa.getProductos();
-      setProductos(data || []);
+      const [productosData, categoriasData] = await Promise.all([
+        api.empresa.getProductos(),
+        api.empresa.getCategorias(),
+      ]);
+      setProductos(productosData || []);
+      setCategoriasFromApi(categoriasData || []);
     } catch (error) {
       console.error('Error loading productos:', error);
       setProductos([]);
@@ -231,25 +246,14 @@ export function ProductosManagement({
     return matchesSearch && matchesCategoria;
   });
 
-  // Extraer categorías únicas con ID, nombre y TIPO
-  const categoriasMap = new Map<number, { nombre: string; tipo_id?: number }>();
-  productos.forEach((p) => {
-    if (p.categoria_id && p.categoria_nombre) {
-      categoriasMap.set(p.categoria_id, {
-        nombre: p.categoria_nombre,
-        tipo_id: p.tipo_categoria_id,
-      });
-    }
-  });
-  const categoriasConId = Array.from(categoriasMap, ([id, data]) => ({
-    id,
-    nombre: data.nombre,
-    tipo_id: data.tipo_id,
+  // Extraer categorias unicas con ID, nombre y TIPO desde la API
+  const categoriasConId = categoriasFromApi.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    tipo_id: c.id_tipo_categoria,
   }));
 
-  const categorias = [
-    ...new Set(productos.map((p) => p.categoria_nombre).filter(Boolean)),
-  ];
+  const categorias = categoriasFromApi.map((c) => c.nombre);
 
   if (loading) {
     return (
