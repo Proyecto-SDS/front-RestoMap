@@ -24,6 +24,9 @@ export default function RootLayout({
 
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <meta name="apple-mobile-web-app-title" content="RestoMap" />
+      </head>
       <body
         className={`${inter.className} flex flex-col h-screen overflow-hidden`}
       >

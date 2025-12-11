@@ -232,7 +232,7 @@ export function NavHeader() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="hidden sm:block text-[#334155] font-semibold text-lg">
+              <span className="text-[#334155] font-semibold text-lg">
                 RestoMap
               </span>
             </Link>
