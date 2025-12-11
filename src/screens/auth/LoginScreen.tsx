@@ -28,6 +28,7 @@ export default function LoginScreen() {
     userType,
     user,
   } = useAuth();
+  const { toast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     correo: '',
