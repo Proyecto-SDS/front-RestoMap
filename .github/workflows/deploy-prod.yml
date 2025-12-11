@@ -5,14 +5,7 @@ on:
   push:
     branches: [ "main" ]
     
-  # Opción 2: Manual eligiendo la rama
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Rama a desplegar (ej: main, develop)'
-        required: true
-        default: 'main'
-        type: string
 
 env:
   PROJECT_ID: 'restomap-478918'
@@ -85,4 +78,5 @@ jobs:
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format 'value(status.url)')
           echo "### 🚀 Frontend Desplegado Exitosamente"
           echo "📌 Rama usada: ${{ inputs.branch || github.ref_name }}"
+
           echo "🔗 URL: $SERVICE_URL"
