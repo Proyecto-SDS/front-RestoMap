@@ -7,7 +7,7 @@
 .yarn/install-state.gz
 
 # lockfiles - El servidor usa npm, así que mantenemos package-lock.json
-# package-lock.json
+package-lock.json
 yarn.lock
 pnpm-lock.yaml
 pnpm-workspace.yaml

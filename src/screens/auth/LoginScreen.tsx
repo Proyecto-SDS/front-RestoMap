@@ -30,6 +30,7 @@ export default function LoginScreen() {
     user,
   } = useAuth();
 
+
   const [formData, setFormData] = useState({
     correo: '',
     contrasena: '',
