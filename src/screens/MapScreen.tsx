@@ -1348,7 +1348,7 @@ export default function MapScreen() {
 
           {/* Establishment Info Panel - Bottom center */}
           {showInfoPanel && selectedDestination && !routeMode && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4">
               <EstablishmentInfoPanel
                 establishment={selectedDestination}
                 onClose={handleCloseInfoPanel}
@@ -1360,7 +1360,7 @@ export default function MapScreen() {
 
           {/* Route Panel - Bottom center (when in route mode) */}
           {routeMode && selectedDestination && currentRoute && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4">
               <RoutePanel
                 destinationName={selectedDestination.name}
                 distance={currentRoute.distance}

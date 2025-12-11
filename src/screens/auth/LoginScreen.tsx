@@ -300,7 +300,7 @@ export default function LoginScreen() {
           {/* Demo Credentials Banner */}
           <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800 font-medium mb-1">
-              Cuentas demo:
+              Cuentas demo - Contraseña: Test123
             </p>
             <p className="text-sm text-blue-800">
               <strong>Cliente:</strong> juan@test.cl

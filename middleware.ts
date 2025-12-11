@@ -2,28 +2,10 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Protected routes that require authentication
-  const protectedRoutes = ['/profile'];
-  
-  // Check if the current path is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  
-  if (isProtectedRoute) {
-    // Check for auth token in localStorage (client-side check)
-    // Note: This is a basic check. For production, use HTTP-only cookies
-    const authToken = request.cookies.get('auth_token');
-    
-    if (!authToken) {
-      // Redirect to login with return URL
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('from', pathname);
-      return NextResponse.redirect(url);
-    }
-  }
-  
+  // El middleware no puede acceder a localStorage
+  // La protección de rutas se maneja en el cliente con ProtectedRoute
+  // Este middleware se mantiene para futuras validaciones server-side (ej: cookies HTTP-only)
+
   return NextResponse.next();
 }
 

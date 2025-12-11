@@ -20,7 +20,7 @@ import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { AddressSearchInput } from '../../components/inputs/AddressSearchInput';
 import { TermsModal } from '../../components/modals/TermsModal';
-import { Toast, useToast } from '../../components/notifications/Toast';
+import { useToast } from '../../components/notifications/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { DireccionData } from '../../hooks/useAddressSearch';
 import { api } from '../../utils/apiClient';
@@ -121,7 +121,7 @@ const initialFormData: FormData = {
 
 export default function RegisterEmpresaScreen() {
   const router = useRouter();
-  const { toast, showToast, hideToast } = useToast();
+  const { showToast } = useToast();
   const { user, isLoggedIn } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -197,10 +197,10 @@ export default function RegisterEmpresaScreen() {
     try {
       const result = await api.validarRut(formData.rut_empresa);
 
-      if (result.valido && result.existe) {
+      if (result.valido) {
         setFormData((prev) => ({
           ...prev,
-          razon_social: result.razon_social || '',
+          razon_social: result.razon_social || formData.rut_empresa,
           glosa_giro: result.glosa_giro || '',
         }));
         setRutValidated(true);
@@ -490,11 +490,7 @@ export default function RegisterEmpresaScreen() {
                   Validacion de RUT
                 </h2>
                 <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-                  Ingresa el RUT de tu empresa para validarlo con el SII
-                </p>
-                <p className="text-[10px] sm:text-xs text-[#F97316] mt-2 flex items-center justify-center gap-1">
-                  <Loader2 size={10} className="sm:w-3 sm:h-3" />
-                  La validacion puede tardar mas de 10 segundos
+                  Ingresa el RUT de tu empresa para validarlo
                 </p>
               </div>
 
@@ -553,16 +549,6 @@ export default function RegisterEmpresaScreen() {
                     <span className="font-medium text-[#166534]">
                       RUT Validado
                     </span>
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-[#334155]">
-                      <strong>Razon Social:</strong> {formData.razon_social}
-                    </p>
-                    {formData.glosa_giro && (
-                      <p className="text-[#64748B]">
-                        <strong>Giro:</strong> {formData.glosa_giro}
-                      </p>
-                    )}
                   </div>
                 </div>
               )}

@@ -75,9 +75,9 @@ export function GeolocationButton({
       </button>
 
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-[#1E293B] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+      <div className="absolute top-full right-0 mt-2 px-3 py-1.5 bg-[#1E293B] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
         {getTooltip()}
-        <div className="absolute top-full right-4 border-4 border-transparent border-t-[#1E293B]" />
+        <div className="absolute bottom-full right-4 border-4 border-transparent border-b-[#1E293B]" />
       </div>
     </div>
   );
