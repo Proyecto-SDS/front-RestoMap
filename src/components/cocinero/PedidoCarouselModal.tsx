@@ -11,7 +11,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pedido } from '../../screens/cocinero/DashboardCocineroScreen';
 import { api } from '../../utils/apiClient';
 import { PrimaryButton } from '../buttons/PrimaryButton';
-import { Toast, useToast } from '../notifications/Toast';
 
 interface PedidoCarouselModalProps {
   pedidos: Pedido[];
@@ -31,7 +30,7 @@ export function PedidoCarouselModal({
   onRefresh,
 }: PedidoCarouselModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Swipe state
@@ -195,12 +194,11 @@ export function PedidoCarouselModal({
         TERMINADO: 'Pedido listo!',
       };
 
-      showToast('success', messages[newEstado]);
+      console.log(messages[newEstado]);
 
       // NO cerrar el modal - el pedido permanece en el carrusel
     } catch (error) {
       console.error('Error al actualizar pedido:', error);
-      showToast('error', 'Error al actualizar pedido');
     } finally {
       setIsLoading(false);
     }
@@ -500,16 +498,6 @@ export function PedidoCarouselModal({
           </span>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
     </>
   );
 }

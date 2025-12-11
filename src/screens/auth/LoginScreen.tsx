@@ -28,7 +28,6 @@ export default function LoginScreen() {
     userType,
     user,
   } = useAuth();
-  const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     correo: '',
@@ -104,8 +103,6 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      showToast('success', `Bienvenido a RestoMap!`);
-
       // Esperar un momento para que el estado se actualice
       setTimeout(() => {
         // Obtener el usuario actualizado del localStorage

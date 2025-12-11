@@ -25,7 +25,7 @@ import { ProductosManagement } from '../../components/gerente/ProductosManagemen
 import { MesaDetailContent } from '../../components/mesero/MesaDetailContent';
 import { ReservasManagement } from '../../components/mesero/ReservasManagement';
 import { TablasMapa } from '../../components/mesero/TablasMapa';
-import { Toast, useToast } from '../../components/notifications/Toast';
+
 import {
   MiPerfilEmpleado,
   PanelSidebar,
@@ -49,7 +49,6 @@ interface Empleado {
 export default function DashboardGerenteScreen() {
   const { user } = useAuth();
   const { socket } = useSocket();
-  const { toast, showToast, hideToast } = useToast();
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -263,12 +262,10 @@ export default function DashboardGerenteScreen() {
   }, [empleados]);
 
   const handleInviteSuccess = () => {
-    showToast('success', 'Invitación enviada exitosamente');
     // Refresh empleados list
   };
 
   const handleEditSuccess = () => {
-    showToast('success', 'Empleado actualizado exitosamente');
     // Refresh empleados list
   };
 
@@ -282,10 +279,9 @@ export default function DashboardGerenteScreen() {
       setEmpleados((prev) =>
         prev.filter((emp) => emp.id !== showDeleteConfirm)
       );
-      showToast('success', 'Empleado removido del local');
       setShowDeleteConfirm(null);
     } catch {
-      showToast('error', 'Error al remover empleado');
+      console.error('Error al remover empleado');
     }
   };
 
@@ -541,16 +537,6 @@ export default function DashboardGerenteScreen() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
       )}
 
       {/* Modal Mi Perfil */}

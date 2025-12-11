@@ -29,7 +29,7 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
 // Validar token de Mapbox
 if (!mapboxgl.accessToken) {
-  console.error('⚠MAPBOX TOKEN NO CONFIGURADO');
+  console.error('MAPBOX TOKEN NO CONFIGURADO');
 }
 
 // Map center: Santiago, Chile
@@ -1251,7 +1251,16 @@ export default function MapScreen() {
               <FilterChip
                 label="Mis Favoritos"
                 active={showOnlyFavorites}
-                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                onClick={() => {
+                  if (!showOnlyFavorites) {
+                    // Al activar favoritos, reiniciar el tipo a Todos
+                    setShowOnlyFavorites(true);
+                    setSelectedType('Todos');
+                  } else {
+                    // Al desactivar favoritos, volver a mostrar todos
+                    setShowOnlyFavorites(false);
+                  }
+                }}
               />
             )}
           </div>
@@ -1307,12 +1316,21 @@ export default function MapScreen() {
             mapRef={mapRef}
           />
 
-          {/* Mobile: List button */}
+          {/* Mobile: List button - moves up when info/route panel is visible */}
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="md:hidden fixed bottom-6 left-6 z-999 bg-white shadow-lg rounded-xl px-4 py-3 flex items-center gap-2 hover:shadow-xl transition-shadow"
+            className={`
+              md:hidden fixed left-4 z-[999] bg-white shadow-lg rounded-xl px-3 py-2.5 flex items-center gap-2 hover:shadow-xl transition-all duration-300
+              ${
+                showInfoPanel && selectedDestination && !routeMode
+                  ? 'bottom-[220px]'
+                  : routeMode && currentRoute
+                  ? 'bottom-[180px]'
+                  : 'bottom-4'
+              }
+            `}
           >
-            <Menu size={20} className="text-[#334155]" />
+            <Menu size={18} className="text-[#334155]" />
             <span className="text-sm text-[#334155]">
               Listado ({searchedEstablishments.length})
             </span>

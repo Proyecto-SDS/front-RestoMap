@@ -4,7 +4,7 @@ import { ArrowLeft, Building2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import HistorialPedidos from '../../components/cliente/HistorialPedidos';
-import { Toast, useToast } from '../../components/notifications/Toast';
+
 import { ConfirmDialog } from '../../components/profile/ConfirmDialog';
 import { EditProfileModal } from '../../components/profile/EditProfileModal';
 import { FavoriteData } from '../../components/profile/FavoriteCard';
@@ -27,8 +27,7 @@ import { SortFunctions } from '../../utils/sorting';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout, updateProfile } = useAuth();
-  const { toast, showToast, hideToast } = useToast();
+  const { user, logout, updateProfile, isLoading } = useAuth();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<
@@ -37,7 +36,7 @@ export default function ProfileScreen() {
 
   // Load data using custom hook
   const { reservations, opinions, favorites, setReservations, setFavorites } =
-    useProfileData(user?.id, (error) => showToast('error', error));
+    useProfileData(user?.id);
 
   // Pagination state
   const [reservationPage, setReservationPage] = useState(1);
@@ -66,12 +65,12 @@ export default function ProfileScreen() {
     itemId: string | null;
   }>({ isOpen: false, type: null, itemId: null });
 
-  // Redirect if not logged in
+  // Redirect if not logged in (wait for loading to complete)
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/login');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   // Filter and sort reservations using custom hook
   const filteredReservations = useFilteredReservations(
@@ -156,20 +155,14 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     logout();
-    showToast('success', 'Sesión cerrada correctamente');
-    setTimeout(() => {
-      router.push('/login');
-    }, 1000);
+    router.push('/login');
   };
 
   const handleUpdateProfile = async (nombre: string, telefono: string) => {
     const result = await updateProfile(nombre, telefono);
 
     if (result.success) {
-      showToast('success', 'Perfil actualizado correctamente');
       setIsEditProfileModalOpen(false);
-    } else {
-      showToast('error', result.error || 'Error al actualizar perfil');
     }
 
     return result;
@@ -194,7 +187,6 @@ export default function ProfileScreen() {
           r.id === itemId ? { ...r, estado: 'cancelled' as const } : r
         )
       );
-      showToast('success', 'Reserva cancelada correctamente');
       setSelectedReservation(null);
     } else if (type === 'remove_favorite') {
       const favorite = favorites.find((f) => f.id === itemId);
@@ -203,11 +195,9 @@ export default function ProfileScreen() {
           .removeFavorite(favorite.establishment.id)
           .then(() => {
             setFavorites((prev) => prev.filter((f) => f.id !== itemId));
-            showToast('success', 'Eliminado de favoritos');
           })
           .catch((error) => {
             console.error('Error removing favorite:', error);
-            showToast('error', 'Error al eliminar favorito');
           });
       }
     }
@@ -218,12 +208,19 @@ export default function ProfileScreen() {
   const handleCopyConfirmation = () => {
     if (selectedReservation) {
       navigator.clipboard.writeText(selectedReservation.codigo_confirmacion);
-      showToast('success', 'Código copiado al portapapeles');
     }
   };
 
-  if (!user) {
-    return null;
+  // Show loading state or nothing while checking auth
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F1F5F9]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#F97316] border-t-transparent mb-4" />
+          <p className="text-[#64748B]">Cargando perfil...</p>
+        </div>
+      </div>
+    );
   }
 
   const getConfirmDialogProps = () => {
@@ -417,15 +414,6 @@ export default function ProfileScreen() {
         user={user}
         onUpdate={handleUpdateProfile}
       />
-
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
     </div>
   );
 }

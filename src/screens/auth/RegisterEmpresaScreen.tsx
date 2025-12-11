@@ -204,13 +204,11 @@ export default function RegisterEmpresaScreen() {
           glosa_giro: result.glosa_giro || '',
         }));
         setRutValidated(true);
-        showToast('success', 'RUT validado correctamente');
       }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error al validar RUT';
       setErrors({ rut_empresa: errorMessage });
-      showToast('error', errorMessage);
     } finally {
       setIsValidatingRut(false);
     }
@@ -403,7 +401,7 @@ export default function RegisterEmpresaScreen() {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error al registrar empresa';
-      showToast('error', errorMessage);
+      setErrors({ general: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -1077,16 +1075,6 @@ export default function RegisterEmpresaScreen() {
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
 
       {/* Terms Modal */}
       <TermsModal

@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/buttons/PrimaryButton';
 import { TermsModal } from '../../components/modals/TermsModal';
-import { Toast, useToast } from '../../components/notifications/Toast';
+
 import { useAuth } from '../../context/AuthContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register, isLoggedIn } = useAuth();
-  const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -125,12 +124,12 @@ export default function RegisterScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      showToast('success', '¡Cuenta creada! Redirigiéndote a login...');
+      // Redirigir al login tras creación exitosa
       setTimeout(() => {
         router.push('/login');
-      }, 2000);
+      }, 500);
     } else {
-      showToast('error', result.error || 'Error al crear la cuenta');
+      setErrors({ general: result.error || 'Error al crear la cuenta' });
     }
   };
 
@@ -542,16 +541,6 @@ export default function RegisterScreen() {
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
-      )}
 
       {/* Terms Modal */}
       <TermsModal

@@ -45,7 +45,7 @@ const styles = {
   logoGlow: {
     position: 'absolute' as const,
     inset: '-4px',
-    background: 'linear-gradient(135deg, #F97316 0%, #EF4444 100%)',
+    background: 'linear-gradient(135deg, #f9741663 0%, #EF4444 100%)',
     borderRadius: '16px',
     filter: 'blur(12px)',
     opacity: 0.4,
@@ -165,15 +165,13 @@ function SidebarContent({
           {/* Logo con efecto glow */}
           <div style={styles.logoContainer}>
             <div style={styles.logoGlow} />
-            <div style={styles.logoBox}>
-              <Image
-                src="/logo.png"
-                alt="RestoMap"
-                width={36}
-                height={36}
-                className="object-contain"
-              />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="RestoMap"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
           </div>
 
           {/* Texto del brand */}
