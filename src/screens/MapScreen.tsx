@@ -1337,7 +1337,7 @@ export default function MapScreen() {
           </button>
 
           {/* Geolocation Button - Top right controls */}
-          <div className="absolute top-4 right-14 z-50">
+          <div className="absolute top-4 right-14 z-40">
             <GeolocationButton
               status={geolocation.status}
               onRequestLocation={geolocation.requestPosition}
