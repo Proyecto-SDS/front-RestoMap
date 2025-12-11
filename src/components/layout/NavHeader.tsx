@@ -515,13 +515,15 @@ export function NavHeader() {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={handleLoginClick}
-                  className="flex items-center justify-center gap-2 mx-4 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
-                >
-                  <User size={18} />
-                  <span>Ingresar</span>
-                </button>
+                <div className="px-4">
+                  <button
+                    onClick={handleLoginClick}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <User size={18} />
+                    <span>Ingresar</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -445,16 +445,16 @@ export function LocalConfigManager() {
       )}
 
       {/* Información Básica */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg text-[#334155] flex items-center gap-2">
-            <Store size={20} className="text-[#F97316]" />
-            Información del Local
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+            <Store size={18} className="text-[#F97316] shrink-0" />
+            <span className="truncate">Información del Local</span>
           </h2>
           {!editingInfo && (
-            <SecondaryButton onClick={() => setEditingInfo(true)}>
-              <Edit2 size={16} />
-              Editar
+            <SecondaryButton onClick={() => setEditingInfo(true)} size="sm">
+              <Edit2 size={14} />
+              <span className="hidden sm:inline">Editar</span>
             </SecondaryButton>
           )}
         </div>
@@ -627,16 +627,16 @@ export function LocalConfigManager() {
       </div>
 
       {/* Horarios */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg text-[#334155] flex items-center gap-2">
-            <Clock size={20} className="text-[#F97316]" />
-            Horarios de Atención
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+            <Clock size={18} className="text-[#F97316] shrink-0" />
+            <span className="truncate">Horarios de Atencion</span>
           </h2>
           {!editingHorarios && (
-            <SecondaryButton onClick={() => setEditingHorarios(true)}>
-              <Edit2 size={16} />
-              Editar
+            <SecondaryButton onClick={() => setEditingHorarios(true)} size="sm">
+              <Edit2 size={14} />
+              <span className="hidden sm:inline">Editar</span>
             </SecondaryButton>
           )}
         </div>
@@ -759,16 +759,16 @@ export function LocalConfigManager() {
       </div>
 
       {/* Redes Sociales */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg text-[#334155] flex items-center gap-2">
-            <Globe size={20} className="text-[#F97316]" />
-            Redes Sociales
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+            <Globe size={18} className="text-[#F97316] shrink-0" />
+            <span className="truncate">Redes Sociales</span>
           </h2>
           {!editingRedes && (
-            <SecondaryButton onClick={() => setEditingRedes(true)}>
-              <Edit2 size={16} />
-              Editar
+            <SecondaryButton onClick={() => setEditingRedes(true)} size="sm">
+              <Edit2 size={14} />
+              <span className="hidden sm:inline">Editar</span>
             </SecondaryButton>
           )}
         </div>
@@ -873,11 +873,11 @@ export function LocalConfigManager() {
       </div>
 
       {/* Imágenes del Local */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg text-[#334155] flex items-center gap-2">
-            <ImageIcon size={20} className="text-[#F97316]" />
-            Imágenes del Local
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h2 className="text-base sm:text-lg text-[#334155] flex items-center gap-2">
+            <ImageIcon size={18} className="text-[#F97316] shrink-0" />
+            <span className="truncate">Imagenes del Local</span>
           </h2>
         </div>
 

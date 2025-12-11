@@ -1,6 +1,8 @@
 'use client';
 
 import { MapPin, Navigation, Star, X } from 'lucide-react';
+import Image from 'next/image';
+import { useState } from 'react';
 
 import type { Establishment } from '../../types';
 import { StatusBadge } from '../badges/StatusBadge';
@@ -19,9 +21,14 @@ export function EstablishmentInfoPanel({
   onGetDirections,
   hasUserLocation,
 }: EstablishmentInfoPanelProps) {
+  const [imageError, setImageError] = useState(false);
+
+  // Determinar si hay una imagen valida
+  const hasValidImage = establishment.image && !imageError;
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-sm w-full">
-      {/* Header with close button */}
+      {/* Header with banner image */}
       <div className="relative">
         <button
           onClick={onClose}
@@ -31,9 +38,27 @@ export function EstablishmentInfoPanel({
           <X size={16} className="text-[#64748B]" />
         </button>
 
-        {/* Mini image header */}
-        <div className="h-20 bg-gradient-to-r from-[#F97316] to-[#EA580C] flex items-center px-4">
-          <div className="flex-1">
+        {/* Banner image or gradient fallback */}
+        <div className="h-28 relative overflow-hidden">
+          {hasValidImage ? (
+            <>
+              <Image
+                src={establishment.image}
+                alt={`Banner de ${establishment.name}`}
+                fill
+                className="object-cover"
+                onError={() => setImageError(true)}
+                sizes="(max-width: 384px) 100vw, 384px"
+              />
+              {/* Overlay gradient for better text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-[#F97316] to-[#EA580C]" />
+          )}
+
+          {/* Type badge positioned at bottom left */}
+          <div className="absolute bottom-3 left-3">
             <TypeBadge type={establishment.type} />
           </div>
         </div>
@@ -88,17 +113,17 @@ export function EstablishmentInfoPanel({
                   : 'bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed'
               }
             `}
-            title={!hasUserLocation ? 'Activa tu ubicación para ver rutas' : ''}
+            title={!hasUserLocation ? 'Activa tu ubicacion para ver rutas' : ''}
           >
             <Navigation size={16} />
-            <span>Cómo llegar</span>
+            <span>Como llegar</span>
           </button>
         </div>
 
         {/* Location warning */}
         {!hasUserLocation && (
           <p className="mt-2 text-xs text-[#94A3B8] text-center">
-            Activa tu ubicación para calcular rutas
+            Activa tu ubicacion para calcular rutas
           </p>
         )}
       </div>

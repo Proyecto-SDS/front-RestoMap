@@ -390,7 +390,7 @@ export default function DashboardGerenteScreen() {
         {/* Content Container */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Main content area */}
-          <main className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto bg-[#F8FAFC]">
             {/* Empleados Section */}
             {activeSection === 'empleados' && (
               <>

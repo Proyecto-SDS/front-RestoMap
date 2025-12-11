@@ -1,6 +1,7 @@
 'use client';
 
-import { Car, Footprints, X } from 'lucide-react';
+import { Bike, Car, ChevronUp, Footprints, X } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { TransportMode } from '../../services/mapboxRouteService';
 import {
   formatDistance,
@@ -14,6 +15,7 @@ interface RoutePanelProps {
   mode: TransportMode;
   onModeChange: (mode: TransportMode) => void;
   onClose: () => void;
+  onStartNavigation?: () => void; // Callback para zoom/inclinacion en el mapa
   isLoading?: boolean;
 }
 
@@ -24,14 +26,102 @@ export function RoutePanel({
   mode,
   onModeChange,
   onClose,
+  onStartNavigation,
   isLoading = false,
 }: RoutePanelProps) {
+  const isMobile = useIsMobile();
+
   const modes: { key: TransportMode; label: string; icon: React.ReactNode }[] =
     [
       { key: 'driving-traffic', label: 'Auto', icon: <Car size={18} /> },
+      { key: 'cycling', label: 'Bicicleta', icon: <Bike size={18} /> },
       { key: 'walking', label: 'A pie', icon: <Footprints size={18} /> },
     ];
 
+  // Handler para el boton de navegacion
+  const handleNavigationClick = () => {
+    if (onStartNavigation) {
+      onStartNavigation();
+    }
+  };
+
+  // Version mobile - Botones circulares con flecha de navegacion
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        {/* Barra de info compacta */}
+        <div className="bg-white/95 backdrop-blur-sm mx-4 mb-3 rounded-2xl shadow-lg px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-[#64748B]">Ruta hacia</p>
+              <h3 className="text-sm font-semibold text-[#334155] truncate">
+                {destinationName}
+              </h3>
+              {!isLoading && (
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  {formatDuration(duration)} - {formatDistance(distance)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-[#F1F5F9] rounded-full transition-colors ml-2"
+              aria-label="Cerrar ruta"
+            >
+              <X size={20} className="text-[#64748B]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Botones de modo de transporte + Boton de navegacion */}
+        <div className="flex items-center justify-center gap-3 px-4 pb-4">
+          {/* Selector de modos pequeno */}
+          <div className="flex bg-white/95 backdrop-blur-sm rounded-full shadow-lg p-1">
+            {modes.map(({ key, icon }) => (
+              <button
+                key={key}
+                onClick={() => onModeChange(key)}
+                disabled={isLoading}
+                className={`
+                  p-3 rounded-full transition-all
+                  ${
+                    mode === key
+                      ? 'bg-[#F97316] text-white shadow-md'
+                      : 'text-[#64748B] hover:bg-[#F8FAFC]'
+                  }
+                  ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+                aria-label={key}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+
+          {/* Boton grande de navegacion con flecha */}
+          <button
+            onClick={handleNavigationClick}
+            disabled={isLoading}
+            className={`
+              w-16 h-16 rounded-full bg-gradient-to-br from-[#F97316] to-[#EA580C] 
+              text-white shadow-xl flex items-center justify-center
+              active:scale-95 transition-transform
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
+            aria-label="Enfocar destino"
+          >
+            {isLoading ? (
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <ChevronUp size={32} strokeWidth={3} />
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Version desktop - Panel clasico
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}

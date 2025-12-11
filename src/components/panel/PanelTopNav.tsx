@@ -163,11 +163,11 @@ export function PanelTopNav({
     <header className="flex-shrink-0" style={styles.header}>
       <div className="flex items-center justify-between px-4 lg:px-6 py-3">
         {/* ===== SECCION IZQUIERDA ===== */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
           {/* Boton menu mobile */}
           <button
             onClick={onToggleMobileMenu}
-            className="lg:hidden hover:bg-white/10 transition-colors"
+            className="lg:hidden hover:bg-white/10 transition-colors shrink-0"
             style={styles.menuButton}
             aria-label="Abrir menu"
           >
@@ -175,21 +175,21 @@ export function PanelTopNav({
           </button>
 
           {/* Info de pagina */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm lg:text-base font-semibold text-white">
+          <div className="flex flex-col min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-xs sm:text-sm lg:text-base font-semibold text-white truncate">
                 {pageTitle || localName}
               </h1>
               {pageTitle && (
                 <>
-                  <span className="hidden sm:block text-slate-600">•</span>
-                  <span className="hidden sm:block text-sm text-slate-500 font-medium">
+                  <span className="hidden lg:block text-slate-600">-</span>
+                  <span className="hidden lg:block text-sm text-slate-500 font-medium truncate">
                     {localName}
                   </span>
                 </>
               )}
             </div>
-            <p className="hidden md:block text-xs text-slate-600 mt-0.5">
+            <p className="hidden lg:block text-xs text-slate-600 mt-0.5 truncate">
               {pageDescription || panelName}
             </p>
           </div>

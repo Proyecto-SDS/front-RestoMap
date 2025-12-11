@@ -1169,13 +1169,26 @@ export default function MapScreen() {
     setSelectedDestination(null);
   }, []);
 
-  // Handler para centrar en ubicación del usuario
+  // Handler para centrar en ubicacion del usuario
   const handleCenterOnUser = useCallback(() => {
     if (geolocation.position && mapRef.current) {
       mapRef.current.flyTo({
         center: [geolocation.position.lng, geolocation.position.lat],
         zoom: 15,
         duration: 1000,
+      });
+    }
+  }, [geolocation.position]);
+
+  // Handler para enfocar al usuario con zoom e inclinacion (estilo navegacion)
+  const handleFocusOnUser = useCallback(() => {
+    if (geolocation.position && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [geolocation.position.lng, geolocation.position.lat],
+        zoom: 17,
+        pitch: 60, // Inclinacion 3D
+        bearing: 0,
+        duration: 1500,
       });
     }
   }, [geolocation.position]);
@@ -1316,16 +1329,15 @@ export default function MapScreen() {
             mapRef={mapRef}
           />
 
-          {/* Mobile: List button - moves up when info/route panel is visible */}
+          {/* Mobile: List button - moves below filters when panel is visible */}
           <button
             onClick={() => setIsDrawerOpen(true)}
             className={`
-              md:hidden fixed left-4 z-[999] bg-white shadow-lg rounded-xl px-3 py-2.5 flex items-center gap-2 hover:shadow-xl transition-all duration-300
+              md:hidden fixed left-4 z-50 bg-white shadow-lg rounded-xl px-3 py-2.5 flex items-center gap-2 hover:shadow-xl transition-all duration-300
               ${
-                showInfoPanel && selectedDestination && !routeMode
-                  ? 'bottom-[220px]'
-                  : routeMode && currentRoute
-                  ? 'bottom-[180px]'
+                (showInfoPanel && selectedDestination && !routeMode) ||
+                (routeMode && currentRoute)
+                  ? 'top-[140px]'
                   : 'bottom-4'
               }
             `}
@@ -1368,6 +1380,7 @@ export default function MapScreen() {
                 mode={transportMode}
                 onModeChange={handleTransportModeChange}
                 onClose={handleCloseRoute}
+                onStartNavigation={handleFocusOnUser}
                 isLoading={isRouteLoading}
               />
             </div>

@@ -58,6 +58,9 @@ export default function ProfileScreen() {
     useState<ReservationData | null>(null);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
+  // Historial count
+  const [historialCount, setHistorialCount] = useState<number>(0);
+
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -71,6 +74,21 @@ export default function ProfileScreen() {
       router.push('/login');
     }
   }, [user, isLoading, router]);
+
+  // Load historial count
+  useEffect(() => {
+    const loadHistorialCount = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await api.cliente.getHistorial();
+        setHistorialCount(response.historial?.length || 0);
+      } catch (error) {
+        console.error('Error loading historial count:', error);
+        setHistorialCount(0);
+      }
+    };
+    loadHistorialCount();
+  }, [user?.id]);
 
   // Filter and sort reservations using custom hook
   const filteredReservations = useFilteredReservations(
@@ -144,8 +162,9 @@ export default function ProfileScreen() {
       }).length,
       totalOpinions: opinions.length,
       totalFavorites: favorites.length,
+      totalHistorial: historialCount,
     }),
-    [reservations, opinions, favorites]
+    [reservations, opinions, favorites, historialCount]
   );
 
   // Handlers

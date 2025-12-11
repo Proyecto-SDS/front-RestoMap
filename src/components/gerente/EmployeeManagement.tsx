@@ -75,13 +75,13 @@ export function EmployeeManagement({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
       {/* Tabs */}
-      <div className="border-b border-[#E2E8F0] mb-6">
-        <div className="flex gap-4">
+      <div className="border-b border-[#E2E8F0] mb-4 sm:mb-6">
+        <div className="flex gap-4 overflow-x-auto">
           <button
             onClick={() => setActiveTab('empleados')}
-            className={`pb-3 px-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`pb-3 px-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === 'empleados'
                 ? 'text-[#F97316] border-[#F97316]'
                 : 'text-[#64748B] border-transparent hover:text-[#334155]'
@@ -91,7 +91,7 @@ export function EmployeeManagement({
           </button>
           <button
             onClick={() => setActiveTab('invitaciones')}
-            className={`pb-3 px-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`pb-3 px-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === 'invitaciones'
                 ? 'text-[#F97316] border-[#F97316]'
                 : 'text-[#64748B] border-transparent hover:text-[#334155]'
@@ -107,17 +107,26 @@ export function EmployeeManagement({
         <InvitationsList />
       ) : (
         <>
-          {/* Header - Solo filtros */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <p className="text-sm text-[#94A3B8]">
-              {filteredEmpleados.length} empleado
-              {filteredEmpleados.length !== 1 ? 's' : ''} registrados
-            </p>
+          {/* Header - Filtros */}
+          <div className="flex flex-col gap-4 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-[#94A3B8]">
+                {filteredEmpleados.length} empleado
+                {filteredEmpleados.length !== 1 ? 's' : ''} registrados
+              </p>
+              <PrimaryButton
+                onClick={onInvite}
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                + Invitar Empleado
+              </PrimaryButton>
+            </div>
 
             {/* Filtros y buscador */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               {/* Buscador */}
-              <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+              <div className="relative flex-1">
                 <input
                   type="text"
                   value={searchQuery}
@@ -135,14 +144,14 @@ export function EmployeeManagement({
               </div>
 
               {/* Role filter */}
-              <div className="relative">
+              <div className="relative shrink-0">
                 <select
                   value={filterRole}
                   onChange={(e) => {
                     setFilterRole(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="appearance-none pl-10 pr-4 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] bg-white focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
+                  className="w-full sm:w-auto appearance-none pl-10 pr-8 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#334155] bg-white focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 focus:border-[#F97316]"
                 >
                   {roles.map((role) => (
                     <option key={role} value={role}>
@@ -155,21 +164,70 @@ export function EmployeeManagement({
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]"
                 />
               </div>
-
-              <PrimaryButton onClick={onInvite} size="sm">
-                + Invitar Empleado
-              </PrimaryButton>
             </div>
           </div>
 
-          {/* Table */}
+          {/* Lista de empleados */}
           {paginatedEmpleados.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-[#94A3B8]">No hay empleados</p>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile: Cards */}
+              <div className="sm:hidden space-y-3">
+                {paginatedEmpleados.map((empleado) => (
+                  <div
+                    key={empleado.id}
+                    className="bg-[#F8FAFC] rounded-xl p-4 border border-[#E2E8F0]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#F97316] to-[#EF4444] rounded-full flex items-center justify-center shrink-0">
+                          <span className="text-white text-sm font-medium">
+                            {getInitials(empleado.nombre)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#334155] truncate">
+                            {empleado.nombre}
+                          </p>
+                          <p className="text-xs text-[#64748B] truncate">
+                            {empleado.correo}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 px-2 py-1 rounded-full text-xs ${getRoleBadgeColor(
+                          empleado.rol
+                        )}`}
+                      >
+                        {empleado.rol.charAt(0).toUpperCase() +
+                          empleado.rol.slice(1)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#E2E8F0]">
+                      <button
+                        onClick={() => onEdit(empleado)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#64748B] hover:text-[#F97316] hover:bg-orange-50 rounded-lg transition-colors"
+                      >
+                        <Pencil size={14} />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => onDelete(empleado.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#64748B] hover:text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#E2E8F0]">
@@ -195,7 +253,7 @@ export function EmployeeManagement({
                       >
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-linear-to-br from-[#F97316] to-[#EF4444] rounded-full flex items-center justify-center shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#F97316] to-[#EF4444] rounded-full flex items-center justify-center shrink-0">
                               <span className="text-white text-sm">
                                 {getInitials(empleado.nombre)}
                               </span>
@@ -246,9 +304,9 @@ export function EmployeeManagement({
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-[#E2E8F0]">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-[#E2E8F0]">
                   <p className="text-sm text-[#94A3B8]">
-                    Página {currentPage} de {totalPages}
+                    Pagina {currentPage} de {totalPages}
                   </p>
                   <div className="flex gap-2">
                     <SecondaryButton

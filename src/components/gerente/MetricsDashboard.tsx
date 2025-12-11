@@ -69,7 +69,7 @@ export function MetricsDashboard({
   return (
     <div className="space-y-6">
       {/* Header with filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-xl text-[#334155] mb-1">Métricas y Reportes</h2>
@@ -101,8 +101,8 @@ export function MetricsDashboard({
       </div>
 
       {/* Revenue & Orders Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
           <h3 className="text-[#334155] mb-2">Ingresos Totales</h3>
           <p className="text-3xl text-[#F97316] mb-1">
             {formatCurrency(3450000)}
@@ -127,7 +127,7 @@ export function MetricsDashboard({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
           <h3 className="text-[#334155] mb-2">Órdenes Completadas</h3>
           <p className="text-3xl text-blue-600 mb-1">287</p>
           <p className="text-sm text-[#64748B] mb-4">
@@ -149,9 +149,9 @@ export function MetricsDashboard({
       </div>
 
       {/* Top & Low Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top 5 productos más vendidos */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Top 5 productos mas vendidos */}
+        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
           <h3 className="text-[#334155] mb-6">Top 5 Más Vendidos</h3>
           <div style={{ width: '100%', height: '320px', minHeight: '320px' }}>
             <ResponsiveContainer width="100%" height={320}>
@@ -182,7 +182,7 @@ export function MetricsDashboard({
         </div>
 
         {/* Top 5 productos menos vendidos */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
           <h3 className="text-[#334155] mb-6">Top 5 Menos Vendidos</h3>
           <div style={{ width: '100%', height: '320px', minHeight: '320px' }}>
             <ResponsiveContainer width="100%" height={320}>
@@ -210,7 +210,7 @@ export function MetricsDashboard({
       </div>
 
       {/* Sales Timeline */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
         <h3 className="text-[#334155] mb-6">Ventas Diarias (Este Mes)</h3>
         <div style={{ width: '100%', height: '320px', minHeight: '320px' }}>
           <ResponsiveContainer width="100%" height={320}>
@@ -249,7 +249,7 @@ export function MetricsDashboard({
       </div>
 
       {/* Categories Distribution */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-4 sm:p-6">
         <h3 className="text-[#334155] mb-6">Distribución por Categorías</h3>
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div
